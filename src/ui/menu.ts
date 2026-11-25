@@ -20,8 +20,8 @@ export class Menu {
     this.root.addEventListener('keydown', e => { const b = [...this.root.querySelectorAll<HTMLButtonElement>('nav button')], i = b.indexOf(document.activeElement as HTMLButtonElement), s = /^(ArrowDown|KeyS)$/.test(e.code) ? 1 : /^(ArrowUp|KeyW)$/.test(e.code) ? -1 : 0; if (s) { e.preventDefault(); b[(i + s + b.length) % b.length].focus(); } });
     this.labels();
   }
-  /** Offer the other fight by name, or nothing. */
-  other(label: string) { const b = this.root.querySelector<HTMLButtonElement>('[data-b=other]')!; b.hidden = !label; b.textContent = label; }
+  /** Both fights, in order: this page's is Play, the other leaves for its own page. */
+  fights(here: string, other: string, otherFirst: boolean) { const p = this.root.querySelector<HTMLButtonElement>('[data-b=play]')!, o = this.root.querySelector<HTMLButtonElement>('[data-b=other]')!; p.textContent = here; o.textContent = other; o.hidden = false; if (otherFirst) p.before(o); else p.after(o); }
   private labels() { const set = (k: string, t: string) => { const b = this.root.querySelector(`[data-b=${k}]`); if (b) b.textContent = t; }; set('full', isFullscreen() ? 'Leave full screen' : 'Full screen'); set('sound', sound.muted ? 'Sound: off' : 'Sound: on'); }
   show() { this.open = true; this.labels(); document.body.classList.add('menu'); document.exitPointerLock?.(); this.root.querySelector<HTMLButtonElement>('[data-b=play]')!.focus({ preventScroll: true }); }
   private close() { this.open = false; document.body.classList.remove('menu'); (document.activeElement as HTMLElement | null)?.blur(); }

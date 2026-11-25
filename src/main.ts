@@ -98,7 +98,7 @@ async function boot() {
   const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
   const direct0 = !!(SHOT || BENCH);
   const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
-  const menu = new Menu(app, () => hud.controls()), still = fight.passive; menu.other(settings.beaten & 1 ? 'The Ferryman' : ''); menu.onOther = () => { location.search = '?boss=2'; };
+  const menu = new Menu(app, () => hud.controls()), still = fight.passive; menu.fights('The Hanged King', 'The Ferryman', false); menu.onOther = () => { location.search = '?boss=2'; };
   /** Back to the very start: the court at night, the hero at the gate. */
   const toMenu = () => { hud.setPaused(false); if (lessons.active) { lessons.active = false; lessons.frozen = null; } hud.lesson(null); hud.verse(''); ending.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.kneel(); king.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen;
