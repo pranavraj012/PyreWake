@@ -18,6 +18,13 @@ def('die', { dur: 3.4, blend: 0.16, fx: [{ t: 0.5, kind: 'dust' }, { t: 1.3, kin
   { t: 0.5, hy: -0.5, hp: 14, sp: 18, sw: 0, np: -10, ra: -10, re: -22, rl: 0.78, ba: 0, be: -84, la: 14, le: -40, ll: 0.7, lg: 1, flz: 0.12, flp: 20, frz: -0.34, frp: 56 },
   { t: 1.0, hy: -0.53, hp: 18, sp: 26, np: 6 }, { t: 2.0, sp: 34, np: 26 }, { t: 3.4, hy: -0.56, sp: 38, np: 32 } ] });
 
+// the Second Flame: down on one knee, then the chest catches
+def('rekindle', { dur: 1.9, chain: 1.35, free: 1.4, blend: 0.08, move: [[0, 0], [0.2, -1.2], [0.5, -1.6], [1.9, -1.6]], fx: [{ t: 0.4, kind: 'dust' }, { t: 0.95, kind: 'rekindle' }], keys: [
+  { t: 0, air: 0, tw: 0, hx: 0, hy: -0.2, hp: -10, hw: 0, sp: -18, sw: 10, np: 12, nw: 0, ra: -70, re: -20, rl: 0.8, ba: -80, be: -30, la: 70, le: -20, ll: 0.8, lg: 0, flx: 0.06, flz: 0.3, flw: 0, flp: 0, frx: -0.1, frz: -0.3, frw: -30, frp: 0, fly: 0, fry: 0 },
+  { t: 0.4, hy: -0.5, hp: 22, sp: 32, sw: 0, np: 14, ra: -60, re: -40, ba: -110, be: -24, la: -14, le: -24, ll: 0.42, xl: 40, flz: 0.2, frz: -0.38, frp: 56 }, { t: 0.85, hy: -0.52, sp: 36, np: 18 },
+  { t: 1.0, hy: -0.12, hp: -12, sp: -26, np: 26, ra: -96, re: 0, rl: 0.95, ba: -110, be: 10, la: 96, le: 0, ll: 0.95, xl: 8, frp: 10, flz: 0.26, frz: -0.28 }, { t: 1.35, sp: -22, np: 20 },
+  { t: 1.9, hy: -0.13, hp: 8, hw: -38, sp: 12, sw: 2, np: -14, nw: 34, ra: -58, re: -52, rl: 0.82, ba: -158, be: -24, la: 12, le: -38, ll: 0.62, frp: 0, frw: -62 } ] });
+
 // draw the pyre's heat back into the chest
 def('heal', { dur: 0.95, chain: 0.66, free: 0.7, blend: 0.14, fx: [{ t: 0.46, kind: 'heal' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.06, hp: 2, hw: -22, sp: 8, sw: -4, np: -4, nw: 16, ra: -66, re: -56, rl: 0.9, ba: -124, be: -34, la: 20, le: -50, ll: 0.7, lg: 0, xl: 26, flx: 0.06, flz: 0.18, flw: -4, frx: -0.08, frz: -0.2, frw: -56, flp: 0, frp: 0 },

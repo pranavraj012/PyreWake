@@ -1,5 +1,6 @@
 // The Khanda: a broad straight longsword. Everything specific to it lives here.
 import { clip, makePose, type Clip } from '../anim/pose.ts';
+import { addArts } from './khandaArts.ts';
 import { GUARD, addFinishers } from './khandaFinishers.ts';
 import type { Weapon } from './weapon.ts';
 
@@ -86,9 +87,10 @@ def('flick', { dur: 1.0, free: 0.0, blend: 0.14, fx: [{ t: 0.27, kind: 'flick' }
   { t: 0.42, ra: -70, re: -50, ba: -108, be: -42, sw: -10 },
   { t: 0.72, ra: -66, re: -60, ba: -116, be: -38, np: 8 }, { t: 1.0, ra: -62, re: -66, rl: 0.93, ba: -128, be: -33, sw: 6, sp: -3, np: 9 } ] });
 
-addFinishers(def);
+addFinishers(def); addArts(def);
 export const KHANDA: Weapon = {
   id: 'khanda', name: 'Khanda', geo: 'khanda', blade: [0.42, 1.0], reach: 1.95, arc: 75, damage: 10, trail: [1.5, 0.5, 0.12],
   rest: REST, ready: READY, guard: GUARD, clips: C,
+  alt: ['alt3', 'alt4', 'alt5'], from: { sprint: 'comet', dodgeF: 'lowTurn', dodgeB: 'flare', dodgeL: 'passR', dodgeR: 'passL', guard: 'palm', reckon: 'reckon', execute: 'execute' },
   combo: ['light1', 'light2', 'light3', 'light4', 'light5'], finishers: ['risingCut', 'cleave', 'thrust', 'groundSlam'], charge: 'charge', heavy: 'heavy',
 };

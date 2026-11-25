@@ -1,6 +1,7 @@
 // The Hanged King's poses, clips and attack data. No rendering imports.
 import { clip, makePose, type Clip } from '../anim/pose.ts';
 import { addMoves } from './moves.ts';
+import { addMoves2 } from './moves2.ts';
 
 export const STAND = makePose({ hx: 0, hy: -0.12, hz: -0.04, hp: 10, hw: 8, hr: -2, sp: 22, sw: -12, sr: 6, np: -38, nw: 6, nr: -14, ra: -38, re: -62, rl: 0.92, ba: -14, be: -26, la: 40, le: -58, ll: 0.9, xl: 6, flx: 0.1, flz: 0.34, flw: 10, frx: -0.1, frz: -0.22, frw: -22 });
 export const CRAWL = makePose({ hy: -0.82, hz: -0.5, hp: 62, sp: 22, np: -88, ra: -14, re: -50, rl: 0.8, ba: 170, be: 2, la: 14, le: -50, ll: 0.8, flx: 0.34, flz: -0.75, flw: 34, frx: -0.34, frz: -0.75, frw: -34 });
@@ -22,5 +23,5 @@ const K: Record<string, Clip> = {
     { t: 1.93, hw: -4, sw: -6, nw: 8, nr: 0, ra: -4, re: -12, rl: 1, ba: -2, be: 2, flz: 0.55, frz: -0.2, la: 60 }, { t: 2.06, hy: -0.3, hw: -40, sw: -40, nw: 60, ra: -86, re: -16, ba: -116, be: 0, la: 40, le: -30 },
     { t: 2.7, hw: -42, sw: -44, nw: 70, ra: -92, ba: -124, nr: -20 }, { t: 3.4, hy: -0.14, hw: 8, hp: 10, sp: 22, sw: -10, np: -38, nw: 6, nr: -14, ra: -38, re: -62, rl: 0.92, ba: -14, be: -26, la: 40, le: -58, flz: 0.34, frz: -0.22 } ] }),
 };
-addMoves(K);
+addMoves(K); addMoves2(K);
 export const KING_CLIPS = K;

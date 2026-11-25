@@ -29,15 +29,3 @@ K.fall = clip('fall', { dur: 6.6, blend: 0.2, fx: [{ t: 0.9, kind: 'thud' }, { t
   { t: 4.75, hy: -1.0, hp: 10, sp: 20, np: -30, nr: 48 }, { t: 5.1, hy: -0.98, nr: 50 }, { t: 5.25, hy: -0.5, hp: -4, sp: -14, np: 0, nr: -40, ra: -70, re: -40, la: 70, le: -40, flz: 0.2, flp: 0, frz: -0.3, frp: 0 }, { t: 5.7, hy: -0.48, sp: -16, nr: -44 },
   { t: 5.85, hy: -0.16, hp: 8, sp: 18, np: -34, nr: -14 }, { t: 6.6, hy: -0.14, hp: 10, hw: 8, sp: 22, sw: -10, np: -38, nw: 6, nr: -14, ra: -38, re: -62, rl: 0.92, ba: -14, be: -26, la: 40, le: -58, ll: 0.9, flz: 0.34, frz: -0.22 } ] });
 }
-
-/** white: dodge or guard. red: dodge only. */
-export interface Strike {
-  kind: 'white' | 'red'; t: [number, number]; cue: number; dmg: number; down?: boolean; mark: 'cleaver' | 'handL';
-  /** A box ahead (length, half width) or a sector (radius, half arc in degrees), metres from the King's centre. */
-  box?: [number, number]; arc?: [number, number];
-}
-export const ATTACKS: Record<string, Strike[]> = {
-  slam: [{ kind: 'white', cue: 0.7, t: [1.38, 1.52], dmg: 10, mark: 'cleaver', box: [4.2, 0.75] }],
-  sweep: [{ kind: 'white', cue: 0.3, t: [0.94, 1.1], dmg: 9, mark: 'cleaver', arc: [4.2, 105] }, { kind: 'white', cue: 1.26, t: [1.88, 2.02], dmg: 9, mark: 'cleaver', arc: [4.2, 105] }],
-  grab: [{ kind: 'red', cue: 0.56, t: [1.38, 1.52], dmg: 16, down: true, mark: 'handL', box: [3.0, 0.7] }],
-};

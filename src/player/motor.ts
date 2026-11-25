@@ -19,7 +19,8 @@ export class Motor {
   /** Seconds since the last attack or dodge: drives flick and idle behaviour. */ calm = 99;
   moveYaw = Math.PI; safe = 0; dodgeAge = 9; sprintT = 0; stopped = 0; private didFlick = true; private idleT = 0;
   guardHeld = false; /** Guard is up right now. */ guarding = false; /** Seconds since guard was raised. */ guardT = 9; private guardGap = 9;
-  dead = false; /** What the fight currently allows. */ can = { skill1: false, heal: false };
+  dead = false; /** What the fight currently allows. */ can = { skill1: false, skill2: false, ultimate: false, heal: false, execute: false };
+  /** Seconds left in which Attack answers a parry or a perfect dodge. */ reckoning = 0; private route: 'main' | 'alt' = 'main'; private guardedT = 9;
   rushFrom = { x: 0, z: 0 }; private rushDist = 6; private gap = 0;
   private buf: { a: string; t: number } | null = null; private lastMove = 0; private comboT = 0;
   events: string[] = []; started = 0; arena = 21.4; blockers: Blocker[] = []; target: Blocker | null = null;
@@ -37,7 +38,18 @@ export class Motor {
   /** Attacks close small gaps so a swing that looks in range is in range. */
   private closeGap() { if (!this.target || !this.clip?.hit) return; const d = this.targetDist - this.target.r - (moveAt(this.clip, this.clip.hit[1]) + (this.clip.reach ?? this.weapon.reach) - 0.55); this.gap = d > 0 && d < 1.7 ? d : 0; }
   private swing(name: string, mx: number, mz: number) { this.faceTarget(mx, mz); this.begin(name); this.closeGap(); this.didFlick = false; }
-  private attack(mx: number, mz: number) { if (this.comboT > 0.75) this.combo = 0; this.swing(this.weapon.combo[this.combo], mx, mz); this.combo = (this.combo + 1) % this.weapon.combo.length; this.comboT = 0; }
+  private attack(mx: number, mz: number) {
+    const W = this.weapon, F = W.from, was = this.clip?.name, near = this.targetDist < 5;
+    if (this.can.execute) { this.combo = 0; this.reckoning = 0; this.swing(F.execute, mx, mz); return; }
+    if (this.reckoning > 0 && near) { this.reckoning = 0; this.combo = 0; this.safe = 1.2; this.swing(F.reckon, mx, mz); return; }
+    const art = was === 'dodgeF' ? F.dodgeF : was === 'dodgeB' ? F.dodgeB : was === 'dodgeL' ? F.dodgeL : was === 'dodgeR' ? F.dodgeR : this.guardedT < 0.1 ? F.guard : this.state === 'free' && this.speed > 6.2 ? F.sprint : '';
+    // an art counts as the first hit, so the chain carries on from it
+    if (art) { this.swing(art, mx, mz); this.combo = art === F.dodgeB ? 0 : 1; this.route = 'main'; this.comboT = 0; this.sprintT = 0; return; }
+    if (this.comboT > 0.75) this.combo = 0;
+    if (this.combo === 0) this.route = 'main'; else if (this.combo === 2 && this.comboT > 0.2) this.route = 'alt';
+    this.swing(this.route === 'alt' ? W.alt[this.combo - 2] : W.combo[this.combo], mx, mz); this.combo = (this.combo + 1) % W.combo.length; this.comboT = 0;
+  }
+  private art(name: string, mx: number, mz: number) { this.combo = 0; this.guarding = false; this.didFlick = false; this.faceTarget(mx, mz, 18); this.begin(name); }
   private dodge(mx: number, mz: number) {
     const moving = Math.hypot(mx, mz) > 0.2, near = this.target && this.targetDist < 9;
     if (near) this.faceTarget(0, 0, 9);
@@ -70,13 +82,13 @@ export class Motor {
     for (const p of presses) {
       if (p.a === 'attack') { if (!p.up) { this.buf = { a: 'attack', t: 0 }; this.hold = 0; } else this.hold = -1; }
       else if (p.a === 'guard') { if (p.up) { this.guardHeld = false; this.guardGap = 0; } else { this.guardHeld = true; this.guardT = this.guardGap > 0.2 ? 0 : 9; } } // mashing Guard never parries
-      else if (!p.up && (p.a === 'dodge' || (p.a === 'skill1' && this.can.skill1) || (p.a === 'heal' && this.can.heal))) this.buf = { a: p.a, t: 0 };
-      else if (!p.up && (p.a === 'skill1' || p.a === 'heal')) this.events.push('deny:' + p.a);
+      else if (!p.up && (p.a === 'dodge' || (p.a === 'skill1' && this.can.skill1) || (p.a === 'skill2' && this.can.skill2) || (p.a === 'ultimate' && this.can.ultimate) || (p.a === 'heal' && this.can.heal))) this.buf = { a: p.a, t: 0 };
+      else if (!p.up && (p.a === 'skill1' || p.a === 'skill2' || p.a === 'ultimate' || p.a === 'heal')) this.events.push('deny:' + p.a);
     }
     if (this.hold >= 0) this.hold += dt;
     // a press stays buffered while we wait to learn whether it's a tap or a hold
     if (this.buf && (this.buf.t += dt) > BUFFER && !(this.buf.a === 'attack' && this.hold >= 0)) this.buf = null;
-    this.safe = Math.max(0, this.safe - dt); this.dodgeAge += dt; this.guardT += dt; this.guardGap += dt; this.comboT += this.state === 'free' || (this.clip?.chain !== undefined && this.t > this.clip.chain) ? dt : 0;
+    this.safe = Math.max(0, this.safe - dt); this.dodgeAge += dt; this.guardT += dt; this.guardGap += dt; this.guardedT += dt; this.reckoning -= dt; this.comboT += this.state === 'free' || (this.clip?.chain !== undefined && this.t > this.clip.chain) ? dt : 0;
     let dx = 0, dz = 0; const W = this.weapon;
 
     if (this.state === 'clip' && this.clip) {
@@ -89,7 +101,7 @@ export class Motor {
       // steer gently toward the target through an attack's wind-up
       if (this.target && c.hit && this.t < c.hit[0] && this.targetDist < 8) this.yaw += wrap(this.toTarget() - this.yaw) * Math.min(1, dt * 12);
       this.vx = dx / dt; this.vz = dz / dt; this.speed = Math.hypot(this.vx, this.vz);
-      const idx = W.combo.indexOf(c.name), open = c.chain !== undefined && this.t >= c.chain, reacting = /^(hurt|down|die)$/.test(c.name);
+      const alt = W.alt.indexOf(c.name), idx = alt >= 0 ? alt + 2 : W.combo.indexOf(c.name), open = c.chain !== undefined && this.t >= c.chain, reacting = /^(hurt|down|die|rekindle)$/.test(c.name), scripted = /^(rites|execute)$/.test(c.name) && !open;
       const early = isDodge(c) && this.t < (c.chain ?? 0), free = c.free !== undefined && this.t >= c.free;
       const struck = c.hit ? this.t > (c.hits ?? [c.hit])[(c.hits ?? [c.hit]).length - 1][1] || this.t < c.hit[0] * 0.5 : /^(charge|flick|clench)$/.test(c.name);
       if (c.name === W.charge) {
@@ -98,21 +110,26 @@ export class Motor {
         else if (this.hold < 0 || this.t > 1.6) { this.hold = -1; this.buf = null; this.swing(W.heavy, mx, mz); this.comboT = 9; }
       }
       else if (c.name === 'die') { if (this.t > c.dur) this.t = c.dur; }
-      else if (this.buf?.a === 'dodge' && !early && !(reacting && !open) && !(c.name === 'rush' && this.t < 0.45)) { this.buf = null; this.dodge(mx, mz); }
+      else if (scripted) { if (this.buf && this.t < 1) this.buf = null; }
+      else if (this.buf?.a === 'dodge' && !early && !(reacting && !open) && !(c.name === 'reckon' && this.t < 0.95) && !(c.name === 'rush' && this.t < 0.45)) { this.buf = null; this.dodge(mx, mz); }
       else if (this.buf?.a === 'skill1' && !early && !(reacting && !open) && c.name !== 'rush') { this.buf = null; this.rush(mx, mz); }
+      else if (this.buf?.a === 'ultimate' && !early && !(reacting && !open)) { this.buf = null; this.safe = 4; this.art('rites', mx, mz); this.events.push('use:ultimate'); }
+      else if (this.buf?.a === 'skill2' && !early && !(reacting && !open) && c.name !== 'sunder' && c.name !== 'rush') { this.buf = null; this.art('sunder', mx, mz); this.events.push('use:skill2'); }
       else if (this.buf?.a === 'heal' && (open || struck) && c.name !== 'heal') { this.buf = null; this.begin('heal'); }
       // holding the very first press turns the opening cut into a charge
       else if (idx === 0 && this.hold > HOLD && this.t <= c.hit![0] + 0.03) { this.buf = null; this.combo = 0; this.faceTarget(mx, mz); this.begin(W.charge); }
       else if (open && this.hold > HOLD && (c.hit || isDodge(c))) { this.buf = null; if (idx >= 0 && idx < W.finishers.length) { this.swing(W.finishers[idx], mx, mz); this.combo = 0; this.hold = -1; } else { this.faceTarget(mx, mz); this.begin(W.charge); } }
       else if (open && this.buf?.a === 'attack' && this.hold < 0) { this.buf = null; this.attack(mx, mz); }
-      else if (this.guardHeld && (open || struck) && !reacting && c.name !== 'rush' && !isDodge(c)) this.end();
+      else if (this.guardHeld && (open || (struck && this.guardT < this.t)) && !reacting && c.name !== 'rush' && !isDodge(c)) this.end();
       else if (free && (ml > 0.15 || this.buf || this.guardHeld)) this.end();
       else if (this.t >= c.dur) this.end();
     }
     if (this.state === 'free') {
-      this.guarding = this.guardHeld;
+      this.guarding = this.guardHeld; if (this.guarding) this.guardedT = 0;
       if (this.buf?.a === 'dodge') { this.buf = null; this.dodge(mx, mz); }
       else if (this.buf?.a === 'skill1') { this.buf = null; this.rush(mx, mz); }
+      else if (this.buf?.a === 'ultimate') { this.buf = null; this.safe = 4; this.art('rites', mx, mz); this.events.push('use:ultimate'); }
+      else if (this.buf?.a === 'skill2') { this.buf = null; this.art('sunder', mx, mz); this.events.push('use:skill2'); }
       else if (this.buf?.a === 'heal') { this.buf = null; this.guarding = false; this.begin('heal'); }
       else if (this.hold > HOLD) { this.buf = null; this.guarding = false; this.faceTarget(mx, mz); this.begin(W.charge); }
       else if (this.buf?.a === 'attack' && (this.hold < 0 || this.buf.t > 0.1)) { this.buf = null; this.guarding = false; this.attack(mx, mz); }
