@@ -5,13 +5,14 @@ import { Brain } from '../boss/brain.ts';
 import type { Boss, BossBrain } from '../boss/boss.ts';
 import type { Motor, Press } from '../player/motor.ts';
 import { FALL, type Prop } from '../arena/props.ts';
+import { SPELLS } from './spells.ts';
 import { D } from './difficulty.ts';
 
 export type FightEvent =
   | { k: 'hit'; power: number; dmg: number; reel: boolean; kind: 'blade' | 'fire'; head: boolean } | { k: 'cue'; strike: Strike; lead: number; first: boolean } | { k: 'block' } | { k: 'parry' }
   | { k: 'evade'; perfect: boolean } | { k: 'hurt'; dmg: number; down: boolean } | { k: 'rush' } | { k: 'detonate'; hit: boolean } | { k: 'heal' } | { k: 'deny'; a: string }
   | { k: 'ready'; a: 'skill1' | 'skill2' | 'ultimate' } | { k: 'dead' } | { k: 'reset' } | { k: 'zone'; z: Hazard } | { k: 'zoneHit'; z: Hazard } | { k: 'shot'; p: Shot } | { k: 'shotHit'; p: Shot }
-  | { k: 'style'; style: string } | { k: 'snap' } | { k: 'flame' } | { k: 'aura'; tier: number; up: boolean } | { k: 'break'; by: 'sunder' | 'rites' | 'heavy' } | { k: 'leap' } | { k: 'prop'; p: Prop; power: number; dx: number; dz: number; broken: boolean; by: 'hero' | 'boss' } | { k: 'topple'; p: Prop; yaw: number } | { k: 'fell'; p: Prop; yaw: number; hit: boolean } | { k: 'restore' } | { k: 'half' } | { k: 'round2' } | { k: 'finish' } | { k: 'won' } | { k: 'rites'; hit: boolean } | { k: 'hero' }
+  | { k: 'style'; style: string } | { k: 'snap' } | { k: 'flame' } | { k: 'aura'; tier: number; up: boolean } | { k: 'break'; by: 'sunder' | 'rites' | 'heavy' } | { k: 'leap' } | { k: 'blastSet'; x: number; z: number; r: number; kind: string; delay: number } | { k: 'blast'; x: number; z: number; r: number; kind: string; hit: boolean } | { k: 'prop'; p: Prop; power: number; dx: number; dz: number; broken: boolean; by: 'hero' | 'boss' } | { k: 'topple'; p: Prop; yaw: number } | { k: 'fell'; p: Prop; yaw: number; hit: boolean } | { k: 'restore' } | { k: 'half' } | { k: 'round2' } | { k: 'finish' } | { k: 'won' } | { k: 'rites'; hit: boolean } | { k: 'hero' }
   /** Something only this boss has: chains, lanterns, coins. `e` names it. */ | { k: 'b'; e: string; x?: number; z?: number; n?: number };
 export interface Hazard { id: number; shape: Zone['shape']; x: number; z: number; yaw: number; r: number; len: number; half: number; t: number; delay: number; dmg: number; down: boolean; speed: number; max: number; done: boolean; visual: boolean; first: boolean; mode: string }
 export interface Shot { id: number; x: number; z: number; dx: number; dz: number; t: number; life: number; speed: number; r: number; dmg: number; power: number; big: boolean; hit: boolean }
@@ -79,12 +80,13 @@ export class Fight {
     if (this.slowT > 0) { this.slowT -= dt; dt *= this.slowK; }
     this.time += dt; this.invuln = Math.max(0, this.invuln - dt); this.reelCd -= dt; this.sync();
     const live = this.phase === 'r1' || this.phase === 'r2';
-    m.can.skill1 = live && this.fire >= D.rush.cost; m.can.skill2 = live && this.fire >= D.sunder.cost; m.can.ultimate = live && this.wake >= 100; m.can.heal = live && this.heals > 0 && this.hp < D.hp;
+    const c1 = SPELLS[m.spells[0]].cost, c2 = SPELLS[m.spells[1]].cost; m.can.skill1 = live && this.fire >= c1; m.can.skill2 = live && this.fire >= c2; m.can.ultimate = live && this.wake >= 100; m.can.heal = live && this.heals > 0 && this.hp < D.hp;
     m.can.finale = this.phase === 'finish'; m.can.execute = (this.phase === 'finish' || (k.helpless && !k.reeling && k.mt > 0.3 && k.mt < 2.2 && !this.hero)) && m.targetDist < 3.4;
     const q = this.queue; this.queue = []; m.step(dt, mx, mz, q);
     for (const e of m.events) {
-      if (e === 'use:skill1') { this.fire -= D.rush.cost; this.boom = D.rush.delay; this.ev.push({ k: 'rush' }); }
-      if (e === 'use:skill2') this.fire -= D.sunder.cost;
+      if (e === 'use:skill1') this.fire -= c1; if (e === 'use:skill2') this.fire -= c2;
+      if (e === 'cast:rush') { this.boom = D.rush.delay; this.ev.push({ k: 'rush' }); }
+      if (e === 'fx:brand') this.brand(); if (e === 'fx:wheelFire') this.blast(m.x, m.z, 3.2, D.spell.wheel, 1.6, false, 0, 'wheel'); if (e === 'fx:ashfall') this.ashfall(); if (e === 'fx:blink') this.blast(m.x, m.z, 2.2, D.spell.step, 1.4, false, 0.18, 'step');
       if (e === 'use:ultimate') { this.wake = 0; this.invuln = 5.6; }
       if (e === 'clip:execute') { this.hero = true; this.invuln = Math.max(this.invuln, 2.4); }
       if (e === 'clip:reckon') this.invuln = Math.max(this.invuln, 1.2); if (e.startsWith('clip:riposte')) this.invuln = Math.max(this.invuln, 0.7); if (e === 'clip:finale') this.invuln = 9;
@@ -104,9 +106,9 @@ export class Fight {
     if (!frozen) { k.pace = (this.round === 2 ? (this.brain.style === 'eclipse' ? 1.1 : 1.04) : 1) * D.temper[this.brain.temper].pace; k.step(dt, m.x, m.z); k.tick?.(this, dt); } else { k.cues.length = k.live.length = 0; k.ended = null; }
     this.sync();
     if (this.props.length && this.phase !== 'won') this.stone(dt, live);
-    if (live) { this.playerHits(); this.bossHits(); if (!frozen) this.zones(dt); this.fly(dt); if (this.boom > 0 && (this.boom -= dt) <= 0) this.detonate(); }
+    if (live) { this.playerHits(); this.bossHits(); if (!frozen) this.zones(dt); this.fly(dt); if (this.boom > 0 && (this.boom -= dt) <= 0) this.detonate(); this.burn(dt); }
     else if (this.phase === 'finish') { if (m.clip?.name === 'finale' && m.t > 2.0) { this.phase = 'won'; k.set(k.dieMode); this.ev.push({ k: 'hit', power: 3.4, dmg: 1, reel: false, kind: 'fire', head: false }, { k: 'won' }); this.stop = 0.2; this.slow(0.25, 1.6); } }
-    for (const [a, ok] of [['skill1', this.fire >= D.rush.cost], ['skill2', this.fire >= D.sunder.cost], ['ultimate', this.wake >= 100]] as const) { if (ok && !this.wasReady[a] && live) this.ev.push({ k: 'ready', a }); this.wasReady[a] = ok; }
+    for (const [a, ok] of [['skill1', this.fire >= c1], ['skill2', this.fire >= c2], ['ultimate', this.wake >= 100]] as const) { if (ok && !this.wasReady[a] && live) this.ev.push({ k: 'ready', a }); this.wasReady[a] = ok; }
     if (this.deadT >= 0 && (this.deadT += dt) > 3.0) this.reset();
     return dt;
   }
@@ -119,7 +121,7 @@ export class Fight {
       const dx = k.hx - m.x, dz = k.hz - m.z, d = Math.hypot(dx, dz) - k.hr; if (d > (c.reach ?? m.weapon.reach)) return;
       let a = Math.atan2(dx, dz) - m.yaw; a -= Math.round(a / 6.2832) * 6.2832; if (Math.abs(a) * 57.3 > (c.arc ?? m.weapon.arc) && d > 0.2) return;
       const last = i === W.length - 1, p = (c.power ?? 1) * (c.name === m.weapon.heavy ? 0.75 + 0.35 * m.charge : 1) * (last ? D.lastHit[c.name] ?? 1 : 1) * (c.name === m.weapon.air.hit && m.sky > 0 ? D.jump.bonus : 1);
-      this.swung = id; this.gainFire(D.gain.hit * Math.min(p, 2.4)); this.damage(m.weapon.damage * p, Math.min(p, 3.4), !!c.reel && last, p < 0.9 ? 0.028 : p < 1.2 ? 0.055 : p < 1.8 ? 0.075 : p < 3 ? 0.12 : 0.15, 'blade', c.name === m.weapon.heavy && m.charge >= 3 ? 'heavy' : null);
+      this.swung = id; this.gainFire(D.gain.hit * Math.min(p, 2.4) * (c.name === 'pyreWheel' || c.name === 'ashstep' ? 0.3 : 1)); this.damage(m.weapon.damage * p, Math.min(p, 3.4), !!c.reel && last, p < 0.9 ? 0.028 : p < 1.2 ? 0.055 : p < 1.8 ? 0.075 : p < 3 ? 0.12 : 0.15, 'blade', c.name === m.weapon.heavy && m.charge >= 3 ? 'heavy' : null);
     });
   }
   /** Give the court its stone. */
@@ -235,6 +237,19 @@ export class Fight {
     }
     this.hazards = this.hazards.filter(h => h.max !== -1 && h.t < h.delay + 2.5 && !(h.visual && h.t > h.delay));
   }
+  /** Fire that lands where it was sent, a moment later. `follow`: aimed at the boss when it lands. */
+  private blasts: { t: number; x: number; z: number; r: number; dmg: number; power: number; reel: boolean; kind: string; follow: boolean }[] = [];
+  private blast(x: number, z: number, r: number, dmg: number, power: number, reel: boolean, delay: number, kind: string, follow = false) { this.blasts.push({ t: delay, x, z, r, dmg, power, reel, kind, follow }); this.ev.push({ k: 'blastSet', x, z, r, kind, delay }); }
+  private burn(dt: number) {
+    const k = this.king; for (const b of this.blasts) { if ((b.t -= dt) > 0) continue; if (b.follow) { b.x = k.hx + (Math.random() - 0.5) * 1.2; b.z = k.hz + (Math.random() - 0.5) * 1.2; }
+      const hit = k.vulnerable && this.bossHp > 0 && Math.hypot(k.hx - b.x, k.hz - b.z) < b.r + k.hr && k.y < 3; this.ev.push({ k: 'blast', x: b.x, z: b.z, r: b.r, kind: b.kind, hit });
+      if (hit) { this.gainFire(D.gain.hit * 0.5); this.damage(b.dmg, b.power, b.reel, b.reel ? 0.12 : 0.05, 'fire', b.reel ? 'sunder' : null); } }
+    this.blasts = this.blasts.filter(b => b.t > 0);
+  }
+  /** Pyre Brand: a ring now, the ground under it a breath later. */
+  private brand() { const m = this.m, x = m.x + Math.sin(m.yaw) * 0.7, z = m.z + Math.cos(m.yaw) * 0.7; this.blast(x, z, 2.4, D.spell.brand[0], 1.6, false, 0, 'ring'); this.blast(x, z, 3.6, D.spell.brand[1], 3.4, true, 1.05, 'brand'); }
+  /** Ashfall: embers come down on it wherever it is. */
+  private ashfall() { const m = this.m; if (!m.target || m.targetDist > 24) return; for (let i = 0; i < 7; i++) this.blast(0, 0, 1.7, D.spell.fall, 1.3, i === 6, 0.55 + i * 0.22, 'fall', true); }
   private detonate() {
     const m = this.m, k = this.king, a = m.rushFrom, b = { x: m.x, z: m.z }, vx = b.x - a.x, vz = b.z - a.z, L = vx * vx + vz * vz || 1, u = Math.max(0, Math.min(1, ((k.hx - a.x) * vx + (k.hz - a.z) * vz) / L)), d = Math.hypot(a.x + vx * u - k.hx, a.z + vz * u - k.hz), hit = d < D.rush.width && this.bossHp > 0 && k.y < 1.5;
     this.boomAt = { ax: a.x, az: a.z, bx: b.x, bz: b.z }; this.ev.push({ k: 'detonate', hit });
@@ -247,7 +262,7 @@ export class Fight {
     k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2' && k.mode !== 'riseW') k.set('idle'); k.reset?.(); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' });
   }
   reset(all = false) {
-    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; if (this.props.length) { for (const p of this.props) { p.broken = false; p.hp = p.max; } this.block(); this.raise({ k: 'restore' }); } } this.falling.length = 0;
+    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; if (this.props.length) { for (const p of this.props) { p.broken = false; p.hp = p.max; } this.block(); this.raise({ k: 'restore' }); } } this.blasts.length = 0; this.falling.length = 0;
     this.phase = this.round === 2 ? 'r2' : 'r1'; this.hp = D.hp; this.fire = this.round === 2 ? 50 : 0; this.heals = D.heals; this.flame = true; this.bossHp = this.maxHp; this.deadT = -1; this.invuln = 1; this.boom = -1; this.slowT = this.stop = 0; this.spent.clear(); this.queue = []; this.hazards.length = 0; this.shots.length = 0; this.streak = 0; this.setAura(); if (this.round === 1) this.hits = 0;
     m.revive(this.spawn.x, this.spawn.z, this.spawn.yaw); k.form = this.round; k.armed = this.round === 1; k.crawling = false; k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k.reset?.(); this.brain.reset(this.round); this.sync(); this.raise({ k: 'reset' });
   }

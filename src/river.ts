@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { regainFullscreen } from './core/fullscreen.ts';
 import { onSettings, saveSettings, settings } from './core/settings.ts';
+import { DEFAULT_SPELLS, SPELLS } from './combat/spells.ts';
 import type { DynamicScale, Tier } from './core/quality.ts';
 import { startLoop } from './core/loop.ts';
 import type { Input } from './input/input.ts';
@@ -60,7 +61,7 @@ export async function bootRiver(c: Ctx) {
   if (tier.name === 'phone') pv.weapon.castShadow = v1.cleaver.castShadow = false;
   const follow = new FollowCam(); follow.blockers = m.blockers;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [v1, v2], court: ghats }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
-  const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = ['The Ferryman', 'The Weight']; hud.winTitle = 'The Far Bank'; onSettings(() => { brain.temper = settings.temper; });
+  const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = ['The Ferryman', 'The Weight']; hud.winTitle = 'The Far Bank'; onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
   turn.onEnd = () => follow.snap(m, sim); const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
   hud.onRestart = () => { ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'weight' : 'row'); };

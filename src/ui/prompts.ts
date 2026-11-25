@@ -1,4 +1,5 @@
 // One-line prompts that appear once, at the moment they matter, and leave when you have done the thing.
+import type { Spell } from '../combat/spells.ts';
 import type { Action } from '../input/input.ts';
 import type { Fight } from '../combat/fight.ts';
 import { D } from '../combat/difficulty.ts';
@@ -30,6 +31,8 @@ export class Prompts {
   /** A new player at the title screen: teach everything again. */
   reset() { this.current = null; this.done.clear(); this.t = this.moved = this.white = this.combos = 0; this.cueT = -1; }
   /** Training has covered these. */
+  /** Name the carried arts in the prompts. */
+  spells(a: Spell, b: Spell) { P.skill.text = a.ready; P.sunder.text = b.ready; }
   taught() { for (const id of ['move', 'attack', 'dodge', 'guard', 'red', 'reckon', 'execute', 'sunder', 'wake', 'skill', 'heavy', 'finisher', 'jump']) this.done.add(id); this.current = null; }
   private want(id: string) { return !this.done.has(id); }
   private show(id: string) { if (!this.want(id)) return; const cur = this.current; if (cur && cur.id !== id && ORDER.indexOf(cur.id) <= ORDER.indexOf(id)) return; if (cur?.id !== id) { this.current = P[id]; this.t = 0; } }
@@ -61,8 +64,8 @@ export class Prompts {
     if (f.time > 0.5) this.show('move');
     if (m.targetDist < 4.2 && f.hits === 0) this.show('attack');
     if (f.hp < D.hp * 0.4 && f.heals > 0) this.show('heal');
-    if (m.reckoning > 0 && m.targetDist < 5) this.show('reckon'); if (m.can.execute) this.show('execute'); if (f.king.hanging && f.king.ht > 1.2) this.show('hang'); if (m.can.ultimate) this.show('wake'); if (m.can.skill2 && this.done.has('skill') && m.targetDist > 5) this.show('sunder');
-    if (f.fire >= D.rush.cost && m.targetDist < 9) this.show('skill');
+    if (m.reckoning > 0 && m.targetDist < 5) this.show('reckon'); if (m.can.execute) this.show('execute'); if (f.king.hanging && f.king.ht > 1.2) this.show('hang'); if (m.can.ultimate) this.show('wake'); if (m.can.skill2 && this.done.has('skill') && (m.spells[1] === 'sunder' || m.spells[1] === 'ashfall' ? m.targetDist > 5 : m.targetDist < 6)) this.show('sunder');
+    if (m.can.skill1 && m.targetDist < (m.spells[0] === 'ashfall' || m.spells[0] === 'sunder' ? 30 : 9)) this.show('skill');
     if (f.hits > 5 && this.cueT <= 0 && m.targetDist < 6) this.show('jump');
     if (this.combos >= 1 && f.hits > 8 && this.cueT <= 0) this.show('finisher');
     if (this.combos >= 2 && this.done.has('finisher') && this.cueT <= 0) this.show('heavy');

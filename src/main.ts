@@ -23,6 +23,7 @@ import { Menu } from './ui/menu.ts';
 import { padNav } from './ui/padnav.ts';
 import { sound } from './audio/sound.ts';
 import { onSettings, saveSettings, settings } from './core/settings.ts';
+import { DEFAULT_SPELLS, SPELLS } from './combat/spells.ts';
 import { Turn, actionCam } from './game/cinema.ts';
 import { Ending, Intro, Prologue } from './game/scenes.ts';
 import { Lessons } from './game/lessons.ts';
@@ -88,7 +89,7 @@ async function boot() {
   const fight = new Fight(m, king.sim), prompts = new Prompts(), hud = new Hud(app, input); fight.furnish(court.ruin.props); fight.passive = !!(SHOT || BENCH || Q.has('still'));
   const follow = new FollowCam(); follow.blockers = m.blockers;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath], court }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
-  const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => { saveSettings({ beaten: settings.beaten | 1 }); ending.start(); }; hud.next = 'On to the river'; hud.onNext = () => { location.search = '?boss=2'; }; onSettings(() => { fight.brain.temper = settings.temper; }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0, turned = false;
+  const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => { saveSettings({ beaten: settings.beaten | 1 }); ending.start(); }; hud.next = 'On to the river'; hud.onNext = () => { location.search = '?boss=2'; }; const arm = () => { const sp = lessons.active ? DEFAULT_SPELLS : settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); }; onSettings(() => { fight.brain.temper = settings.temper; arm(); }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0, turned = false;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
   const omen = (k: number) => { if (Math.abs(k - omenK) < 0.002 && k !== 0) return; omenK = k; ECLIPSE.value = k; moon.color.lerpColors(M0, M1, k); moon.intensity = 2.5 - 1.3 * k; post.shaft.value.set(0.5 - 0.24 * k, 0.66 - 0.6 * k, 0.9 - 0.87 * k); FOG.uFogCol.value.lerpColors(F0, F1, k); FOG.uFogMoon.value.lerpColors(G0, G1, k); hemi.color.setRGB(0.56 + 0.04 * k, 0.65 - 0.25 * k, 0.8 - 0.3 * k, THREE.LinearSRGBColorSpace); hemi.intensity = 0.3 - 0.04 * k; RIM.value.set(0.36 + 0.54 * k, 0.45 - 0.17 * k, 0.6 - 0.48 * k, 1.25 + 0.35 * k); dust.tint.value.set(0.17 + 0.05 * k, 0.175 - 0.02 * k, 0.19 - 0.07 * k); court.omen(k); dawn(dawnK, true); };
   /** First light, over whatever the sky is doing. */
@@ -107,8 +108,8 @@ async function boot() {
   const grab = () => { input.drain(); if (matchMedia('(pointer: fine)').matches && !document.body.classList.contains('touch')) Promise.resolve(canvas.requestPointerLock()).catch(() => { }); };
   /** Round 1, for real. */
   const begin = () => { bars(false); hud.lesson(null); fight.reset(true); fight.passive = still; kDis.value = bDis.value = 0; follow.snap(m, king.sim); hud.refill(); sound.score?.set('spar'); };
-  const train = () => { bars(false); fight.passive = true; hud.callout(''); lessons.start(); follow.snap(m, king.sim); sound.score?.set('lesson'); };
-  lessons.onDone = skipped => { saveSettings({ learned: true }); if (!skipped) prompts.taught(); begin(); sound.play('kScreech', { gain: 0.9, wet: 0.6, bus: 'voice' }); hud.say(skipped ? 'It has seen your fire' : 'Your hands remember. It has seen your fire.', 2.6, 'place'); };
+  const train = () => { lessons.active = true; arm(); bars(false); fight.passive = true; hud.callout(''); lessons.start(); follow.snap(m, king.sim); sound.score?.set('lesson'); };
+  lessons.onDone = skipped => { lessons.active = false; arm(); saveSettings({ learned: true }); if (!skipped) prompts.taught(); begin(); sound.play('kScreech', { gain: 0.9, wet: 0.6, bus: 'voice' }); hud.say(skipped ? 'It has seen your fire' : 'Your hands remember. It has seen your fire.', 2.6, 'place'); };
   addEventListener('gamepaddisconnected', () => { if (input.lastDevice === 'pad' && !menu.open && !turn.active && !intro.active && !story.active && !ending.active && fight.phase !== 'won') hud.setPaused(true); });
   hud.onSkip = () => lessons.skip(); menu.onTrain = () => { train(); grab(); };
   menu.onPlay = () => { regainFullscreen(); story.start(); bars(true); fight.time = 0; grab(); };

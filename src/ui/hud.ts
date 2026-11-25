@@ -2,7 +2,8 @@
 import { D } from '../combat/difficulty.ts';
 import type { Fight } from '../combat/fight.ts';
 import type { Action, Input } from '../input/input.ts';
-import { ICON } from '../input/touch.ts';
+import { ICON, spellButtons } from '../input/touch.ts';
+import type { Spell } from '../combat/spells.ts';
 import { label } from '../input/bindings.ts';
 import type { Card } from '../game/lessons.ts';
 import type { Prompts } from './prompts.ts';
@@ -21,7 +22,7 @@ export class Hud {
   constructor(app: HTMLElement, input: Input) {
     this.input = input;
     this.root = document.createElement('div'); this.root.id = 'hud';
-    this.root.innerHTML = `<div class="me"><div class="bar hp"><b></b><u></u></div><div class="bar fire"><u></u><s style="left:${D.rush.cost / D.fireMax * 100}%"></s><s style="left:${D.sunder.cost / D.fireMax * 100}%"></s></div><div class="aura"><i></i><i></i><i></i><i></i><em></em></div></div>
+    this.root.innerHTML = `<div class="me"><div class="bar hp"><b></b><u></u></div><div class="bar fire"><u></u><s></s><s></s></div><div class="aura"><i></i><i></i><i></i><i></i><em></em></div></div>
 <div class="boss"><div class="name">The Hanged King</div><div class="bar"><b></b><u></u></div></div>
 <div class="ab"><div class="sk ult" data-a="ultimate"><i></i><svg viewBox="0 0 24 24">${ICON.ultimate}</svg><kbd></kbd></div><div class="sk" data-a="skill2"><i></i><svg viewBox="0 0 24 24">${ICON.skill2}</svg><kbd></kbd></div><div class="sk" data-a="skill1"><i></i><svg viewBox="0 0 24 24">${ICON.skill1}</svg><kbd></kbd></div><div class="sk" data-a="heal"><svg viewBox="0 0 24 24">${ICON.heal}</svg><em></em><kbd></kbd></div></div>
 <div class="prompt"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div><div class="banner"></div><div class="verse"></div><div class="call"></div><div class="lesson"><div class="pips"></div><h3></h3><p></p></div><div class="press"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div>
@@ -72,6 +73,9 @@ export class Hud {
   refill() { this.fill = 0; this.bossLag = 0; }
   hurt() { this.q('.me').classList.remove('jolt'); void this.q('.me').offsetWidth; this.q('.me').classList.add('jolt'); }
   deny(a: string) { for (const e of document.querySelectorAll(`.sk[data-a="${a}"], .tb-${a}`)) { e.classList.remove('deny'); void (e as HTMLElement).offsetWidth; e.classList.add('deny'); } }
+  /** Show the two carried fire arts. */
+  spells(a: Spell, b: Spell) { spellButtons(a, b); this.costs = [a.cost, b.cost]; LINES[5][1] = a.name; LINES[6][1] = b.name; [a, b].forEach((s, i) => { this.q(`.sk[data-a="skill${i + 1}"] svg`).innerHTML = s.icon; (this.root.querySelectorAll('.fire s')[i] as HTMLElement).style.left = `${s.cost / D.fireMax * 100}%`; }); }
+  private costs = [40, 50];
   update(dt: number, f: Fight, p: Prompts) {
     const hp = f.hp / D.hp, fire = f.fire / D.fireMax, boss = Math.min(f.bar, this.fill), L = this.last;
     this.fill = Math.min(1, this.fill + dt / 1.3); if (hp < L.hp) this.lagWait = 0.6; if (boss < L.boss) this.bossWait = 0.7; L.hp = hp; L.boss = boss;
@@ -79,7 +83,7 @@ export class Hud {
     const w = (s: string, k: number) => { this.q(s).style.transform = `scaleX(${k.toFixed(4)})`; };
     w('.hp u', hp); w('.hp b', this.hpLag); w('.fire u', fire); w('.boss u', boss); w('.boss b', this.bossLag);
     this.root.classList.toggle('low', hp < 0.3 && hp > 0); this.root.classList.toggle('lit', f.m.can.skill1);
-    for (const [a, r] of [['skill1', f.fire / D.rush.cost], ['skill2', f.fire / D.sunder.cost], ['ultimate', f.wake / 100]] as const) for (const e of document.querySelectorAll<HTMLElement>(`.sk[data-a="${a}"], .tb-${a}`)) { e.style.setProperty('--k', Math.min(1, r).toFixed(3)); e.classList.toggle('ready', r >= 1); }
+    for (const [a, r] of [['skill1', f.fire / this.costs[0]], ['skill2', f.fire / this.costs[1]], ['ultimate', f.wake / 100]] as const) for (const e of document.querySelectorAll<HTMLElement>(`.sk[data-a="${a}"], .tb-${a}`)) { e.style.setProperty('--k', Math.min(1, r).toFixed(3)); e.classList.toggle('ready', r >= 1); }
     if (f.aura !== L.aura || f.round !== L.round || f.flame !== L.flame) { L.aura = f.aura; L.round = f.round; L.flame = f.flame; this.root.querySelectorAll('.aura i').forEach((e, i) => e.classList.toggle('on', i < f.aura)); this.q('.aura em').textContent = ['', 'Kindled', 'Ablaze', 'Pyre', 'Wake'][f.aura]; this.q('.boss .name').textContent = this.names[f.round - 1]; this.q('.hp').classList.toggle('flame', f.flame); this.root.classList.toggle('two', f.round === 2); }
     if (f.heals !== L.heals) { L.heals = f.heals; this.q('.ab em').textContent = String(f.heals); const c = document.querySelector('.tb-heal i'); if (c) c.textContent = `Heal ${f.heals}`; for (const e of document.querySelectorAll('.sk[data-a="heal"], .tb-heal')) e.classList.toggle('empty', f.heals === 0); }
     const dev = this.input.lastDevice; if (dev !== L.dev) { L.dev = dev; L.prompt = '?'; for (const a of ['skill1', 'skill2', 'ultimate', 'heal'] as const) this.q(`.sk[data-a="${a}"] kbd`).textContent = dev === 'touch' ? '' : label(a, dev); }
