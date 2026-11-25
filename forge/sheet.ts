@@ -4,7 +4,7 @@ import { type V3, add, clamp, cross, mul, norm, sub, rng, noise } from './sdf.ts
 
 const empty = (): Mesh => ({ pos: [], nrm: [], si: [], sw: [], col: [], idx: [] });
 
-export interface SheetOpt { nu: number; nv: number; mat: number; tatter?: number; weights: (u: number, v: number) => [number, number][]; seed?: number }
+export interface SheetOpt { nu: number; nv: number; mat: number; tatter?: number; weights: (u: number, v: number) => [number, number][]; seed?: number; /** Material of the inside face. */ inner?: number }
 /** Double-sided cloth sheet from a point function; v runs down the cloth. */
 export function sheet(f: (u: number, v: number) => V3, o: SheetOpt): Mesh {
   const m = empty(), { nu, nv } = o, seed = o.seed ?? 1;
@@ -19,7 +19,7 @@ export function sheet(f: (u: number, v: number) => V3, o: SheetOpt): Mesh {
       const w = o.weights(i / nu, j / nv).sort((a, b) => b[1] - a[1]).slice(0, 4), s = w.reduce((a, b) => a + b[1], 0);
       for (let c = 0; c < 4; c++) { m.si.push(w[c]?.[0] ?? 0); m.sw.push(w[c] ? w[c][1] / s : 0); }
       const l = add(add(at(i - 1, j), at(i + 1, j)), mul(q, -2)), cv = -(l[0] * n[0] + l[1] * n[1] + l[2] * n[2]);
-      m.col.push(clamp((side > 0 ? 0.95 : 0.55) + cv * 12, 0.35, 1), clamp(0.5 + cv * 25 + (j === nv ? 0.3 : 0)), j / nv, o.mat);
+      m.col.push(clamp((side > 0 ? 0.95 : 0.55) + cv * 12, 0.35, 1), clamp(0.5 + cv * 25 + (j === nv ? 0.3 : 0)), j / nv, side > 0 ? o.mat : o.inner ?? o.mat);
     }
     for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) {
       const a = base + j * (nu + 1) + i, b = a + 1, c = a + nu + 1, d = c + 1;

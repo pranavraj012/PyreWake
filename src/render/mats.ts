@@ -30,4 +30,5 @@ export const MATS: MatDef[] = [
   m(20, 7, 1.0, [0.42, 0.37, 0.29], { keep: 0.2, rough: 0.7, bump: 0.7, edge: 0.3, grime: 1.0 }),      // loose bone
   m(21, 1, 0.35, [0.17, 0.16, 0.152], { keep: 0.35, rough: 0.97, bump: 1.2, edge: 0.0, grime: 0.4 }),  // ash ground
   m(22, 3, 2.2, [0.12, 0.02, 0.008], { keep: 0.2, rough: 0.8, bump: 1.4, edge: 0, grime: 0, ember: 4 }),  // living fire: the One Beneath's core
+  m(23, 5, 4.5, [0.03, 0.026, 0.024], { keep: 0.15, rough: 0.96, bump: 1.4, edge: 0.5, grime: 0.6, ember: 0.9 }),   // scorched cloth hem
 ];

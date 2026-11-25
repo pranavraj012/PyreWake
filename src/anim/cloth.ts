@@ -2,7 +2,7 @@
 // Each cloth is a set of bone chains (columns) hanging from an anchor bone.
 import type { BoneDef, P3 } from './skeletons.ts';
 
-export interface ClothDef { name: string; anchor: string; cols: number; rows: number; mat: number; nu: number; nv: number; tatter: number; seed: number; stiff: number; at: (u: number, v: number) => P3 }
+export interface ClothDef { name: string; anchor: string; cols: number; rows: number; mat: number; nu: number; nv: number; tatter: number; seed: number; stiff: number; at: (u: number, v: number) => P3; /** Inside face material, and a scorched hem strip (share of the drop, material). */ inner?: number; hem?: [number, number] }
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
 const tail = (a0: number, a1: number, len: number, flare: number, seed: number, y0 = 1.02) => (u: number, v: number): P3 => {
@@ -11,11 +11,13 @@ const tail = (a0: number, a1: number, len: number, flare: number, seed: number, 
 };
 
 export const CLOTHS: ClothDef[] = [
-  { name: 'cape', anchor: 'chest', cols: 4, rows: 5, mat: 5, nu: 34, nv: 30, tatter: 0.2, seed: 41, stiff: 0.25, at: (u, v) => {
-    const a = mix(1.15, 4.25, u), w = Math.sin(a * 7) * 0.02 * v + Math.sin(a * 13 + 1) * 0.008 * (0.3 + v);
-    const rx = 0.225 + 0.1 * v + w, rz = 0.15 + 0.13 * v + w, drop = 0.03 * Math.abs(u - 0.55);
-    return [Math.sin(a) * rx, 1.475 - drop - 1.12 * v - 0.05 * Math.cos(u * 6), -0.02 + Math.cos(a) * rz];
+  { name: 'cape', anchor: 'chest', cols: 4, rows: 5, mat: 5, inner: 6, hem: [0.12, 23], nu: 44, nv: 34, tatter: 0.26, seed: 41, stiff: 0.25, at: (u, v) => {
+    // heavy hanging pleats that deepen toward the hem; fuller and longer over the left shoulder, cut short and slanted on the right
+    const a = mix(0.9, 4.2, u), g = 0.6 * Math.sqrt(v) + 0.4 * v, w = (Math.sin(a * 7 + 0.7) * 0.075 + Math.sin(a * 13 + 2) * 0.025 + Math.sin(a * 3.1) * 0.04) * g;
+    const rx = 0.225 + 0.1 * v + w + 0.05 * v * (1 - u), rz = 0.15 + 0.13 * v + w, drop = 0.03 * Math.abs(u - 0.4), len = 1.2 - 0.3 * u + 0.05 * Math.sin(a * 5);
+    return [Math.sin(a) * rx, 1.475 - drop - len * v - 0.05 * Math.cos(u * 6), -0.02 + Math.cos(a) * rz];
   } },
+  { name: 'scarf', anchor: 'chest', cols: 1, rows: 4, mat: 2, nu: 6, nv: 20, tatter: 0.3, seed: 57, stiff: 0.12, at: (u, v) => [0.06 + (u - 0.5) * 0.11 * (1 + 0.3 * v) + 0.012 * Math.sin(v * 7), 1.5 - 0.62 * v, -0.2 - 0.14 * v + 0.01 * Math.sin(u * 9 + v * 6)] },
   { name: 'tab', anchor: 'hips', cols: 2, rows: 3, mat: 5, nu: 20, nv: 18, tatter: 0.24, seed: 3, stiff: 0.2, at: tail(-0.42, 0.5, 0.5, 0.07, 3) },
   { name: 'back', anchor: 'hips', cols: 2, rows: 3, mat: 5, nu: 20, nv: 16, tatter: 0.24, seed: 11, stiff: 0.2, at: tail(Math.PI - 1.05, Math.PI + 1.0, 0.5, 0.1, 11) },
   { name: 'sashA', anchor: 'hips', cols: 1, rows: 4, mat: 6, nu: 10, nv: 22, tatter: 0.2, seed: 21, stiff: 0.1, at: tail(0.55, 1.1, 0.74, 0.1, 21) },
