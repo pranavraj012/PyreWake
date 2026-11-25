@@ -91,6 +91,7 @@ export interface Strike {
   /** A box ahead (length, half width), a sector (radius, half arc in degrees), or a disc around the hanging head, metres. */
   box?: [number, number]; arc?: [number, number]; head?: number; /** Comes in at leg height: a jump clears it. */ low?: boolean;
   /** Ground marks drawn from the cue. With no box/arc/head of its own, the zone does the damage. */ zones?: Zone[];
+  /** Hit only outside this radius (a sweep with a safe place at the boss's feet). */ inner?: number; /** The zone is only drawn: the boss resolves it itself. */ silent?: boolean;
 }
 /** Attacks that fly to a marked spot: launch, landing, height. `past` overshoots through the target. */
 export const LEAPS: Record<string, { t0: number; t1: number; h: number; max: number; past?: number }> = {

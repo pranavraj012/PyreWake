@@ -11,7 +11,8 @@ export type FightEvent =
   | { k: 'hit'; power: number; dmg: number; reel: boolean; kind: 'blade' | 'fire'; head: boolean } | { k: 'cue'; strike: Strike; lead: number; first: boolean } | { k: 'block' } | { k: 'parry' }
   | { k: 'evade'; perfect: boolean } | { k: 'hurt'; dmg: number; down: boolean } | { k: 'rush' } | { k: 'detonate'; hit: boolean } | { k: 'heal' } | { k: 'deny'; a: string }
   | { k: 'ready'; a: 'skill1' | 'skill2' | 'ultimate' } | { k: 'dead' } | { k: 'reset' } | { k: 'zone'; z: Hazard } | { k: 'zoneHit'; z: Hazard } | { k: 'shot'; p: Shot } | { k: 'shotHit'; p: Shot }
-  | { k: 'style'; style: string } | { k: 'snap' } | { k: 'flame' } | { k: 'aura'; tier: number; up: boolean } | { k: 'break'; by: 'sunder' | 'rites' | 'heavy' } | { k: 'leap' } | { k: 'prop'; p: Prop; power: number; dx: number; dz: number; broken: boolean; by: 'hero' | 'boss' } | { k: 'topple'; p: Prop; yaw: number } | { k: 'fell'; p: Prop; yaw: number; hit: boolean } | { k: 'restore' } | { k: 'half' } | { k: 'round2' } | { k: 'finish' } | { k: 'won' } | { k: 'rites'; hit: boolean } | { k: 'hero' };
+  | { k: 'style'; style: string } | { k: 'snap' } | { k: 'flame' } | { k: 'aura'; tier: number; up: boolean } | { k: 'break'; by: 'sunder' | 'rites' | 'heavy' } | { k: 'leap' } | { k: 'prop'; p: Prop; power: number; dx: number; dz: number; broken: boolean; by: 'hero' | 'boss' } | { k: 'topple'; p: Prop; yaw: number } | { k: 'fell'; p: Prop; yaw: number; hit: boolean } | { k: 'restore' } | { k: 'half' } | { k: 'round2' } | { k: 'finish' } | { k: 'won' } | { k: 'rites'; hit: boolean } | { k: 'hero' }
+  /** Something only this boss has: chains, lanterns, coins. `e` names it. */ | { k: 'b'; e: string; x?: number; z?: number; n?: number };
 export interface Hazard { id: number; shape: Zone['shape']; x: number; z: number; yaw: number; r: number; len: number; half: number; t: number; delay: number; dmg: number; down: boolean; speed: number; max: number; done: boolean; visual: boolean; first: boolean; mode: string }
 export interface Shot { id: number; x: number; z: number; dx: number; dz: number; t: number; life: number; speed: number; r: number; dmg: number; power: number; big: boolean; hit: boolean }
 export type Phase = 'r1' | 'scene' | 'r2' | 'finish' | 'won';
@@ -34,6 +35,10 @@ export class Fight {
   get bar() { return this.bossHp / this.maxHp; }
   private sync() { const k = this.king; this.aim.x = k.hx; this.aim.z = k.hz; this.aim.r = k.hr; }
 
+  /** Blade windows live this step, for bosses with parts of their own to cut. */
+  swings() { const m = this.m, c = m.clip; if (m.state !== 'clip' || !c?.hit) return []; return (c.hits ?? [c.hit]).flatMap((w, i) => m.t < w[0] || m.t > w[1] + 0.02 ? [] : [{ id: m.started + '/' + i, reach: c.reach ?? m.weapon.reach, arc: Math.min(180, c.arc ?? m.weapon.arc), power: c.power ?? 1 }]); }
+  /** A ground danger of the boss's own making. */
+  addZone(h: Partial<Hazard>) { const z: Hazard = { id: ++this.ids, shape: 'circle', x: 0, z: 0, yaw: 0, r: 1.5, len: 0, half: 0.45, t: 0, delay: 1, dmg: 8, down: false, speed: 0, max: 0, done: false, visual: false, first: false, mode: this.king.mode, ...h }; this.hazards.push(z); this.ev.push({ k: 'zone', z }); return z; }
   private slow(k: number, t: number) { this.slowK = k; this.slowT = Math.max(this.slowT, t); }
   private gainFire(n: number) { this.fire = Math.min(D.fireMax, this.fire + n); }
   private setAura() { const t = D.aura.filter(n => this.streak >= n).length; if (t !== this.aura) { const up = t > this.aura; this.aura = t; this.ev.push({ k: 'aura', tier: t, up }); } }
@@ -177,16 +182,17 @@ export class Fight {
     if (this.hp <= 0) { m.yaw = from; m.die(); this.deaths++; this.deadT = 0; this.hazards.length = 0; this.slow(0.4, 0.8); this.ev.push({ k: 'hurt', dmg, down: true }, { k: 'dead' }); }
     else { m.hurt(from, down); this.ev.push({ k: 'hurt', dmg, down }); }
   }
-  private evade() { const m = this.m, vanished = m.clip?.name === 'rush', perfect = !vanished && m.dodgeAge < D.perfect; if (perfect) { this.slow(0.32, 0.5); this.gainFire(D.gain.perfect); m.reckoning = 1.6; } this.ev.push({ k: 'evade', perfect }); }
+  evade() { const m = this.m, vanished = m.clip?.name === 'rush', perfect = !vanished && m.dodgeAge < D.perfect; if (perfect) { this.slow(0.32, 0.5); this.gainFire(D.gain.perfect); m.reckoning = 1.6; } this.ev.push({ k: 'evade', perfect }); }
   /** Something passed under your feet. */
-  private leapt() { this.gainFire(D.gain.perfect); this.m.sky = 1.6; this.slow(0.5, 0.22); this.ev.push({ k: 'leap' }); }
+  /** When something last passed under your feet. */ leapT = -9;
+  leapt() { this.leapT = this.time; this.gainFire(D.gain.perfect); this.m.sky = 1.6; this.slow(0.5, 0.22); this.ev.push({ k: 'leap' }); }
   private get vanished() { return this.m.clip?.name === 'rush' && this.m.t < 0.75; }
   private bossHits() {
     const m = this.m, k = this.king;
     for (const s of k.cues) {
       const first = !this.brain.seen.has(k.mode); this.ev.push({ k: 'cue', strike: s, lead: (s.t[0] - k.mt) / (s === k.strikes[0] ? k.rate : 1) / k.pace, first }); if (first && s === k.strikes[0]) this.teachSlow = true;
       for (const z of s.zones ?? []) {
-        const at = z.at === 'player' ? m : z.at === 'mark' ? k.mark : k, h: Hazard = { id: ++this.ids, shape: z.shape, x: at.x, z: at.z, yaw: (s.head ? k.dir : k.yaw) + (z.yaw ?? 0), r: z.r ?? 0, len: z.len ?? 0, half: z.half ?? 0.45, t: 0, delay: z.delay / (s === k.strikes[0] ? k.rate : 1) / k.pace, dmg: s.dmg, down: !!s.down, speed: z.speed ?? 0, max: z.max ?? 0, done: false, visual: !!(s.box || s.arc || s.head), first, mode: k.mode };
+        const at = z.at === 'player' ? m : z.at === 'mark' ? k.mark : k, h: Hazard = { id: ++this.ids, shape: z.shape, x: at.x, z: at.z, yaw: (s.head ? k.dir : k.yaw) + (z.yaw ?? 0), r: z.r ?? 0, len: z.len ?? 0, half: z.half ?? 0.45, t: 0, delay: z.delay / (s === k.strikes[0] ? k.rate : 1) / k.pace, dmg: s.dmg, down: !!s.down, speed: z.speed ?? 0, max: z.max ?? 0, done: false, visual: !!(s.box || s.arc || s.head || s.silent), first, mode: k.mode };
         this.hazards.push(h); this.ev.push({ k: 'zone', z: h });
       }
     }
@@ -238,11 +244,11 @@ export class Fight {
   /** The scene is over: round 2 begins whole, and is a checkpoint. */
   beginRound2() {
     const m = this.m, k = this.king; this.round = 2; this.phase = 'r2'; this.hp = D.hp; this.heals = D.heals; this.flame = true; this.bossHp = k.hp[1]; this.hazards.length = 0; this.shots.length = 0; this.invuln = 1.2; this.slowT = this.stop = 0; this.reelCd = 2; this.sceneMove = { x: 0, z: 0 };
-    k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2' && k.mode !== 'riseW') k.set('idle'); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' });
+    k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2' && k.mode !== 'riseW') k.set('idle'); k.reset?.(); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' });
   }
   reset(all = false) {
     const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; if (this.props.length) { for (const p of this.props) { p.broken = false; p.hp = p.max; } this.block(); this.raise({ k: 'restore' }); } } this.falling.length = 0;
     this.phase = this.round === 2 ? 'r2' : 'r1'; this.hp = D.hp; this.fire = this.round === 2 ? 50 : 0; this.heals = D.heals; this.flame = true; this.bossHp = this.maxHp; this.deadT = -1; this.invuln = 1; this.boom = -1; this.slowT = this.stop = 0; this.spent.clear(); this.queue = []; this.hazards.length = 0; this.shots.length = 0; this.streak = 0; this.setAura(); if (this.round === 1) this.hits = 0;
-    m.revive(this.spawn.x, this.spawn.z, this.spawn.yaw); k.form = this.round; k.armed = this.round === 1; k.crawling = false; k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); this.brain.reset(this.round); this.sync(); this.raise({ k: 'reset' });
+    m.revive(this.spawn.x, this.spawn.z, this.spawn.yaw); k.form = this.round; k.armed = this.round === 1; k.crawling = false; k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k.reset?.(); this.brain.reset(this.round); this.sync(); this.raise({ k: 'reset' });
   }
 }

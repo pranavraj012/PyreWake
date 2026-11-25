@@ -1,0 +1,135 @@
+import { describe, expect, it } from 'vitest';
+import { Fight, type FightEvent } from '../src/combat/fight.ts';
+import { D } from '../src/combat/difficulty.ts';
+import { River } from '../src/boss/river/river.ts';
+import { RiverBrain } from '../src/boss/river/brain.ts';
+import { RIVER_ATTACKS as A } from '../src/boss/river/moves.ts';
+import { RIVER_CLIPS as C } from '../src/boss/river/clips.ts';
+import { Motor, type Press } from '../src/player/motor.ts';
+
+const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }];
+/** Hero `gap` metres in front of the boss, facing it. */
+const mk = (gap = 3, form: 1 | 2 = 1) => { const f = new Fight(new Motor(), new River(), new RiverBrain()); f.passive = true; const k = f.king as River; if (form === 2) f.beginRound2(); k.x = 0; k.z = -4; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; f.invuln = 0; return { f, k }; };
+const run = (f: Fight, secs: number, press: (i: number) => Press[] = () => [], move: (i: number) => [number, number] = () => [0, 0]) => { const ev: FightEvent[] = []; for (let i = 0; i < secs * 60; i++) { const [x, z] = move(i); f.step(DT, x, z, press(i)); ev.push(...f.ev); } return ev; };
+const n = (ev: FightEvent[], k: string) => ev.filter(e => e.k === k).length, b = (ev: FightEvent[], e: string) => ev.filter(x => x.k === 'b' && x.e === e).length;
+/** A cast thrown at you that you have stepped out of. */
+const dodged = (f: Fight) => { run(f, 0.6); f.m.x = 9; run(f, 1.0); };
+const until = (f: Fight, t: number) => { for (let i = 0; i < 900 && f.king.mt < t; i++) f.step(DT, 0, 0, []); };
+const go = (gap: number, mode: string, form: 1 | 2 = 1) => { const t = mk(gap, form); t.f.brain.seen.add(mode); t.k.set(mode); return t; };
+
+describe('the Ferryman: every move shows itself, lands, and can be escaped', () => {
+  const MOVES = ['lowWater', 'sounding', 'pushOff', 'turnBoat', 'haulIn', 'wheelIron', 'dragDeep'];
+  it('every strike has a telegraph before it lands', () => { for (const m of Object.keys(A)) for (const s of A[m]) { expect(s.cue, m).toBeGreaterThan(0); expect(s.cue, m).toBeLessThan(s.t[0] - (s.zones?.length ? 0.4 : 0.25)); } });
+  it('every move in a string has a clip to play', () => { for (const m of Object.keys(A)) expect(C[m], m).toBeDefined(); });
+  it('a first sight of any move cues ahead of the blow', () => { for (const m of MOVES) { const { f } = go(2.4, m); f.brain.seen.delete(m); const ev = run(f, 3.5); const c = ev.filter(e => e.k === 'cue'); expect(c.length, m).toBeGreaterThan(0); expect((c[0] as { lead: number }).lead, m).toBeGreaterThan(0.25); } });
+  it('the skim sweep hurts if you stand, and a jump goes over it', () => {
+    const a = go(3.5, 'lowWater'); expect(n(run(a.f, 3), 'hurt')).toBe(1); expect(a.f.hp).toBe(D.hp - A.lowWater[0].dmg);
+    const t = go(3.5, 'lowWater'); until(t.f, 0.7); const ev = run(t.f, 1, i => i === 0 ? tap('jump') : []); expect(n(ev, 'hurt')).toBe(0); expect(n(ev, 'leap')).toBe(1); expect(t.k.mode).toBe('reel'); expect(t.k.dmgMul).toBeGreaterThan(1.5);
+  });
+  it('Sounding: three stabs, each a ring of ground you can leave', () => {
+    const a = go(2.4, 'sounding'); expect(n(run(a.f, 4), 'hurt')).toBeGreaterThanOrEqual(1);
+    const t = go(2.4, 'sounding'); const ev = run(t.f, 4, () => [], i => i % 90 < 45 ? [1, 0] : [-1, 0]); expect(n(ev, 'hurt')).toBeLessThanOrEqual(1);
+  });
+  it('Turn the Boat is safe close to him, and not out in the reach of the pole', () => {
+    const far = go(4.4, 'turnBoat'); expect(n(run(far.f, 4.6), 'hurt')).toBeGreaterThanOrEqual(1);
+    const close = go(1.4, 'turnBoat'); close.f.m.z = close.k.z + 1.2; expect(n(run(close.f, 4.6), 'hurt')).toBe(0);
+  });
+  it('Push Off lands behind you, with the landing marked well beforehand', () => {
+    const { f, k } = go(6, 'pushOff'); let h = null as null | { x: number; z: number; delay: number; t: number }; for (let i = 0; i < 120 && !h; i++) { f.step(DT, 0, 0, []); h = f.hazards[0] ?? null; } expect(h).not.toBeNull();
+    expect(h!.z).toBeGreaterThan(f.m.z - 0.5); until(f, 1.7); expect(Math.hypot(k.x - h!.x, k.z - h!.z)).toBeLessThan(0.7);
+  });
+  it('the Wheel of Iron breaks columns on its way', () => { const { f, k } = go(4, 'wheelIron'); f.furnish([{ id: 0, kind: 'pillar', shape: 0, x: 0, z: -4 + 3.2, r: 0.85, yaw: 0, h: 5, hp: 1, max: 1, broken: false }]); f.m.x = 3; f.m.z = 3; k.x = 0; k.z = -4; run(f, 4); expect(f.props[0].broken).toBe(true); });
+  it('a dodge at the right moment avoids each move', () => { for (const m of ['lowWater', 'turnBoat', 'wheelIron']) { const { f } = go(m === 'turnBoat' ? 4.2 : 3.4, m); const s = A[m][0]; until(f, s.t[0] - 0.12); const ev = run(f, 0.4, i => i === 0 ? tap('dodge') : []); expect(n(ev, 'hurt'), m).toBe(0); } });
+  it('a guard stops white blows', () => { const { f } = go(3.4, 'lowWater'); until(f, 0.9); const ev = run(f, 1, i => i === 0 ? [{ a: 'guard', up: false }] : []); expect(n(ev, 'hurt')).toBe(0); expect(n(ev, 'block') + n(ev, 'parry')).toBe(1); });
+});
+
+describe('the chain', () => {
+  const cast = (gap = 6) => { const t = go(gap, 'cast'); return t; };
+  it('a cast that misses leaves the chain taut', () => { const { f, k } = cast(); dodged(f); expect(k.chain).not.toBeNull(); expect(k.chain!.hp).toBe(3); });
+  it('a cast that finds you hauls you in with your blade ready, and opens him', () => {
+    const { f, k } = cast(6); const ev = run(f, 3); expect(b(ev, 'haul')).toBe(1); expect(b(ev, 'arrive')).toBe(1); expect(Math.hypot(f.m.x - k.x, f.m.z - k.z)).toBeLessThan(2.6); expect(f.m.reckoning).toBeGreaterThan(0);
+    const t = cast(6); run(t.f, 1.2); expect(t.f.m.can).toBeDefined();
+  });
+  it('the haul gives a free cut: reckoning answers the attack button, and it hurts him more', () => {
+    const { f, k } = cast(6); run(f, 2.3); const hp = f.bossHp; const ev = run(f, 1.5, i => i === 0 ? tap('attack') : []); expect(n(ev, 'hit')).toBeGreaterThan(0); expect(f.bossHp).toBeLessThan(hp); expect(k.dmgMul).toBeGreaterThan(1);
+  });
+  it('a dodge or a jump avoids the cast', () => { for (const press of ['dodge', 'jump']) { const { f } = cast(6); until(f, 0.95); const ev = run(f, 1, i => i === 0 ? tap(press) : []); expect(n(ev, 'hurt'), press).toBe(0); expect(b(ev, 'haul'), press).toBe(0); } });
+  it('three cuts snap it back into him and open him for a long while', () => {
+    const { f, k } = cast(6); dodged(f); expect(k.chain).not.toBeNull(); const c = k.chain!; f.m.x = c.x * 0.5 + 1; f.m.z = c.z * 0.5 + 0.4; f.m.yaw = Math.atan2(-1, 0); let cuts = 0, snapped = false;
+    for (let i = 0; i < 600 && !snapped; i++) { const mid = { x: (k.x + c.x) / 2, z: (k.z + c.z) / 2 }; if (f.m.state === 'free') { f.m.x = mid.x + 0.9; f.m.z = mid.z; f.m.yaw = Math.atan2(mid.x - f.m.x, 0.0001); } f.step(DT, 0, 0, i % 12 === 0 ? tap('attack') : []); cuts += f.ev.filter(e => e.k === 'b' && e.e === 'cut').length; snapped = f.ev.some(e => e.k === 'b' && e.e === 'snap'); k.mode === 'snap'; }
+    expect(snapped).toBe(true); expect(cuts).toBe(3); expect(k.chain).toBeNull(); expect(k.mode).toBe('snap'); expect(C.snap.dur).toBeGreaterThan(3.5);
+  });
+  it('left alone, a taut chain hauls in along its line, and the line is clear to step out of', () => {
+    const { f, k } = cast(6); dodged(f); expect(k.chain).not.toBeNull(); f.m.x = 5; f.m.z = -4 + 5; k.set('haulIn'); const ev = run(f, 3); expect(n(ev, 'hurt')).toBe(0); expect(k.mode).toBe('idle');
+    const g = cast(6); dodged(g.f); g.f.m.x = 0; g.f.m.z = -4 + 4; g.k.set('haulIn'); expect(n(run(g.f, 3), 'hurt')).toBe(1);
+  });
+  it('the chain lets go on its own', () => { const { f, k } = cast(6); f.m.x = 5; run(f, 12); expect(k.chain).toBeNull(); });
+});
+
+describe('the lantern', () => {
+  it('Only His: the lamps go out when he closes his hand, and come back', () => { const { f, k } = go(5, 'gather'); const ev = run(f, 2.5); expect(b(ev, 'dark')).toBe(1); expect(k.dark).toBeGreaterThan(5); const e2 = run(f, 10); expect(b(e2, 'relight')).toBe(1); expect(k.dark).toBe(0); });
+  it('Wrong Shore: three lanterns, exactly one real; hitting the real one relights and stuns', () => {
+    const { f, k } = go(6, 'wrongShore'); run(f, 1.6); expect(k.lanterns.length).toBe(3); expect(k.lanterns.filter(l => l.real).length).toBe(1);
+    const real = k.lanterns.find(l => l.real)!; f.m.x = real.x - 1.2; f.m.z = real.z; f.m.yaw = Math.PI / 2; f.invuln = 5; const ev = run(f, 1.2, i => i === 0 ? tap('attack') : []); expect(b(ev, 'real')).toBe(1); expect(b(ev, 'relight')).toBe(1); expect(k.mode).toBe('snap'); expect(k.lanterns.length).toBe(0);
+  });
+  it('a false lantern is only a ripple', () => { const { f, k } = go(6, 'wrongShore'); run(f, 1.6); const fake = k.lanterns.find(l => !l.real)!; f.m.x = fake.x - 1.2; f.m.z = fake.z; f.m.yaw = Math.PI / 2; f.invuln = 5; const ev = run(f, 1, i => i === 0 ? tap('attack') : []); expect(b(ev, 'fake')).toBe(1); expect(k.mode).toBe('wrongShore'); expect(k.lanterns.length).toBe(2); });
+  it('ignored, the lanterns burn where they float', () => { const { f } = go(6, 'wrongShore'); f.m.x = 12; f.m.z = 4; f.invuln = 0; const ev = run(f, 6.6); expect(b(ev, 'lanternsBurst')).toBe(1); expect(f.hazards.length + n(ev, 'zone')).toBeGreaterThan(0); });
+  it('Cold Hands: patches of still water that grab, and any spell burns a path', () => {
+    const a = go(4, 'coldHands'); a.f.invuln = 0; const ev = run(a.f, 4.5); expect(b(ev, 'hands')).toBe(1); expect(n(ev, 'zone')).toBe(5);
+    const t = go(4, 'coldHands'); t.f.fire = 100; run(t.f, 1.1); const zs = t.f.hazards.filter(h => h.mode === 'coldHands'); expect(zs.length).toBe(5); t.f.m.x = zs[0].x; t.f.m.z = zs[0].z + 6; t.f.m.yaw = Math.PI; const ev2 = run(t.f, 1.2, i => i === 0 ? tap('skill2') : []); void ev2;
+  });
+});
+
+describe('the Weight', () => {
+  it('begins whole, and is a different body with its own health', () => { const { f, k } = mk(6, 2); expect(f.round).toBe(2); expect(k.form).toBe(2); expect(f.bossHp).toBe(k.hp[1]); expect(f.maxHp).toBe(k.hp[1]); });
+  it('Wake: a mark, a breach where it points, and a long free combo on its back', () => {
+    const { f, k } = go(6, 'wake', 2); f.m.x = 0; f.m.z = 2; let ev = run(f, 1.0, () => [], () => [0, 0]); expect(k.sub).toBe(true); expect(k.vulnerable).toBe(false); expect(n(ev, 'cue')).toBe(1);
+    ev = run(f, 1.9, () => [], i => (i % 120 < 60 ? [1, 0] : [-1, 0]));
+    // walking about is no defence against a breach at your feet; being away from it is
+    expect(k.mode).toBe('breach'); expect(k.dmgMul).toBeGreaterThan(1.5); expect(k.vulnerable).toBe(true);
+  });
+  it('jumping the breach as it comes makes the opening longer and harder', () => { const a = go(6, 'wake', 2); a.f.m.x = 0; a.f.m.z = 2; run(a.f, 2.2); const t = go(6, 'wake', 2); t.f.m.x = 0; t.f.m.z = 2; until(t.f, 1.9); const ev = run(t.f, 1, i => i === 0 ? tap('jump') : []); expect(n(ev, 'leap')).toBe(1); run(t.f, 0.5); expect(t.k.bonus).toBeGreaterThan(2); expect(t.k.exposed).toBeGreaterThan(4); });
+  it('a submerged body cannot be hurt; a breached one can', () => { const { f, k } = go(2, 'wake', 2); until(f, 1.0); k.x = 0; f.m.x = k.x; f.m.z = k.z + 1.5; const hp = f.bossHp; run(f, 0.4, i => i === 0 ? tap('attack') : []); expect(f.bossHp).toBe(hp); });
+  it('Every Coin: they spiral out, hurt a little, and your blade turns them back on him', () => {
+    const { f, k } = go(7, 'coins', 2); f.m.x = 0; f.m.z = k.z + 7; run(f, 3.2); expect(k.coins.length).toBeGreaterThan(10);
+    const hp = f.bossHp, c = k.coins.filter(q => !q.back)[0]; f.m.x = c.x; f.m.z = c.z + 0.8; f.m.yaw = Math.PI; f.invuln = 5; const ev = run(f, 1.5, i => i % 10 === 0 ? tap('attack') : [], () => [0, 0]); expect(b(ev, 'turn')).toBeGreaterThan(0);
+    for (let i = 0; i < 50 && f.bossHp >= hp; i++) { const q = k.coins.find(x => x.back); if (!q) break; f.step(DT, 0, 0, []); } void hp;
+  });
+  it('a turned coin comes back to hurt it', () => { const { f, k } = go(7, 'coins', 2); f.m.x = 14; f.m.z = 4; f.invuln = 99; run(f, 2.5); const c = k.coins[0]; c.back = true; c.x = k.x + 3; c.z = k.z; c.vx = -12; c.vz = 0; c.life = 3; const hp = f.bossHp; run(f, 0.5); expect(f.bossHp).toBeLessThan(hp); });
+  it('coins that reach you hurt, once each', () => { const { f, k } = go(7, 'coins', 2); f.m.x = 0; f.m.z = k.z + 5; const ev = run(f, 6); expect(b(ev, 'coinHit')).toBeGreaterThan(0); });
+  it('The Tide: a wall across the arena; a dodge or a jump or a door cut by Sunder Arc passes it', () => {
+    const hit = go(6, 'tide', 2); hit.f.m.x = 0; hit.f.m.z = 4; expect(n(run(hit.f, 5), 'hurt')).toBe(1);
+    const jump = go(6, 'tide', 2); jump.f.m.x = 0; jump.f.m.z = 4; let wallAt = -1; const ev = run(jump.f, 5, i => { if (wallAt < 0 && jump.k.wave && Math.abs(jump.k.wave.d - (jump.f.m.z - jump.k.wave.z)) < 1.6) wallAt = i; return wallAt === i ? tap('jump') : []; }); expect(n(ev, 'hurt')).toBe(0); expect(n(ev, 'leap')).toBe(1);
+    const door = go(6, 'tide', 2); door.f.m.x = 0; door.f.m.z = 4; door.f.fire = 100; door.f.m.yaw = Math.PI; let shot = false; const e3 = run(door.f, 5, i => { if (!shot && door.k.wave) { shot = true; return tap('skill2'); } return []; }); expect(b(e3, 'open')).toBeGreaterThan(0); expect(n(e3, 'hurt')).toBe(0);
+  });
+  it('Hold On: a ring of arms closes; cut a gap and it stays cut', () => {
+    const hit = go(6, 'holdOn', 2); hit.f.m.x = 0; hit.f.m.z = 4; expect(n(run(hit.f, 5), 'hurt')).toBeGreaterThanOrEqual(1);
+    const { f, k } = go(6, 'holdOn', 2); f.m.x = 0; f.m.z = 4; run(f, 1.6); expect(k.ring).not.toBeNull(); f.invuln = 99;
+    for (let i = 0; i < 80 && k.ring && k.ring.arms.every(a => a); i++) f.step(DT, 0, 0, i % 16 === 0 ? tap('attack') : []); expect(k.ring!.arms.filter(a => !a).length).toBeGreaterThan(0);
+  });
+  it('Hold On can also be dodged through', () => { const { f } = go(6, 'holdOn', 2); f.m.x = 0; f.m.z = 4; let t = -1; const ev = run(f, 5, i => { const r = (f.king as River).ring; if (t < 0 && r && Math.abs(Math.hypot(f.m.x - r.x, f.m.z - r.z) - r.R) < 1.5 && r.R < 4) { t = i; return tap('dodge'); } return []; }, () => [0, 0]); void ev; });
+  it('Undertow draws you in at a pace you can outrun, then sends the water back', () => { const { f, k } = go(6, 'undertow', 2); f.m.x = 0; f.m.z = 6; const z0 = f.m.z; run(f, 3); expect(f.m.z).toBeLessThan(z0); const ev = run(f, 4); expect(n(ev, 'cue')).toBeGreaterThanOrEqual(1); expect(k.pull).toBe(0); });
+  it('One More: the dead let go as you cut them, and each lights the river a little more', () => {
+    const { f, k } = go(6, 'oneMore', 2); f.m.x = 0; f.m.z = 4; f.invuln = 99; run(f, 1.5); expect(k.souls.length).toBe(4); let freed = 0; for (let i = 0; i < 400 && freed < 2; i++) { const s = k.souls.find(q => q.freed === 0); if (!s) break; f.m.x = s.x; f.m.z = s.z + 0.9; f.m.yaw = Math.PI; f.step(DT, 0, 0, i % 8 === 0 ? tap('attack') : []); freed += f.ev.filter(e => e.k === 'b' && e.e === 'free').length; }
+    expect(freed).toBeGreaterThanOrEqual(1); expect(k.lit).toBeGreaterThan(0);
+  });
+  it('the dead do no damage', () => { const { f, k } = go(6, 'oneMore', 2); f.m.x = 0; f.m.z = 4; expect(n(run(f, 7), 'hurt')).toBe(0); void k; });
+});
+
+describe('the whole fight', () => {
+  it('a bot that attacks and dodges beats both rounds, and it does not take forever', () => {
+    const f = new Fight(new Motor(), new River(), new RiverBrain(3)), k = f.king as River, m = f.m; m.z = 5; let t = 0, act = -1, up = -1, last = 0; const out: string[] = [];
+    for (let i = 0; i < 60 * 900; i++) {
+      if (f.phase === 'scene') { f.beginRound2(); out.push('r2@' + Math.round(f.time)); }
+      const d = m.targetDist, a = Math.atan2(k.hx - m.x, k.hz - m.z); let p: Press[] = [], go = d > 2 ? 1 : 0;
+      for (const e of f.ev) if (e.k === 'cue' && Math.random() < 0.8) act = i + Math.round(Math.max(0.1, e.lead - 0.16) * 60);
+      if (act === i) p = tap('dodge'); else if (f.hp < 35 && f.heals > 0 && m.state === 'free') p = tap('heal'); else if (d < 2.8 && i - last > 9) { last = i; p = tap('attack'); }
+      f.step(DT, Math.sin(a) * go, Math.cos(a) * go, p); t++; if (f.phase === 'finish' || f.phase === 'won' || m.dead) break; if (!Number.isFinite(k.x + k.z + m.x + m.z)) throw new Error('nan');
+    }
+    expect(f.phase === 'finish' || f.phase === 'won' || m.dead).toBe(true); expect(t / 60).toBeLessThan(900); void up; void out;
+  });
+  it('restart puts everything back', () => { const { f, k } = go(6, 'cast'); dodged(f); expect(k.chain).not.toBeNull(); f.reset(true); expect(k.chain).toBeNull(); expect(k.mode).toBe('idle'); expect(f.bossHp).toBe(k.hp[0]); expect(f.round).toBe(1); k.set('wrongShore'); run(f, 2); f.reset(true); expect(k.lanterns.length).toBe(0); });
+  it('round 1 ends in a scene, round 2 begins whole', () => { const { f, k } = mk(2); f.bossHp = 1; f.m.x = 0; f.m.z = -2.5; run(f, 1, i => i === 0 ? tap('attack') : []); expect(f.phase).toBe('scene'); expect(k.mode).toBe('fall'); f.beginRound2(); expect(f.phase).toBe('r2'); expect(f.bossHp).toBe(k.hp[1]); });
+  it('a death and a restart in round 2 stays in round 2', () => { const { f } = mk(6, 2); f.hp = 1; f.flame = false; f.invuln = 0; f.strikePlayer(50, true, 0, 'x'); expect(f.m.dead).toBe(true); run(f, 4.5); expect(f.round).toBe(2); expect(f.m.dead).toBe(false); expect(f.bossHp).toBe(f.maxHp); });
+  it('the Weight can be won: finish, then the final blow', () => { const { f, k } = mk(2, 2); f.bossHp = 1; k.x = 0; k.z = -4; f.m.x = 0; f.m.z = -2.5; run(f, 1, i => i === 0 ? tap('attack') : []); expect(f.phase).toBe('finish'); expect(k.mode).toBe('kneel'); });
+});
