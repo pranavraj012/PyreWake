@@ -2,7 +2,7 @@
 import { moveAt } from '../../anim/pose.ts';
 import type { Boss } from '../boss.ts';
 import type { Strike } from '../moves2.ts';
-import type { Fight } from '../../combat/fight.ts';
+import type { Fight, Hazard } from '../../combat/fight.ts';
 import { D } from '../../combat/difficulty.ts';
 import { RIVER_CLIPS as C } from './clips.ts';
 import { RIVER_ATTACKS as A } from './moves.ts';
@@ -27,13 +27,13 @@ export class River implements Boss {
   x = 0; z = -4; y = 0; yaw = 0; vx = 0; vz = 0; speed = 0; mode = 'idle'; mt = 0; prev = 0; burst = 0; r = 0.9; form: 1 | 2 = 1; rate = 1; pace = 1; serial = 0;
   cues: Strike[] = []; live: Strike[] = []; ended: string | null = null; armed = false; crawling = false; ht = 0; th = 0; dir = 0; mark = { x: 0, z: 0 };
   // --- its own mechanics
-  chain: Chain | null = null; /** Seconds of darkness left. */ dark = 0; lanterns: Lantern[] = []; coins: Coin[] = []; wave: Wave | null = null; ring: Ring | null = null; souls: Soul[] = []; freed = 0;
-  /** Undertow strength 0-1. */ pull = 0; /** Seconds in which it takes extra, and by how much. */ exposed = 0; bonus = 1.6; /** Under the water. */ sub = false; /** The player jumped the breach circle. */ jumped = false;
+  chain: Chain | null = null; /** Seconds of darkness left. */ dark = 0; lanterns: Lantern[] = []; coins: Coin[] = []; wave: Wave | null = null; ring: Ring | null = null; souls: Soul[] = []; /** Patches of cold hands, as the referee holds them. */ hands: Hazard[] = []; freed = 0;
+  /** Undertow strength 0-1. */ pull = 0; /** Seconds in which it takes extra, and by how much. */ exposed = 0; bonus = 1.6; /** Under the water. */ sub = false; /** The player jumped the breach circle. */ jumped = false; /** Seconds of boiling river left: it cannot hide. */ boil = 0;
   /** Where the body has been, newest first, for the sections of the Weight. */ trail: { x: number; z: number }[] = []; out: Out[] = [];
   private moved = 0; private side = 1; private sideT = 0; private from = { x: 0, z: 0 }; private cut = new Set<string>(); private castNow = false; private handsNow = false; private burstNow = false; private hauling = 0; private coinAcc = 0; private spin = 0; private orbit = 0; private px = 0; private pz = 5; private oneMoreAt = -99; private seenLeap = -9;
 
   set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; if (mode === 'wake') { this.jumped = false; this.from = { x: this.x, z: this.z }; } }
-  reset() { this.chain = null; this.dark = 0; this.lanterns = []; this.coins = []; this.wave = null; this.ring = null; this.souls = []; this.freed = 0; this.pull = 0; this.exposed = 0; this.sub = false; this.trail = []; this.out = []; this.hauling = 0; this.castNow = this.handsNow = this.burstNow = false; this.oneMoreAt = -99; this.y = 0; this.cut.clear(); }
+  reset() { this.chain = null; this.dark = 0; this.lanterns = []; this.coins = []; this.wave = null; this.ring = null; this.souls = []; this.hands = []; this.freed = 0; this.pull = 0; this.exposed = 0; this.sub = false; this.trail = []; this.out = []; this.boil = 0; this.hauling = 0; this.castNow = this.handsNow = this.burstNow = false; this.oneMoreAt = -99; this.y = 0; this.cut.clear(); }
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
   get hx() { return this.x; } get hz() { return this.z; }
@@ -43,8 +43,8 @@ export class River implements Boss {
   get committed() { const s = this.strikes; return s.length > 0 && this.mt < s[s.length - 1].t[1]; }
   get helpless() { return this.mode === 'kneel' || this.mode === 'snap' || this.mode === 'fall' || this.mode === 'reel' || this.mode === 'reel2'; }
   get attacking() { return this.strikes.length > 0; }
-  get vulnerable() { return !this.sub && this.mode !== 'riseW' && this.mode !== 'die2'; }
-  get dmgMul() { return this.exposed > 0 ? this.bonus : 1; }
+  get vulnerable() { return (!this.sub || this.boil > 0) && this.mode !== 'riseW' && this.mode !== 'die2'; }
+  get dmgMul() { return (this.exposed > 0 ? this.bonus : 1) * (this.boil > 0 ? 1.25 : 1); }
   get hp(): [number, number] { return [D.boss.hp1 - 100, D.boss.hp2 + 300]; }
   get reelMode() { return this.form === 2 ? 'reel2' : 'reel'; } get kneelMode() { return 'kneel'; } get downMode() { return 'fall'; } get dieMode() { return 'die2'; } get reeling() { return this.mode === 'reel' || this.mode === 'reel2'; } get holdKneel() { return 1.6; } get holdDie() { return 6.4; }
   get tauts() { return !!this.chain; }
@@ -62,7 +62,7 @@ export class River implements Boss {
     this.px = px; this.pz = pz; const s = this.strikes, m = this.mode, d = dt * this.pace * (s.length && this.mt < s[0].t[0] ? this.rate : 1);
     this.prev = this.mt; this.mt += d; this.ended = null; this.cues = s.filter(q => q.cue > this.prev && q.cue <= this.mt); this.live = s.filter(q => this.mt >= q.t[0] && this.prev <= q.t[1]);
     const dx = px - this.x, dz = pz - this.z, dist = Math.hypot(dx, dz), face = Math.atan2(dx, dz); this.speed = 0; this.vx = this.vz = 0;
-    this.exposed = Math.max(0, this.exposed - dt); if (this.dark > 0 && (this.dark -= dt) <= 0) { this.dark = 0; this.say('relight'); }
+    this.exposed = Math.max(0, this.exposed - dt); this.boil = Math.max(0, this.boil - dt); if (this.dark > 0 && (this.dark -= dt) <= 0) { this.dark = 0; this.say('relight'); }
     if (this.chain && (this.chain.t += dt) > 9 && !(m === 'haulIn')) { this.say('chainGone', this.chain.x, this.chain.z); this.chain = null; }
     if (this.form === 1) this.ferry(dt, m, dist, face, dx, dz); else this.weight(dt, m, dist, face, dx, dz);
     this.x += this.vx * dt; this.z += this.vz * dt; const R = Math.hypot(this.x, this.z); if (R > REACH) { this.x *= REACH / R; this.z *= REACH / R; }
@@ -98,7 +98,7 @@ export class River implements Boss {
   }
   private weight(dt: number, m: string, dist: number, face: number, dx: number, dz: number) {
     const mt = this.mt, p = this.prev;
-    this.sub = m === 'wake' && mt > 0.6;
+    this.sub = m === 'wake' && mt > 0.6 && this.boil <= 0;
     if (m === 'idle' || m === 'strafe' || m === 'reel2' || m === 'kneel' || m === 'riseW' || m === 'die2') {
       if (m === 'strafe' || m === 'idle') {
         this.orbit += (m === 'strafe' ? 0.5 : 0.2) * dt * this.side; if ((this.sideT -= dt) < 0) { this.sideT = 3 + (this.serial % 3); this.side = -this.side; }
@@ -152,6 +152,7 @@ export class River implements Boss {
     const m = f.m; for (const o of this.out) f.raise({ k: 'b', ...o }); this.out.length = 0;
     // --- you jumped something
     if (f.leapT !== this.seenLeap && f.time - f.leapT < 0.2) { this.seenLeap = f.leapT; if (this.mode === 'wake' || this.mode === 'breach') this.jumped = true; if (this.form === 1 && this.mode === 'lowWater' && this.mt > 0.8 && this.mt < 1.6) { this.exposed = 2.4; this.bonus = 1.7; f.raise({ k: 'b', e: 'pole', x: this.x, z: this.z }); this.set('reel'); f.brain.broken(); } }
+    if (f.ev.some(e => e.k === 'rites')) this.boil = 6;
     if (this.form === 1) this.tickFerry(f, dt, m); else this.tickWeight(f, dt, m);
     if (f.ev.some(e => e.k === 'break') && this.mode === 'reel') this.exposed = Math.max(this.exposed, 1.2);
   }
@@ -173,7 +174,8 @@ export class River implements Boss {
       if (ch.hp <= 0) { this.chain = null; this.set('snap'); this.exposed = 4.4; this.bonus = 1.45; f.brain.broken(); f.raise({ k: 'b', e: 'snap', x: this.x, z: this.z }); }
     }
     // a wide strike of the anchor along the chain's own line is dodged like any other; spells and the rush clear patches of hands
-    if (this.handsNow) { this.handsNow = false; for (let i = 0; i < 5; i++) { const a = (this.serial * 1.3 + i * 1.257) % 6.283, R = 1.6 + (i * 1.7 + this.serial) % 4.4, x = m.x + Math.sin(a) * R, z = m.z + Math.cos(a) * R, q = Math.hypot(x, z), k = q > 17 ? 17 / q : 1; f.addZone({ shape: 'circle', x: x * k, z: z * k, r: 1.25, delay: 1.5 + i * 0.12, dmg: 10, down: false, mode: 'coldHands' }); } f.raise({ k: 'b', e: 'hands' }); }
+    if (this.handsNow) { this.handsNow = false; for (let i = 0; i < 5; i++) { const a = (this.serial * 1.3 + i * 1.257) % 6.283, R = 1.6 + (i * 1.7 + this.serial) % 4.4, x = m.x + Math.sin(a) * R, z = m.z + Math.cos(a) * R, q = Math.hypot(x, z), k = q > 17 ? 17 / q : 1; this.hands.push(f.addZone({ shape: 'circle', x: x * k, z: z * k, r: 1.25, delay: 1.5 + i * 0.12, dmg: 10, down: false, mode: 'coldHands' })); } f.raise({ k: 'b', e: 'hands' }); }
+    this.hands = this.hands.filter(h => h.t < h.delay + 0.5 && h.max !== -1);
     if (this.mode === 'coldHands') for (const h of f.hazards) if (h.mode === 'coldHands' && h.t < h.delay && h.max !== -1) {
       if (f.shots.some(s => Math.hypot(s.x - h.x, s.z - h.z) < s.r + h.r + 0.4) || (m.clip?.name === 'rush' && Math.hypot(m.x - h.x, m.z - h.z) < h.r + 1.3)) { h.max = -1; f.raise({ k: 'b', e: 'burn', x: h.x, z: h.z }); }
     }
