@@ -9,9 +9,9 @@ import type { KingView } from './boss/kingView.ts';
 interface B { scene: THREE.Scene; cam: THREE.PerspectiveCamera; m: Motor; pv: PlayerView; king: KingView; clips: Record<string, Clip>; kingClips: Record<string, Clip>; modes: KingMode[]; which: string; step: (dt: number) => void; setTime: (t: number) => void }
 
 export function mountBench(b: B) {
-  const king = b.which === 'king', names = king ? b.modes as string[] : ['idle', 'ready', 'guard', 'guardwalk', 'walk', 'run', 'sprint', ...Object.keys(b.clips)];
+  const king = b.which !== 'player', names = king ? b.modes as string[] : ['idle', 'ready', 'guard', 'guardwalk', 'walk', 'run', 'sprint', ...Object.keys(b.clips)];
   let cur = names[0], time = 0, t = 0, speed = 1, play = true, yaw = 0.7, pitch = 0.08, dist = king ? 7 : 3.4, auto = true;
-  const place = () => { b.m.x = 0; b.m.z = 4; b.m.yaw = Math.PI; b.m.target = null; b.king.sim.x = king ? 0 : 60; b.king.group.visible = king; b.king.sim.z = king ? 2 : -9; b.king.sim.yaw = 0; b.pv.reset(); };
+  const place = () => { b.m.x = 0; b.m.z = 4; b.m.yaw = Math.PI; b.m.target = null; b.king.sim.x = king ? 0 : 60; b.king.group.visible = king; b.king.sim.z = king ? 2 : -9; b.king.sim.yaw = 0; if (b.which === 'beneath') { b.king.sim.form = 2; b.king.sim.armed = false; b.king.show(true); } b.pv.reset(); };
   const pick = (n: string) => { cur = n; time = 0; b.m.state = 'free'; b.m.clip = null; b.m.guardHeld = false; b.m.can.skill1 = true; b.m.speed = 0; b.m.calm = n === 'ready' ? 0 : 99; place(); if (king) b.king.sim.set(n as KingMode); else if (b.clips[n]) { b.m.clip = b.clips[n]; b.m.state = 'clip'; b.m.t = 0; b.m.started++; (b.m as never as { lastMove: number }).lastMove = 0; } };
   const tick = (dt: number) => {
     const d = dt * speed; time += d; t += d; b.setTime(t);

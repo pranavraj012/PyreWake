@@ -11,7 +11,7 @@ export const ICON: Record<string, string> = {
   heal: '<path d="M12 20C7 17 4 13 5 9c1-3 5-3 7 0 2-3 6-3 7 0 1 4-2 8-7 11z"/>',
   pause: '<path d="M9 5v14M15 5v14"/>',
 };
-const LABEL: Partial<Record<Action, string>> = { attack: 'Attack', dodge: 'Dodge', guard: 'Guard', heal: 'Heal', skill1: 'Rush' };
+const LABEL: Partial<Record<Action, string>> = { attack: 'Attack', dodge: 'Dodge', guard: 'Guard', heal: 'Heal', skill1: 'Rush', skill2: 'Sunder', ultimate: 'Rites' };
 
 export function mountTouch(root: HTMLElement, input: Input) {
   const ui = document.createElement('div'); ui.id = 'touch';

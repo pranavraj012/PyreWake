@@ -21,7 +21,7 @@ const C: Record<string, Clip> = {};
 const def = (n: string, d: Parameters<typeof clip>[1]) => { C[n] = clip(n, d); };
 
 // 1: rising cut, low right to high left
-def('light1', { dur: 0.66, hit: [0.13, 0.25], chain: 0.3, free: 0.46, power: 1, blend: 0.12, move: [[0, 0], [0.1, 0.05], [0.22, 0.75], [0.3, 0.85], [0.66, 0.85]], keys: [
+def('light1', { dur: 0.66, hit: [0.13, 0.25], chain: 0.3, free: 0.46, power: 1, blend: 0.135, move: [[0, 0], [0.1, 0.05], [0.22, 0.75], [0.3, 0.85], [0.66, 0.85]], keys: [
   { t: 0, hy: -0.16, hp: 10, hw: -55, sp: 14, sw: -18, np: -12, nw: 55, ra: -82, re: -46, rl: 0.86, ba: -165, be: -18, bo: 0, la: 22, le: -20, ll: 0.6, lg: 0, flx: 0.08, flz: 0.2, flw: -5, frx: -0.1, frz: -0.3, frw: -60, frp: 10 },
   { t: 0.1, hy: -0.19, hw: -58, sw: -24, ra: -92, re: -42, ba: -172, be: -14, la: 30 },
   { t: 0.19, hy: -0.12, hp: 6, hw: 8, sp: 4, sw: 16, nw: -8, ra: -4, re: 6, rl: 0.98, ba: -8, be: 6, la: 78, le: -28, ll: 0.75, flz: 0.42, frz: -0.3 },

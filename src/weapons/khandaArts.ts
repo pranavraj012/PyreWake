@@ -26,9 +26,9 @@ const pass = (s: number) => ({ dur: 0.85, hit: [0.14, 0.27] as [number, number],
 def('passL', pass(1)); def('passR', pass(-1));
 
 // out of a back dodge: throws a crescent of fire
-def('flare', { dur: 0.95, chain: 0.52, free: 0.6, blend: 0.12, move: [[0, 0], [0.2, 0.1], [0.34, 0.6], [0.95, 0.65]], fx: [{ t: 0.05, kind: 'flare' }, { t: 0.27, kind: 'throw' }], keys: [
+def('flare', { dur: 0.95, chain: 0.6, free: 0.6, blend: 0.12, move: [[0, 0], [0.2, 0.1], [0.34, 0.6], [0.95, 0.65]], fx: [{ t: 0.05, kind: 'flare' }, { t: 0.31, kind: 'throw' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.22, hp: 12, hw: -50, sp: 14, sw: -30, np: -12, nw: 60, ra: -110, re: -20, rl: 0.9, ba: -178, be: -10, la: 20, le: -10, ll: 0.7, lg: 0, flx: 0.1, flz: 0.34, flp: 0, frx: -0.12, frz: -0.34, frp: 0, fly: 0, fry: 0 },
-  { t: 0.2, hw: -58, sw: -36, ra: -118 }, { t: 0.28, hy: -0.18, hw: 20, sw: 24, nw: -10, ra: 0, re: 14, rl: 1, ba: 0, be: 16, la: 90, le: -20 }, { t: 0.38, hw: 42, sw: 42, nw: -34, ra: 64, re: 30, ba: 96, be: 34, frp: 24 }, { t: 0.56, ra: 68, ba: 104 }, at(0.95, READYK) ] });
+  { t: 0.2, hw: -58, sw: -36, ra: -118 }, { t: 0.32, hy: -0.18, hw: 10, sw: 14, nw: -10, ra: 0, re: 14, rl: 1, ba: 0, be: 16, la: 90, le: -20 }, { t: 0.44, hw: 38, sw: 38, nw: -34, ra: 64, re: 30, ba: 96, be: 34, frp: 24 }, { t: 0.56, ra: 68, ba: 104 }, at(0.95, READYK) ] });
 
 // the second chain: pause after hit two
 def('alt3', { dur: 0.74, hit: [0.14, 0.24], hits: [[0.14, 0.24], [0.32, 0.42]], chain: 0.46, free: 0.56, power: 0.95, arc: 100, blend: 0.12, move: [[0, 0], [0.1, 0.1], [0.22, 0.7], [0.4, 1.2], [0.74, 1.25]], keys: [

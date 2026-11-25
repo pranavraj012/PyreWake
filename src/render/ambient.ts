@@ -15,18 +15,18 @@ function quads(count: number, attrs: Record<string, [number, (i: number) => numb
 }
 const R = Math.random;
 
-export function makeFires(at: THREE.Vector3[]) {
-  const per = 6, g = quads(at.length * per, {
+export function makeFires(at: THREE.Vector3[], per = 6, size = 1) {
+  const g = quads(at.length * per, {
     aP: [4, i => { const p = at[Math.floor(i / per)], a = R() * 6.28, d = R() * 0.6; return [p.x + Math.cos(a) * d, p.y + 0.15 + R() * 0.5, p.z + Math.sin(a) * d, R() * 10]; }],
-    aS: [2, () => { const s = 0.9 + R() * 0.8; return [s * 1.15, s * 1.9]; }],
+    aS: [2, () => { const s = (0.9 + R() * 0.8) * size; return [s * 1.15, s * 1.9]; }],
   });
   const m = new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uT: FOG.uFogP },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uT: FOG.uFogP, uGain: { value: 1 } },
     vertexShader: `attribute vec4 aP; attribute vec2 aS; varying vec2 u; varying float s; void main(){ u = position.xy + vec2(.5,0.); s = aP.w; vec3 r = normalize(vec3(viewMatrix[0][0], 0., viewMatrix[2][0])); vec3 w = aP.xyz + r * position.x * aS.x + vec3(0., position.y * aS.y, 0.); gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.); }`,
-    fragmentShader: `uniform vec4 uT; varying vec2 u; varying float s; ${NOISE}
+    fragmentShader: `uniform vec4 uT; uniform float uGain; varying vec2 u; varying float s; ${NOISE}
 void main(){ float t = uT.w * 1.15 + s * 7.; vec2 p = u; p.x += (fbm(vec2(u.x * 3. + s, u.y * 2.4 - t * 1.4)) - .47) * .55 * u.y; float f = fbm(vec2(p.x * 4.2 + s * 3., p.y * 2.6 - t * 2.)) * .75 + fbm(vec2(p.x * 10., p.y * 7. - t * 3.4)) * .35;
  float w = (1. - pow(abs(p.x - .5) * 2., 1.6)) * smoothstep(0., .12, u.y); float b = clamp(w * 1.25 - u.y * 1.05 + (f - .5) * 1.5, 0., 1.) * smoothstep(1., .7, u.y); b *= w;
- vec3 c = mix(vec3(.85,.09,.008), vec3(1.,.36,.05), smoothstep(.05,.45,b)); c = mix(c, vec3(1.,.78,.36), smoothstep(.4,.95,b)); gl_FragColor = vec4(c * b * b * 2.1, 1.); }`,
+ vec3 c = mix(vec3(.85,.09,.008), vec3(1.,.36,.05), smoothstep(.05,.45,b)); c = mix(c, vec3(1.,.78,.36), smoothstep(.4,.95,b)); gl_FragColor = vec4(c * b * b * 2.1 * uGain, 1.); }`,
   });
   const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; mesh.renderOrder = 5; return mesh;
 }

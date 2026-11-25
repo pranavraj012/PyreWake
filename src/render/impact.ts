@@ -43,7 +43,7 @@ void main(){ vec3 c = vec3(0.); float d = length(u) * 2.;
 
 /** A danger cue pinned to the limb about to strike. White is a four-point star, red a hollow diamond; a closing outline shows when it lands. Draws over everything. */
 export class CueMark {
-  mesh: THREE.Mesh; private u = { uK: { value: 0 }, uRed: { value: 0 }, uA: { value: 0 }, uAsp: { value: 1 }, uT: FOG.uFogP }; private left = 0; private len = 1; at = new THREE.Vector3(); kind: 'white' | 'red' = 'white'; mark: 'cleaver' | 'handL' = 'cleaver';
+  mesh: THREE.Mesh; private u = { uK: { value: 0 }, uRed: { value: 0 }, uA: { value: 0 }, uAsp: { value: 1 }, uT: FOG.uFogP }; private left = 0; private len = 1; at = new THREE.Vector3(); kind: 'white' | 'red' = 'white'; mark: 'cleaver' | 'handL' | 'head' = 'cleaver';
   constructor() {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0]), 3)); g.setIndex([0, 1, 2, 0, 2, 3]);
     const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, uniforms: this.u,
@@ -54,7 +54,7 @@ export class CueMark {
  gl_FragColor = vec4(c * uA * 1.5, 1.); }` });
     this.mesh = new THREE.Mesh(g, m); this.mesh.frustumCulled = false; this.mesh.renderOrder = 50; this.mesh.visible = false;
   }
-  start(kind: 'white' | 'red', mark: 'cleaver' | 'handL', lead: number) { this.kind = kind; this.mark = mark; this.left = this.len = Math.max(0.1, lead); this.u.uRed.value = kind === 'red' ? 1 : 0; this.mesh.visible = true; }
+  start(kind: 'white' | 'red', mark: 'cleaver' | 'handL' | 'head', lead: number) { this.kind = kind; this.mark = mark; this.left = this.len = Math.max(0.1, lead); this.u.uRed.value = kind === 'red' ? 1 : 0; this.mesh.visible = true; }
   stop() { this.left = Math.min(this.left, 0); }
   get active() { return this.mesh.visible; }
   update(dt: number, at: THREE.Vector3) { if (!this.mesh.visible) return; this.left -= dt; this.mesh.position.copy(at); this.mesh.updateMatrixWorld(); this.u.uK.value = Math.min(1, 1 - this.left / this.len); this.u.uA.value = this.left > 0 ? Math.min(1, (this.len - this.left) / 0.05) : Math.max(0, 1 + this.left / 0.12); if (this.left < -0.12) this.mesh.visible = false; }

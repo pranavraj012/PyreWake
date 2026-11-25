@@ -70,7 +70,7 @@ export async function buildCourt(tex: TexSet, tier: Tier) {
   const names = ['pillar0', 'pillar1', 'pillar2', 'block0', 'block1', 'block2', 'rubble0', 'rubble1', 'shrine', 'banyan', 'roots0', 'roots1', 'roots2', 'shroud', 'pyre'];
   const G = Object.fromEntries(await Promise.all(names.map(async n => [n, await loadGeo(n)] as const)));
   const [shrineLo, banyanLo] = await Promise.all([loadGeo('shrine', '.lo'), loadGeo('banyan', '.lo')]);
-  const stone = surface(tex, tier, { world: true, ash: 0.75 }), floor = surface(tex, tier, { world: true, ash: 0.5, wet: 0.85 }), wood = surface(tex, tier, { world: true, ash: 0.35 }), bark = surface(tex, tier, { world: true, ash: 0.35 });
+  const stone = surface(tex, tier, { world: true, ash: 0.75 }), rift = { value: 0 }, floor = surface(tex, tier, { world: true, ash: 0.5, wet: 0.85, rift }), wood = surface(tex, tier, { world: true, ash: 0.35 }), bark = surface(tex, tier, { world: true, ash: 0.35 });
   const mesh = (g: THREE.BufferGeometry, m: THREE.Material, cast = true) => { const o = new THREE.Mesh(g, m); o.castShadow = cast; o.receiveShadow = true; o.customDepthMaterial = DEPTH.still; group.add(o); return o; };
   const inst = (g: THREE.BufferGeometry, m: THREE.Material, list: THREE.Matrix4[], cast = true) => { const o = new THREE.InstancedMesh(g, m, list.length); list.forEach((x, i) => o.setMatrixAt(i, x)); o.castShadow = cast; o.receiveShadow = true; o.customDepthMaterial = DEPTH.inst; o.frustumCulled = false; group.add(o); return o; };
   const M = (x: number, y: number, z: number, ry = 0, s = 1, rx = 0, rz = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz, 'YXZ')), new THREE.Vector3(s, s, s));
@@ -122,9 +122,11 @@ export async function buildCourt(tex: TexSet, tier: Tier) {
   group.add(makeFires(fires), makeSmoke(fires), makeEmbers(fires, tier), makeAsh(tier));
   const lights = fires.slice(0, tier.lights).map(() => { const l = new THREE.PointLight(0xff9448, 0, 18, 1.8); group.add(l); return l; });
 
+  // round 2: the banyan burns
+  const tp = lp.filter((_, i) => i % Math.max(1, Math.round(lp.length / (ph ? 12 : 26))) === 0), burn = makeFires(tp.map(p => p.clone().setY(p.y - 0.6)), ph ? 2 : 4, 1.5), burnE = makeEmbers(tp, tier); burn.visible = burnE.visible = false; group.add(burn, burnE);
   group.updateMatrixWorld(true); group.traverse(o => { if (!(o as THREE.PointLight).isPointLight) o.matrixAutoUpdate = false; });
   return {
-    group, fires,
+    group, fires, /** 0-1: round 2's burning court. */ omen(k: number) { rift.value = k * 0.6; burn.visible = burnE.visible = k > 0.35; (burn.material as THREE.ShaderMaterial).uniforms.uGain.value = Math.max(0, (k - 0.35) / 0.65) * 0.5; },
     update(t: number, focus: THREE.Vector3) {
       const near = [...fires].sort((a, b) => a.distanceToSquared(focus) - b.distanceToSquared(focus));
       lights.forEach((l, i) => { const f = near[i]; l.position.set(f.x, f.y + 1.25, f.z); l.intensity = 62 * (0.85 + 0.12 * Math.sin(t * 9 + f.x) + 0.08 * Math.sin(t * 23 + f.z)); });

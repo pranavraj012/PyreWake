@@ -42,7 +42,7 @@ export class Fight {
     if (!k.committed && !k.hanging && k.y === 0) { const a = Math.atan2(k.x - m.x, k.z - m.z); k.x += Math.sin(a) * 0.05 * power; k.z += Math.cos(a) * 0.05 * power; }
     if (this.bossHp <= 0) {
       this.stop = 0.16; this.slow(0.2, 0.9); this.hazards.length = 0; this.ev.push({ k: 'hit', power: 3.2, dmg, reel: true, kind, head }, { k: 'hero' });
-      if (this.round === 1) { this.phase = 'scene'; k.pace = 1; k.crawling = false; k.set('fall'); this.ev.push({ k: 'half' }); }
+      if (this.round === 1) { this.phase = 'scene'; k.pace = 1; k.crawling = false; k.set(k.hanging ? 'crash' : 'fall'); this.ev.push({ k: 'half' }); }
       else { this.phase = 'finish'; k.set('kneel'); this.ev.push({ k: 'finish' }); }
       return;
     }
@@ -80,6 +80,7 @@ export class Fight {
     const frozen = m.clip?.name === 'rites' && m.t < 2.3; // the world holds its breath
     if (!this.passive && !m.dead && live && !frozen) { this.brain.step(dt, k, m.x, m.z, this.hits, this.bossHp / this.maxHp); if (this.brain.began) this.ev.push({ k: 'style', style: this.brain.began }); if (this.brain.style === 'eclipse' && this.bossHp / this.maxHp < 0.36 && this.wake < 100 && !this.granted) { this.granted = true; this.wake = 100; } }
     if (this.phase === 'finish' && k.mode === 'kneel' && k.mt > 1.6) k.mt = k.prev = 1.6;
+    if (this.phase === 'won' && k.mode === 'die2' && k.mt > 5.3) k.mt = k.prev = 5.3;
     if (!frozen) { k.pace = this.round === 2 ? (this.brain.style === 'eclipse' ? 1.1 : 1.04) : 1; k.step(dt, m.x, m.z); } else { k.cues.length = k.live.length = 0; k.ended = null; }
     this.sync();
     if (live) { this.playerHits(); this.bossHits(); if (!frozen) this.zones(dt); this.fly(dt); if (this.boom > 0 && (this.boom -= dt) <= 0) this.detonate(); }

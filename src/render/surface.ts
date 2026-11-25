@@ -44,7 +44,7 @@ vec3 applyFog(vec3 col, vec3 w, vec3 eye){
 /** One depth material per mesh kind: sharing one makes three.js re-resolve its program on every switch. */
 export const DEPTH = { still: new THREE.MeshDepthMaterial(), inst: new THREE.MeshDepthMaterial(), skin: new THREE.MeshDepthMaterial() };
 
-export interface SurfOpt { skinned?: boolean; world?: boolean; ash?: number; wet?: number; side?: THREE.Side; /** Per-character: dissolve 0-1 and flash colour + amount. */ fx?: { dis: { value: number }; flash: { value: THREE.Vector4 }; /** Where the flash sits: world position, radius. */ at: { value: THREE.Vector4 } } }
+export interface SurfOpt { skinned?: boolean; world?: boolean; ash?: number; wet?: number; side?: THREE.Side; /** Per-character: dissolve 0-1 and flash colour + amount. */ fx?: { dis: { value: number }; flash: { value: THREE.Vector4 }; /** Where the flash sits: world position, radius. */ at: { value: THREE.Vector4 }; /** Own ember level instead of the hero's. */ ember?: { value: number }; /** Burning cuts in rest space: centre + heat, and the cut plane's normal. */ wounds?: { w: { value: THREE.Vector4[] }; n: { value: THREE.Vector3[] } }; /** Aura step 0-4: cloth hem and blade catch fire. */ aura?: { value: number } }; /** Glowing cracks between floor slabs. */ rift?: { value: number } }
 export interface SurfUniforms { uEmber: { value: number }; uTime: { value: number } }
 export const SHARED: SurfUniforms = { uEmber: { value: 0.5 }, uTime: { value: 0 } };
 
@@ -59,7 +59,7 @@ export function surface(tex: TexSet, tier: Tier, o: SurfOpt = {}): THREE.MeshSta
   }
   const ash = o.ash ?? 0, wet = o.wet ?? 0;
   mat.onBeforeCompile = s => {
-    Object.assign(s.uniforms, FOG, SHARED, { uCol: { value: tex.col }, uNrm: { value: tex.nrm }, uTab: { value: table } }, o.fx ? { uDis: o.fx.dis, uFlash: o.fx.flash, uFlashAt: o.fx.at } : {});
+    Object.assign(s.uniforms, FOG, SHARED, { uCol: { value: tex.col }, uNrm: { value: tex.nrm }, uTab: { value: table } }, o.fx ? { uDis: o.fx.dis, uFlash: o.fx.flash, uFlashAt: o.fx.at, ...(o.fx.ember ? { uEmber: o.fx.ember } : {}), ...(o.fx.wounds ? { uWo: o.fx.wounds.w, uWn: o.fx.wounds.n } : {}), ...(o.fx.aura ? { uAura: o.fx.aura } : {}) } : {}, o.rift ? { uRift: o.rift } : {});
     s.vertexShader = s.vertexShader.replace('#include <common>', `#include <common>
 attribute vec4 aInfo; uniform highp sampler2D uTab;
 varying vec3 vRest, vRestN, vWN; varying vec3 vInf; flat varying vec4 vA, vB, vC, vD; flat varying float vId;`)
@@ -90,7 +90,7 @@ vWN = transpose(mat3(viewMatrix)) * normalize(transformedNormal);`);
   if (w.z > .02) { vec3 c = textureGrad(uCol, vec3(p.xy, ly), dx.xy, dy.xy).rgb, n = textureGrad(uNrm, vec3(p.xy, ly), dx.xy, dy.xy).rgb; tc += c*w.z; tr += n.z*w.z; g -= w.z*vec3(n.x*2.-1., n.y*2.-1., 0.); }`;
     s.fragmentShader = s.fragmentShader.replace('#include <common>', `${tier.glows ? '#define FOG_GLOWS' : ''}
 #include <common>
-precision highp sampler2DArray; uniform sampler2DArray uCol, uNrm; uniform float uEmber, uTime; ${o.fx ? 'uniform float uDis; uniform vec4 uFlash, uFlashAt;' : ''}
+precision highp sampler2DArray; uniform sampler2DArray uCol, uNrm; uniform float uEmber, uTime; ${o.fx ? 'uniform float uDis; uniform vec4 uFlash, uFlashAt;' : ''} ${o.fx?.wounds ? 'uniform vec4 uWo[5]; uniform vec3 uWn[5];' : ''} ${o.fx?.aura ? 'uniform float uAura;' : ''} ${o.rift ? 'uniform float uRift;' : ''}
 varying vec3 vRest, vRestN, vWN; varying vec3 vInf; flat varying vec4 vA, vB, vC, vD; flat varying float vId;`)
       .replace('#include <map_fragment>', `
   vec3 rn = normalize(vRestN), p = vRest * vB.x, dx = dFdx(p), dy = dFdy(p); float ly = vA.w;
@@ -122,9 +122,9 @@ varying vec3 vRest, vRestN, vWN; varying vec3 vInf; flat varying vec4 vA, vB, vC
   vec3 r1 = cross(sy, normal), r2 = cross(normal, sx); float det = dot(sx, r1); float dhx = dot(gg, dFdx(vRest)), dhy = dot(gg, dFdy(vRest));
   vec3 gr = sign(det) * (dhx * r1 + dhy * r2); normal = normalize(abs(det) * normal + gr * faceDirection * -1.);
 }`)
-      .replace('#include <emissivemap_fragment>', `totalEmissiveRadiance += vec3(1.0,.26,.045) * emb * emb * 7.; ${o.fx ? `if (uDis > .001) { vec3 q = vRest * 11.; float nz = texture(uNrm, vec3(vRest.xy * 1.9 + vRest.z, 3.)).x * .6 + texture(uNrm, vec3(vRest.zy * 4.7, 0.)).y * .4; float cut = smoothstep(.25, .75, nz) - uDis * 1.12 + .06; if (cut < 0.) discard; totalEmissiveRadiance += vec3(1., .34, .06) * smoothstep(.14, 0., cut) * 5.; } totalEmissiveRadiance += uFlash.rgb * uFlash.a * exp(-dot(vFogW - uFlashAt.xyz, vFogW - uFlashAt.xyz) / (uFlashAt.w * uFlashAt.w)) * (.06 + .94 * pow(max(0., 1. - abs(dot(normal, normalize(vViewPosition)))), 2.5));` : ''} if (vId == 8. && mk > .5) totalEmissiveRadiance += vec3(1.,.3,.05) * smoothstep(.0905,.0925,vRest.z) * (.6 + 2. * uEmber);`)
+      .replace('#include <emissivemap_fragment>', `totalEmissiveRadiance += vec3(1.0,.26,.045) * min(emb * emb, 1.6) * 7.; if (vId == 22.) { float q = texture(uNrm, vec3(vRest.xy * 1.3 + vec2(0., -uTime * .22), 3.)).x * .6 + texture(uNrm, vec3(vRest.zy * 2.1 + vec2(uTime * .1, -uTime * .3), 0.)).y * .4; totalEmissiveRadiance += mix(vec3(.9,.06,.008), vec3(1.,.5,.14), smoothstep(.42, .7, q)) * smoothstep(.25, .75, q) * uEmber * 4.; } ${o.fx ? `if (uDis > .001) { vec3 q = vRest * 11.; float nz = texture(uNrm, vec3(vRest.xy * 1.9 + vRest.z, 3.)).x * .6 + texture(uNrm, vec3(vRest.zy * 4.7, 0.)).y * .4; float cut = smoothstep(.25, .75, nz) - uDis * 1.12 + .06; if (cut < 0.) discard; totalEmissiveRadiance += vec3(1., .34, .06) * smoothstep(.14, 0., cut) * 5.; } totalEmissiveRadiance += uFlash.rgb * uFlash.a * exp(-dot(vFogW - uFlashAt.xyz, vFogW - uFlashAt.xyz) / (uFlashAt.w * uFlashAt.w)) * (.06 + .94 * pow(max(0., 1. - abs(dot(normal, normalize(vViewPosition)))), 2.5));` : ''} ${o.fx?.wounds ? `{ float wg = 0.; for (int i = 0; i < 5; i++) { if (uWo[i].w < .01) continue; vec3 q = vRest - uWo[i].xyz; float ps = abs(dot(q, uWn[i]) + (mv - .5) * .05), ln = smoothstep(.34, .12, length(q)); wg = max(wg, uWo[i].w * ln * (smoothstep(.03, .004, ps) + .25 * smoothstep(.1, .0, ps))); } totalEmissiveRadiance += mix(vec3(.8, .05, .005), vec3(1., .5, .14), wg) * wg * wg * 2.8; }` : ''} ${o.fx?.aura ? `if (uAura > 2.2) { float q = texture(uNrm, vec3(vRest.xy * 1.6 + vec2(0., -uTime * .5), 3.)).x * .6 + texture(uNrm, vec3(vRest.zy * 3.1 + vec2(0., -uTime * .9), 0.)).y * .4; float a3 = smoothstep(2.2, 3., uAura), hem = (vId == 5. || vId == 6.) ? smoothstep(.62, .16, vRest.y) : 0.; float bl = vId == 14. ? smoothstep(3.2, 4., uAura) * .55 : 0.; float b = max(hem * a3, bl) * smoothstep(.42, .72, q + hem * .2); totalEmissiveRadiance += mix(vec3(.9, .1, .01), vec3(1., .6, .2), b) * b * b * 4.5; }` : ''} ${o.rift ? `if (uRift > .01) { float q = texture(uNrm, vec3(vRest.xz * .11 + uTime * .01, 3.)).x; totalEmissiveRadiance += vec3(1., .13, .015) * uRift * smoothstep(.75, .2, ao) * smoothstep(.35, .7, q) * (1.4 + .5 * sin(uTime * 1.3 + vRest.x)); }` : ''} if (vId == 8. && mk > .5) totalEmissiveRadiance += vec3(1.,.3,.05) * smoothstep(.0905,.0925,vRest.z) * (.6 + 2. * uEmber);`)
       .replace('#include <aomap_fragment>', `float bao = ao; reflectedLight.indirectDiffuse *= bao; reflectedLight.indirectSpecular *= clamp(bao * bao * 1.3, 0., 1.); reflectedLight.directDiffuse *= mix(1., bao, .45); reflectedLight.directSpecular *= mix(1., bao, .7);`);
   };
-  mat.customProgramCacheKey = () => `surf${tier.name}${o.world ? 1 : 0}${ash}${wet}${N}${o.fx ? 'f' : ''}`;
+  mat.customProgramCacheKey = () => `surf${tier.name}${o.world ? 1 : 0}${ash}${wet}${N}${o.fx ? 'f' : ''}${o.fx?.wounds ? 'w' : ''}${o.fx?.aura ? 'a' : ''}${o.rift ? 'r' : ''}`;
   return mat;
 }

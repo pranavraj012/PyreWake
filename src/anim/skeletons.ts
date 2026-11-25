@@ -65,4 +65,10 @@ export const KING: BoneDef[] = [
   one('graft2', 'graft1', [-0.42, 2.28, 0.14]),
 ];
 
+/** Round 2: the same frame with two more pairs of arms. Each extra arm hangs parallel to the main one, so it can echo its motion. */
+export const BENEATH: BoneDef[] = [...KING, ...([['2', 'chest', [0.34, 2.84, -0.22], 0.9], ['3', 'spine2', [0.27, 2.58, -0.18], 0.82]] as [string, string, P3, number][]).flatMap(([k, par, p, s]) => {
+  const e: P3 = [p[0] + 0.44 * s, p[1] - 0.94 * s, p[2] + 0.11 * s], w: P3 = [e[0] + 0.46 * s, e[1] - 0.99 * s, e[2] + 0.12 * s];
+  return [...both('upperArm' + k, par, p, true), ...both('foreArm' + k, 'upperArm' + k, e), ...both('hand' + k, 'foreArm' + k, w)];
+})];
+
 export const boneIndex = (defs: BoneDef[]) => { const m: Record<string, number> = {}; defs.forEach((b, i) => { m[b.name] = i; }); return m; };

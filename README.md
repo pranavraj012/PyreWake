@@ -20,10 +20,29 @@ You are the Pyrekeeper, a human who tends the cremation fires and has died once 
 
 | | |
 |---|---|
-| ![Combo](docs/media/combo.jpg) | ![Cinder Rush](docs/media/rush.jpg) |
-| ![Danger cue](docs/media/cue.jpg) | ![Phone](docs/media/phone.jpg) |
+| ![Counter flurry](docs/media/combo.jpg) | ![Last Rites](docs/media/rush.jpg) |
+| ![The hanging style](docs/media/cue.jpg) | ![Round 2](docs/media/round2.jpg) |
+| ![Second Flame](docs/media/flame.jpg) | ![Phone](docs/media/phone.jpg) |
 
 **One rule for reading danger:** a white star means dodge *or* guard, a red diamond means dodge, glowing ground means move. Each differs in shape and sound as well as colour.
+
+**Round 1, the Hanged King:** fights on two feet, then on all fours, then hanging upside down from the tree, where its head swings at sword height.
+**Round 2, the One Beneath:** what was wearing it. Six arms, a burning court, an eclipse.
+
+### One button, many answers
+
+| Do this | Get this |
+|---|---|
+| tap Attack | five-hit chain |
+| pause after hit two, then tap | a second chain: cross cuts, spinning kick, fire wave |
+| hold Attack after hit 1, 2, 3 or 4 | rising cut, spinning cleave, thrust, ground slam |
+| hold Attack from rest | charged heavy |
+| sprint, then Attack | a leaping turn into a falling cut |
+| dodge, then Attack | forward: low turn; sideways: passing cut; back: thrown fire |
+| Guard, then Attack | a burst from the burnt hand |
+| parry or last-instant dodge, then Attack | six cuts and a wait |
+| Attack a kneeling boss | execution |
+| keep hitting without being hit | your aura builds in four steps |
 
 ## Play
 
@@ -40,6 +59,8 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Dodge | Space | B | Dodge |
 | Guard (tap at the last moment to parry) | right click or K | LB | Guard |
 | Cinder Rush | Q | RB | Rush |
+| Sunder Arc | E | RT | Sunder |
+| Last Rites (when ready) | R | both sticks | Rites |
 | Heal | F | D-pad up | Heal |
 | Pause | Esc | Start | pause icon |
 
@@ -51,7 +72,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Motion | a small clip language over named pose channels, solved with two-bone IK, foot locking, inertialised blending, and simulated cloth and hair |
 | Combat | 60 Hz fixed step with no rendering imports, so whole fights run headless in tests |
 | Rendering | three.js (WebGL 2) with one layered surface shader, own HDR chain, height fog, GPU particles |
-| Sound | synthesised at runtime with the Web Audio API |
+| Sound | 118 sounds synthesised sample by sample in a worker (modal metal, formant voices, debris, fire), a court reverb, and an adaptive score |
 | Checks | unit tests, bots that play hundreds of headless fights, per-tier performance budgets, scripted screenshots |
 
 ```
@@ -77,10 +98,11 @@ src/ui/ src/input/ src/arena/ src/core/
 | `npm run soak` | a bot plays the real game and reports hitches (`-- --phone --secs=90`) |
 | `npm run fight` | scripted fight that captures every beat (`-- --phone`) |
 | `npm run shots`, `npm run sheets` | stills, motion contact sheets |
-| `npm run sfx` | measures every sound effect |
+| `npm run sfx` | renders every sound, prints levels, draws spectrograms |
+| `npm run moments` | drives the game to each key moment and captures it |
 | `npm run forge [names]` | rebake models (`textures` needs the CC0 sources in `assets_src/`) |
 
-Address options: `?nointro`, `?still`, `?touch`, `?tier=phone|mid|high`, `?bench=player`, `?bench=king`, `?shot=<name>`.
+Address options: `?nointro`, `?still`, `?touch`, `?tier=phone|mid|high`, `?bench=player`, `?bench=king`, `?bench=beneath`, `?shot=<name>`, `?round2` (start in round 2), `?turn` (one hit from the cutscene).
 
 ## Licence
 

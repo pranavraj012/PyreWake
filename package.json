@@ -16,7 +16,8 @@
     "soak": "node tools/soak.mjs",
     "fight": "node tools/fight.mjs",
     "sheets": "node tools/sheets.mjs",
-    "sfx": "node tools/sfx.mjs"
+    "sfx": "node tools/sfx.mjs",
+    "moments": "node tools/m4.mjs"
   },
   "dependencies": {
     "three": "0.187.0"
