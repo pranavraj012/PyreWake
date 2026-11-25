@@ -14,7 +14,7 @@ const BOOK: Record<Style, Option[]> = {
   hanged: [{ seq: ['hangSwing'], w: 3, near: 0, far: 30 }, { seq: ['hangSwipe'], w: 2, near: 0, far: 3 }],
   blades: [
     { seq: ['flurry'], w: 3, near: 0, far: 5 }, { seq: ['cross'], w: 3, near: 2, far: 10 }, { seq: ['cross', 'cross'], w: 2, near: 2, far: 10, below: 0.95 }, { seq: ['hop', 'skewer'], w: 2, near: 0, far: 4 }, { seq: ['skewer'], w: 2, near: 2.5, far: 6 },
-    { seq: ['wheel'], w: 3, near: 3, far: 30 }, { seq: ['rupture'], w: 2, near: 2, far: 12 }, { seq: ['rain', 'cross'], w: 2, near: 4, far: 30, below: 0.85 },
+    { seq: ['wheel'], w: 3, near: 3, far: 30 }, { seq: ['rupture'], w: 2, near: 2, far: 12 }, { seq: ['rain'], w: 1, near: 1.2, far: 30, below: 0.9 }, { seq: ['rain', 'cross'], w: 2, near: 3, far: 30, below: 0.8 },
   ],
   eclipse: [
     { seq: ['flurry', 'hop', 'skewer'], w: 2, near: 0, far: 5 }, { seq: ['cross', 'cross', 'flurry'], w: 2, near: 2, far: 10 }, { seq: ['wheel', 'cross'], w: 3, near: 3, far: 30 }, { seq: ['rupture', 'cross'], w: 2, near: 2, far: 12 }, { seq: ['rain', 'wheel'], w: 2, near: 4, far: 30 }, { seq: ['cross'], w: 2, near: 2, far: 10 }, { seq: ['flurry'], w: 2, near: 0, far: 5 },

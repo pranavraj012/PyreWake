@@ -8,7 +8,7 @@ export const D = {
   /** Unhurt hits needed for each aura step. */ aura: [6, 14, 26, 42],
   /** Ultimate charge per point of damage. */ wakeGain: 0.036,
   /** The closing blow of a multi-hit attack hits this much harder. */ lastHit: { reckon: 4.2, alt5: 1.7, execute: 1.9 } as Record<string, number>,
-  boss: { hp1: 4300, hp2: 4300, reelGap: 6, rest: [0.5, 1.0] as [number, number], rest2: [0.35, 0.8] as [number, number], near: 3.1, /** Extra rest when the quiet assist is on. */ assist: 0.9, headMul: 1.5, hangBreak: 420, hangTime: 20 },
+  boss: { hp1: 4300, hp2: 3700, reelGap: 6, rest: [0.5, 1.0] as [number, number], rest2: [0.35, 0.8] as [number, number], near: 3.1, /** Extra rest when the quiet assist is on. */ assist: 1.2, headMul: 1.5, hangBreak: 420, hangTime: 20 },
   /** Cue lead before a blow lands (s): the first time an attack is seen, and after. */ cueFirst: 0.8, cue: 0.5,
   teach: { dmg: 0.4, rate: 0.7, slow: 0.6 },
 };
