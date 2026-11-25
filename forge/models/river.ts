@@ -14,7 +14,7 @@ async function finish(parts: Part[], reach: number, smooth = 0): Promise<Mesh> {
 }
 
 /** An old man broad as a door and bent under the net he wears, on the King's frame (scaled down in play). */
-export async function ferryman(): Promise<Mesh> {
+export async function ferryman(bare = false): Promise<Mesh> {
   const parts: Part[] = [], F = (k: number, voxel: number, mat: number, tris: number, soft = 0.04) => { const f = new Field(k); parts.push([f, voxel, mat, tris, soft]); return f; };
   const sk = F(0.07, 0.0115, 27, 30000), net = F(0.004, 0.0085, 26, 9000), cloth = F(0.05, 0.016, 5, 14000), iron = F(0.01, 0.0095, 12, 4500);
   // --- the barrel of him: broad pelvis, great belly, a back that humps
@@ -50,12 +50,12 @@ export async function ferryman(): Promise<Mesh> {
   const hair = new Field(0.01); void hair;
   // --- the net: two sets of helical cords over the torso and shoulders, knotted where they cross
   const rx = (y: number) => 0.3 + 0.2 * sstep(1.95, 2.9, y) - 0.12 * sstep(3.0, 3.2, y), rz = (y: number) => 0.24 + 0.1 * sstep(1.95, 2.9, y), zc = (y: number) => 0.06 - 0.12 * sstep(2.3, 3.1, y), boneAt = (y: number) => y < 2.28 ? b.spine1 : y < 2.62 ? b.spine2 : b.chest;
-  for (const dir of [1, -1]) for (let k = 0; k < 13; k++) {
+  if (!bare) for (const dir of [1, -1]) for (let k = 0; k < 13; k++) {
     const a0 = k / 13 * Math.PI * 2, pts: V3[] = []; for (let i = 0; i <= 44; i++) { const t = i / 44, y = 2.0 + t * 1.2, a = a0 + dir * t * 3.0; pts.push([Math.sin(a) * (rx(y) + 0.024), y, zc(y) + Math.cos(a) * (rz(y) + 0.024)]); }
     pts.slice(1).forEach((p, i) => net.put(cone(pts[i], p, 0.016, 0.016), { bone: boneAt(p[1]), k: 0.004 }));
   }
-  for (const [S, s] of SIDES) { const u = mir(at('upperArm.L'), s), e = mir(at('foreArm.L'), s); for (let r = 0; r < 4; r++) { const p = lerp3(u, e, 0.1 + r * 0.2), q: V3[] = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; q.push(add(p, [Math.sin(a) * 0.17, Math.cos(a * 0.5) * 0.02, Math.cos(a) * 0.16])); } q.slice(1).forEach((x, i) => net.put(cone(q[i], x, 0.011, 0.011), { bone: b['upperArm.' + S], k: 0.004 })); } }
-  net.displace((x, y, z) => 0.003 * noise(x * 60, y * 60, z * 60), 0.004);
+  if (!bare) for (const [S, s] of SIDES) { const u = mir(at('upperArm.L'), s), e = mir(at('foreArm.L'), s); for (let r = 0; r < 4; r++) { const p = lerp3(u, e, 0.1 + r * 0.2), q: V3[] = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; q.push(add(p, [Math.sin(a) * 0.17, Math.cos(a * 0.5) * 0.02, Math.cos(a) * 0.16])); } q.slice(1).forEach((x, i) => net.put(cone(q[i], x, 0.011, 0.011), { bone: b['upperArm.' + S], k: 0.004 })); } }
+  net.displace((x, y, z) => 0.003 * noise(x * 60, y * 60, z * 60), 0.004); if (bare) parts.splice(parts.findIndex(q => q[0] === net), 1);
   // --- a heavy sodden hood and a drape of cloth over the back
   cloth.bone = b.chest; cloth.put(ell([0, 3.14, -0.34], [0.46, 0.2, 0.3], [0.5, 0, 0]), { k: 0.1 }).put(ell([0, 2.86, -0.5], [0.4, 0.5, 0.12], [0.1, 0, 0]), { k: 0.1 });
   for (const [, s] of SIDES) cloth.put(ell([0.4 * s, 3.1, -0.1], [0.18, 0.1, 0.22], [0, 0, 0.5 * s]), { k: 0.08 });
@@ -64,7 +64,7 @@ export async function ferryman(): Promise<Mesh> {
   cloth.bone = b.chest; cloth.put(ell([0, 3.02, -0.05], [0.66, 0.24, 0.46], [0.15, 0, 0]), { k: 0.12 });
   for (const [S, s] of SIDES) { cloth.bone = b['thigh.' + S]; const h = mir(at('thigh.L'), s), k = mir(at('shin.L'), s); cloth.put(cone(add(h, [0.04 * s, 0.12, 0]), add(k, [0.04 * s, -0.3, 0.02]), 0.3, 0.26), { k: 0.1 }); }
   cloth.bone = b.hips; cloth.put(cone([0, 2.15, -0.05], [0, 1.75, -0.08], 0.46, 0.5), { k: 0.12 }).put(ell([0, 1.3, -0.24], [0.42, 0.5, 0.1]), { k: 0.1 });
-  cloth.put(any((x, y, z) => (0.62 + 0.18 * fbm(x * 5, 1.3, z * 5, 3) + 0.08 * ridged(x * 13, 2, z * 13, 2) - y) * -0.7), { op: 'int', k: 0.02 });
+  cloth.put(any((x, y, z) => ((bare ? 1.15 : 0.62) + 0.18 * fbm(x * 5, 1.3, z * 5, 3) + (bare ? 0.2 : 0.08) * ridged(x * 13, 2, z * 13, 2) - y) * -0.7), { op: 'int', k: 0.02 });
   cloth.displace((x, y, z) => { const a = Math.atan2(x, z); return 0.03 * fbm(x * 4.5, y * 4.5, z * 4.5, 3) - 0.02 * ridged(a * 3.5, y * 1.6, 1, 2) * sstep(2.3, 1.2, y) - 0.014 * ridged(x * 9, y * 9 + z * 5, z * 9, 2); }, 0.06);
   // --- chain slung from the shoulder, a coil of it at the hip
   const link = (pts: V3[], bone: number) => pts.slice(1).forEach((p, i) => iron.put(cone(pts[i], p, 0.034, 0.034), { bone, k: 0.01 }));

@@ -1,4 +1,4 @@
-// The second boss's simulation in both rounds: the Ferryman (form 1) and the Weight (form 2). Runs headless; its own mechanics resolve in tick().
+// The second boss's simulation in both rounds: the Ferryman (form 1) and the Unburdened (form 2), the same man with the net gone. Runs headless; its own mechanics resolve in tick().
 import { moveAt } from '../../anim/pose.ts';
 import type { Boss } from '../boss.ts';
 import type { Strike } from '../moves2.ts';
@@ -37,7 +37,7 @@ export class River implements Boss {
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
   get hx() { return this.x; } get hz() { return this.z; }
-  get hr() { return this.form === 2 ? (this.mode === 'breach' ? 2.5 : 1.8) : this.r; }
+  get hr() { return this.r; }
   get hanging() { return false; } get airborne() { return this.y > 1.2 || this.sub; }
   get strikes() { return A[this.mode] ?? []; }
   get committed() { const s = this.strikes; return s.length > 0 && this.mt < s[s.length - 1].t[1]; }
@@ -64,7 +64,7 @@ export class River implements Boss {
     const dx = px - this.x, dz = pz - this.z, dist = Math.hypot(dx, dz), face = Math.atan2(dx, dz); this.speed = 0; this.vx = this.vz = 0;
     this.exposed = Math.max(0, this.exposed - dt); this.boil = Math.max(0, this.boil - dt); if (this.dark > 0 && (this.dark -= dt) <= 0) { this.dark = 0; this.say('relight'); }
     if (this.chain && (this.chain.t += dt) > 9 && !(m === 'haulIn')) { this.say('chainGone', this.chain.x, this.chain.z); this.chain = null; }
-    if (this.form === 1) this.ferry(dt, m, dist, face, dx, dz); else this.weight(dt, m, dist, face, dx, dz);
+    this.ferry(dt, m, dist, face, dx, dz);
     this.x += this.vx * dt; this.z += this.vz * dt; const R = Math.hypot(this.x, this.z); if (R > REACH) { this.x *= REACH / R; this.z *= REACH / R; }
     const L = this.trail[0]; if (!L || Math.hypot(L.x - this.x, L.z - this.z) > 0.25) { this.trail.unshift({ x: this.x, z: this.z }); if (this.trail.length > 160) this.trail.length = 160; }
   }
@@ -72,22 +72,24 @@ export class River implements Boss {
   /** The first turn is its own: slowed while it holds the chain taut. */
   private ferry(dt: number, m: string, dist: number, face: number, dx: number, dz: number) {
     const taut = this.tauts, near = D.boss.near + 0.4;
-    if (m === 'stalk') { const k = (this.mt * 0.7) % 1, b = k < 0.2 ? 0.25 : 1; this.burst = b; this.speed = taut ? 0 : dist > near - 0.2 ? 2.7 * b : 0; this.turn((taut ? 0.4 : 1.4) * dt, face); this.vx = Math.sin(this.yaw) * this.speed; this.vz = Math.cos(this.yaw) * this.speed; }
-    else if (m === 'strafe') { if ((this.sideT -= dt) < 0) { this.sideT = 1.4 + (this.serial % 3) * 0.4; this.side = -this.side; } const sp = taut ? 0 : 1.5, rad = taut ? 0 : Math.max(-1.6, Math.min(1.8, (dist - (near + 0.8)) * 1.3)); this.speed = sp; this.burst = 0.5; this.vx = Math.cos(face) * sp * this.side + Math.sin(face) * rad; this.vz = -Math.sin(face) * sp * this.side + Math.cos(face) * rad; this.turn((taut ? 0.5 : 2.6) * dt, face); }
-    else if (m === 'idle') this.turn((taut ? 0.4 : 1.3) * dt, face);
+    const fast = this.form === 2 ? 1.9 : 1;
+    if (m === 'stalk') { const k = (this.mt * 0.7) % 1, b = this.form === 2 ? 1 : k < 0.2 ? 0.25 : 1; this.burst = b; this.speed = taut ? 0 : dist > near - 0.2 ? 2.7 * b * fast : 0; this.turn((taut ? 0.4 : 1.4) * fast * dt, face); this.vx = Math.sin(this.yaw) * this.speed; this.vz = Math.cos(this.yaw) * this.speed; }
+    else if (m === 'strafe') { if ((this.sideT -= dt) < 0) { this.sideT = 1.4 + (this.serial % 3) * 0.4; this.side = -this.side; } const sp = taut ? 0 : 1.5 * fast, rad = taut ? 0 : Math.max(-1.6, Math.min(1.8, (dist - (near + 0.8)) * 1.3)); this.speed = sp; this.burst = 0.5; this.vx = Math.cos(face) * sp * this.side + Math.sin(face) * rad; this.vz = -Math.sin(face) * sp * this.side + Math.cos(face) * rad; this.turn((taut ? 0.5 : 2.6) * dt, face); }
+    else if (m === 'idle') this.turn((taut ? 0.4 : 1.3) * fast * dt, face);
     else if (m in C) {
       const c = C[m], g = moveAt(c, this.mt), want = g - this.moved, st = want > 0 ? Math.min(want, Math.max(0, dist - 1.7)) : want; this.moved = g; this.x += Math.sin(this.yaw) * st; this.z += Math.cos(this.yaw) * st; const s = this.strikes, mt = this.mt, p = this.prev;
-      if (m === 'pushOff') {
+      if (m === 'pushOff' || m === 'vault') {
         if (p < s[0].cue && mt >= s[0].cue) { const go = Math.min(14, dist) + 2.2; this.mark = { x: this.x + dx / (dist || 1) * go, z: this.z + dz / (dist || 1) * go }; const R = Math.hypot(this.mark.x, this.mark.z); if (R > 17.5) { this.mark.x *= 17.5 / R; this.mark.z *= 17.5 / R; } }
-        if (mt < 0.84) { this.from = { x: this.x, z: this.z }; this.turn(5 * dt, mt > s[0].cue ? Math.atan2(this.mark.x - this.x, this.mark.z - this.z) : face); }
-        else { const u = Math.min(1, (mt - 0.84) / 0.8), e = u * u * (3 - 2 * u) * 0.6 + u * 0.4; this.x = this.from.x + (this.mark.x - this.from.x) * e; this.z = this.from.z + (this.mark.z - this.from.z) * e; this.y = u < 1 ? Math.sin(Math.PI * Math.pow(u, 0.8)) * 3.6 : 0; }
+        const lift = m === 'vault' ? 0.66 : 0.84; if (mt < lift) { this.from = { x: this.x, z: this.z }; this.turn(5 * dt, mt > s[0].cue ? Math.atan2(this.mark.x - this.x, this.mark.z - this.z) : face); }
+        else { const u = Math.min(1, (mt - lift) / (m === 'vault' ? 0.78 : 0.8)), e = u * u * (3 - 2 * u) * 0.6 + u * 0.4; this.x = this.from.x + (this.mark.x - this.from.x) * e; this.z = this.from.z + (this.mark.z - this.from.z) * e; this.y = u < 1 ? Math.sin(Math.PI * Math.pow(u, 0.8)) * (m === 'vault' ? 2.8 : 3.6) : 0; }
       } else if (m === 'haul' || m === 'reel' || m === 'snap' || m === 'kneel' || m === 'fall') { /* held */ }
       else if (m in LOCK) { if (mt < LOCK[m]) this.turn((taut ? 1.0 : 3.2) * dt, face); }
-      else { const next = s.find(q => q.t[0] > mt); if (next && mt < next.t[0] - 0.2) this.turn(2.2 * dt, face); else if (!s.length && mt < 1.2) this.turn(1.6 * dt, face); }
+      else { const next = s.find(q => q.t[0] > mt); if (next && mt < next.t[0] - 0.2) this.turn(2.2 * fast * dt, face); else if (!s.length && mt < 1.2) this.turn(1.6 * dt, face); }
       if (m === 'cast' && p < 1.06 && mt >= 1.06) this.castNow = true;
       if (m === 'gather' && p < 1.0 && mt >= 1.0) { this.dark = 9.5; this.say('dark'); }
       if (m === 'wrongShore') { if (p < 1.2 && mt >= 1.2) this.conjure(); if (p < s[0].t[0] && mt >= s[0].t[0]) this.burstNow = true; }
       if (m === 'coldHands' && p < 1.0 && mt >= 1.0) this.handsNow = true;
+      if (m === 'lamps' && mt > 1.0 && mt < 4.6) { this.spin += 1.6 * dt; this.coinAcc += 7 * dt; while (this.coinAcc >= 1) { this.coinAcc -= 1; const k = this.serial + Math.floor(mt * 7), a = this.spin + (k % 4) * 1.571, sp = 5 + (k % 3) * 0.6; this.coins.push({ x: this.x + Math.sin(a) * 1.6, z: this.z + Math.cos(a) * 1.6, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, life: 4, back: false }); } }
       if (mt >= c.dur) { if (m === 'wrongShore') this.lanterns = []; this.end(m); }
     }
   }
@@ -96,44 +98,6 @@ export class River implements Boss {
     const real = Math.floor(((this.serial * 7919) % 97) / 97 * 3), a0 = Math.atan2(this.x - this.px, this.z - this.pz); this.lanterns = [0, 1, 2].map(i => { const a = a0 + (i - 1) * 0.95 + (i === 1 ? 0.1 : 0), R = 3.6 + ((i * 1.7 + this.serial) % 2.2), x = this.px + Math.sin(a) * R, z = this.pz + Math.cos(a) * R, q = Math.hypot(x, z), k = q > 16.5 ? 16.5 / q : 1; return { x: x * k, z: z * k, real: i === real, t: 0, gone: 0 }; });
     this.say('lanterns');
   }
-  private weight(dt: number, m: string, dist: number, face: number, dx: number, dz: number) {
-    const mt = this.mt, p = this.prev;
-    this.sub = m === 'wake' && mt > 0.6 && this.boil <= 0;
-    if (m === 'idle' || m === 'strafe' || m === 'reel2' || m === 'kneel' || m === 'riseW' || m === 'die2') {
-      if (m === 'strafe' || m === 'idle') {
-        this.orbit += (m === 'strafe' ? 0.5 : 0.2) * dt * this.side; if ((this.sideT -= dt) < 0) { this.sideT = 3 + (this.serial % 3); this.side = -this.side; }
-        const want = 6.4 + 1.2 * Math.sin(mt * 0.6), a = Math.atan2(this.x - this.px, this.z - this.pz) + this.orbit * dt * 2.2 * this.side, tx = this.px + Math.sin(a) * want, tz = this.pz + Math.cos(a) * want, ex = tx - this.x, ez = tz - this.z, el = Math.hypot(ex, ez) || 1, sp = Math.min(5.4, el * 2.4);
-        this.vx = ex / el * sp; this.vz = ez / el * sp; this.speed = sp; this.turn(2.6 * dt, Math.atan2(this.vx, this.vz) * 0.5 + face * 0.5);
-      } else this.turn(1.5 * dt, face);
-      if (m === 'riseW' && mt >= C.riseW.dur) this.end(m);
-      if (m === 'reel2' && mt >= C.reel2.dur) this.end(m); if (m === 'kneel' && mt >= C.kneel.dur) this.end(m);
-    } else if (m === 'wake') {
-      const s = this.strikes[0];
-      if (p < s.cue && mt >= s.cue) { this.mark = { x: this.px, z: this.pz }; const R = Math.hypot(this.mark.x, this.mark.z); if (R > 16.5) { this.mark.x *= 16.5 / R; this.mark.z *= 16.5 / R; } this.say('dive'); }
-      if (mt < 0.5) { this.speed = 3; this.vx = Math.sin(this.yaw) * 3; this.vz = Math.cos(this.yaw) * 3; this.turn(2 * dt, face); }
-      else if (mt < 2.5) { const u = sst(0.5, 2.5, mt), t0 = this.from; if (mt < s.cue) this.from = { x: this.x, z: this.z }; else { this.x = t0.x + (this.mark.x - t0.x) * u; this.z = t0.z + (this.mark.z - t0.z) * u; } this.turn(6 * dt, Math.atan2(this.mark.x - this.x, this.mark.z - this.z)); }
-      else { this.x = this.mark.x; this.z = this.mark.z; }
-      if (mt >= C.wake.dur) { this.set('breach'); this.exposed = 3.9 + (this.jumped ? 1.4 : 0); this.bonus = this.jumped ? 2.2 : 1.6; this.say('breach', this.x, this.z, this.jumped ? 1 : 0); }
-    } else if (m === 'breach') {
-      if (mt >= C.breach.dur + (this.jumped ? 1.4 : 0)) { this.say('submerge'); this.end(m); }
-    } else if (m === 'coins') {
-      this.turn(2.4 * dt, face); if (mt > 1.0 && mt < 5.0) { this.spin += 1.9 * dt; this.coinAcc += 15 * dt; while (this.coinAcc >= 1) { this.coinAcc -= 1; const k = Math.floor(this.coinAcc * 3 + mt * 15) % 3, a = this.spin + k * 2.094 + (this.coinAcc - 0.5) * 0.3, sp = 5.2 + (this.serial + k) % 3 * 0.5; this.coins.push({ x: this.x + Math.sin(a) * 1.4, z: this.z + Math.cos(a) * 1.4, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, life: 4.2, back: false }); } if (this.coins.length > 120) this.coins.splice(0, this.coins.length - 120); }
-      if (mt >= C.coins.dur) this.end(m);
-    } else if (m === 'tide') {
-      this.turn(2 * dt, face); if (p < 1.5 && mt >= 1.5) { const yaw = Math.atan2(this.px - this.x, this.pz - this.z); this.wave = { x: this.x, z: this.z, yaw, d: 1.2, speed: 7, half: 16, gaps: [], hit: false }; this.say('tide', this.x, this.z); }
-      if (mt >= C.tide.dur) this.end(m);
-    } else if (m === 'holdOn') {
-      this.turn(2 * dt, face); if (p < 1.0 && mt >= 1.0) { this.ring = { x: this.px, z: this.pz, R: 7.2, arms: Array(16).fill(true), hit: false, t: 0 }; this.say('ring', this.px, this.pz); }
-      if (mt >= C.holdOn.dur) { this.ring = null; this.end(m); }
-    } else if (m === 'undertow') {
-      this.turn(1.4 * dt, face); this.pull = sst(1.0, 1.5, mt) * (1 - sst(3.9, 4.1, mt)); if (p < 1.0 && mt >= 1.0) this.say('drain');
-      if (mt >= C.undertow.dur) this.end(m);
-    } else if (m === 'oneMore') {
-      this.turn(1.4 * dt, face); if (p < 1.0 && mt >= 1.0) { this.oneMoreAt = this.serial; const a0 = (this.serial * 1.7) % 6.283; this.souls = [0, 1, 2, 3].map(i => { const a = a0 + i * 1.571, R = 6.2; const x = this.px + Math.sin(a) * R, z = this.pz + Math.cos(a) * R, q = Math.hypot(x, z), k = q > 17 ? 17 / q : 1; return { x: x * k, z: z * k, t: 0, freed: 0 }; }); this.say('souls'); }
-      if (mt >= C.oneMore.dur) { this.souls = this.souls.filter(s => s.freed > 0); this.end(m); }
-    }
-  }
-
   /** Whatever the blade passes through, this step: returns true once per swing per thing. */
   private touch(f: Fight, key: string, x: number, z: number, pad = 0.4, aimed = false) {
     const m = f.m; for (const w of f.swings()) {

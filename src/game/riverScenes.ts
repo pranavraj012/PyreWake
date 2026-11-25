@@ -1,4 +1,4 @@
-// The Ferryman's scenes: the way in (the crossing and what he guards), the turn to the Weight, and the way out (a lamp touched to a boat). All skippable.
+// The Ferryman's scenes: the way in (the crossing and what he guards), the turn (the net thrown off), and the way out (a lamp touched to a boat). All skippable.
 import * as THREE from 'three';
 import { sound } from '../audio/sound.ts';
 import type { RiverView } from '../boss/river/riverView.ts';
@@ -78,12 +78,13 @@ export class RiverTurn {
     c.at(t, 0.1, 'hush', () => { sound.duck(0.3, 4); sound.play('fDeath', { gain: 1, wet: 0.6, bus: 'voice' }); });
     c.at(t, 1.5, 'lampsOut', () => { ghats.lamps(0.0); sound.play('lampOut', { gain: 1, wet: 0.6 }); });
     c.at(t, 4.2, 'line1', () => hud.verse('"She weighs nothing. Feel. She weighs nothing."'));
-    c.at(t, 7.4, 'hands', () => { sound.play('armsRise', { gain: 1, wet: 0.8 }); sound.play('moan', { gain: 0.6, wet: 0.9 }); hud.verse('Every one of them has paid.'); for (let i = 0; i < 6; i++) ghats.ripple((Math.random() - 0.5) * 18, -4 + (Math.random() - 0.5) * 18, 1.2, time + i * 0.1); });
+    c.at(t, 7.4, 'hands', () => { sound.play('moan', { gain: 0.6, wet: 0.9 }); hud.verse('Every one of them has paid. He sets them down.'); for (let i = 0; i < 6; i++) ghats.ripple((Math.random() - 0.5) * 18, -4 + (Math.random() - 0.5) * 18, 1.2, time + i * 0.1); });
     c.at(t, 9.6, 'swell', () => { this.become(); hud.verse(''); sound.play('drain', { gain: 1, wet: 0.7 }); this.lens.trauma = 0.6; });
     if (t > 9.6 && t < 13.4 && Math.random() < 0.5) ghats.ripple((Math.random() - 0.5) * 8, -5 + (Math.random() - 0.5) * 8, 1.6, time);
-    c.at(t, 12.1, 'rise', () => { sound.play('breach', { gain: 1.2, wet: 0.6 }); sound.play('wRoar', { gain: 1, wet: 0.7, bus: 'voice' }); sound.play('braam', { gain: 0.9 }); sound.duck(0.35, 1.2); this.lens.trauma = 1; ghats.ripple(0, -5, 4, time); fx.puffs.emit(V(0, 0.3, -5), 30, 5, 2.4, time); fx.sparks.emit(V(0, 2, -5), V(0, 1.5, 0), 120, 7, 2, 0.9, time); });
-    c.at(t, 15.6, 'sections', () => { sound.play('wave', { gain: 0.9, wet: 0.7 }); });
-    c.at(t, 17.2, 'title', () => { hud.say('The Weight', 2.8, 'title', 'Only ash may cross.'); sound.play('boom', { gain: 0.8 }); });
+    c.at(t, 11.0, 'net', () => { sound.play('snap', { gain: 0.9, wet: 0.6 }); sound.play('wave', { gain: 0.7, wet: 0.7 }); this.lens.trauma = 0.8; ghats.ripple(0, -5, 3, time); fx.puffs.emit(V(0, 0.4, -5), 24, 4, 2, time); for (let i = 0; i < 40; i++) fx.sparks.emit(V((Math.random() - 0.5) * 1.6, 1 + Math.random() * 2.4, -5 + (Math.random() - 0.5) * 1.6), V((Math.random() - 0.5), 0.6, (Math.random() - 0.5)), 2, 4, 1.6, 0.9, time); });
+    c.at(t, 12.1, 'rise', () => { sound.play('wRoar', { gain: 0.9, wet: 0.7, bus: 'voice' }); sound.play('braam', { gain: 0.9 }); sound.duck(0.35, 1.2); this.lens.trauma = 1; ghats.lamps(0.6); ghats.ripple(0, -5, 4, time); fx.sparks.emit(V(0, 2, -5), V(0, 1.5, 0), 120, 7, 2, -1.2, time); });
+    c.at(t, 15.6, 'lamps', () => { sound.play('aura2', { gain: 0.8, wet: 0.7 }); });
+    c.at(t, 17.2, 'title', () => { hud.say('The Unburdened', 2.8, 'title', 'Nothing left to carry. Nothing left to lose.'); sound.play('boom', { gain: 0.8 }); });
     this.mono = t < 2 ? 0.0 : t < 9.6 ? 0.55 * E(1.5, 4, t) : 0.4 * (1 - E(12.1, 16, t));
     if (t >= TURN_LEN) { this.stop(); hud.verse(''); f.beginRound2(); k.set('riseW'); k.mt = k.prev = 3.2; this.onEnd(); }
   }
@@ -93,14 +94,14 @@ export class RiverTurn {
     else if (t < 9.6) { const u = E(4.2, 9.6, t); L.aim(cam, 2, V(m.x - 1.0, 0.35 + u * 0.1, m.z + 2.0), V(0, 0.5 + u * 0.5, -7), 36, time, -0.02); }
     else if (t < 12.2) { const u = E(9.6, 12.2, t); L.aim(cam, 3, V(2.4, 0.5 + u * 0.3, 3.2), V(0, 0.8 + u * 1.2, -5), 44, time); }
     else if (t < 15.6) { const u = E(12.1, 15.6, t); L.aim(cam, 4, V(-1.6 + u * 0.8, 0.8, 1.8 - u * 0.5), V(0, 2.4 + u * 1.2, -5), 50, time); }
-    else if (t < 18.4) { const u = E(15.6, 18.4, t); L.aim(cam, 5, V(9 - u * 3, 3.2 + u * 1.5, 9), V(-3, 0.6, -10), 56, time); }
+    else if (t < 18.4) { const u = E(15.6, 18.4, t); L.aim(cam, 5, V(2.2 - u * 0.6, 1.3 + u * 0.2, -1.6 + u * 0.4), V(0, 1.9, -5), 38 - u * 4, time, 0.03); }
     else { const u = E(18.4, 21.5, t); L.aim(cam, 6, V(m.x + 1.0, 1.4, m.z + 3.4 - u * 0.5), V(0, 2.2, -5), 46, time); }
   }
 }
 
 // ---------------------------------------------------------------- the way out
 export const END_LEN = 29;
-/** The Weight comes apart into people, the boat rises, and the fire runs from lamp to lamp to the far bank. */
+/** He goes down for the last time, the boat rises, and the fire runs from lamp to lamp to the far bank. */
 export class RiverEnding {
   t = -1; over = false; dawn = 0; /** How far the lamps have caught, in metres from the boat. */ front = 0; private c = new Cues(); private lens = new Lens(); private kit: RiverKit; private A = V();
   constructor(kit: RiverKit) { this.kit = kit; }

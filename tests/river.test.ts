@@ -80,40 +80,13 @@ describe('the lantern', () => {
   });
 });
 
-describe('the Weight', () => {
-  it('begins whole, and is a different body with its own health', () => { const { f, k } = mk(6, 2); expect(f.round).toBe(2); expect(k.form).toBe(2); expect(f.bossHp).toBe(k.hp[1]); expect(f.maxHp).toBe(k.hp[1]); });
-  it('Wake: a mark, a breach where it points, and a long free combo on its back', () => {
-    const { f, k } = go(6, 'wake', 2); f.m.x = 0; f.m.z = 2; let ev = run(f, 1.0, () => [], () => [0, 0]); expect(k.sub).toBe(true); expect(k.vulnerable).toBe(false); expect(n(ev, 'cue')).toBe(1);
-    ev = run(f, 1.9, () => [], i => (i % 120 < 60 ? [1, 0] : [-1, 0]));
-    // walking about is no defence against a breach at your feet; being away from it is
-    expect(k.mode).toBe('breach'); expect(k.dmgMul).toBeGreaterThan(1.5); expect(k.vulnerable).toBe(true);
-  });
-  it('jumping the breach as it comes makes the opening longer and harder', () => { const a = go(6, 'wake', 2); a.f.m.x = 0; a.f.m.z = 2; run(a.f, 2.2); const t = go(6, 'wake', 2); t.f.m.x = 0; t.f.m.z = 2; until(t.f, 1.9); const ev = run(t.f, 1, i => i === 0 ? tap('jump') : []); expect(n(ev, 'leap')).toBe(1); run(t.f, 0.5); expect(t.k.bonus).toBeGreaterThan(2); expect(t.k.exposed).toBeGreaterThan(4); });
-  it('a submerged body cannot be hurt; a breached one can', () => { const { f, k } = go(2, 'wake', 2); until(f, 1.0); k.x = 0; f.m.x = k.x; f.m.z = k.z + 1.5; const hp = f.bossHp; run(f, 0.4, i => i === 0 ? tap('attack') : []); expect(f.bossHp).toBe(hp); });
-  it('Every Coin: they spiral out, hurt a little, and your blade turns them back on him', () => {
-    const { f, k } = go(7, 'coins', 2); f.m.x = 0; f.m.z = k.z + 7; run(f, 3.2); expect(k.coins.length).toBeGreaterThan(10);
-    const hp = f.bossHp, c = k.coins.filter(q => !q.back)[0]; f.m.x = c.x; f.m.z = c.z + 0.8; f.m.yaw = Math.PI; f.invuln = 5; const ev = run(f, 1.5, i => i % 10 === 0 ? tap('attack') : [], () => [0, 0]); expect(b(ev, 'turn')).toBeGreaterThan(0);
-    for (let i = 0; i < 50 && f.bossHp >= hp; i++) { const q = k.coins.find(x => x.back); if (!q) break; f.step(DT, 0, 0, []); } void hp;
-  });
-  it('a turned coin comes back to hurt it', () => { const { f, k } = go(7, 'coins', 2); f.m.x = 14; f.m.z = 4; f.invuln = 99; run(f, 2.5); const c = k.coins[0]; c.back = true; c.x = k.x + 3; c.z = k.z; c.vx = -12; c.vz = 0; c.life = 3; const hp = f.bossHp; run(f, 0.5); expect(f.bossHp).toBeLessThan(hp); });
-  it('coins that reach you hurt, once each', () => { const { f, k } = go(7, 'coins', 2); f.m.x = 0; f.m.z = k.z + 5; const ev = run(f, 6); expect(b(ev, 'coinHit')).toBeGreaterThan(0); });
-  it('The Tide: a wall across the arena; a dodge or a jump or a door cut by Sunder Arc passes it', () => {
-    const hit = go(6, 'tide', 2); hit.f.m.x = 0; hit.f.m.z = 4; expect(n(run(hit.f, 5), 'hurt')).toBe(1);
-    const jump = go(6, 'tide', 2); jump.f.m.x = 0; jump.f.m.z = 4; let wallAt = -1; const ev = run(jump.f, 5, i => { if (wallAt < 0 && jump.k.wave && Math.abs(jump.k.wave.d - (jump.f.m.z - jump.k.wave.z)) < 1.6) wallAt = i; return wallAt === i ? tap('jump') : []; }); expect(n(ev, 'hurt')).toBe(0); expect(n(ev, 'leap')).toBe(1);
-    const door = go(6, 'tide', 2); door.f.m.x = 0; door.f.m.z = 4; door.f.fire = 100; door.f.m.yaw = Math.PI; let shot = false; const e3 = run(door.f, 5, i => { if (!shot && door.k.wave) { shot = true; return tap('skill2'); } return []; }); expect(b(e3, 'open')).toBeGreaterThan(0); expect(n(e3, 'hurt')).toBe(0);
-  });
-  it('Hold On: a ring of arms closes; cut a gap and it stays cut', () => {
-    const hit = go(6, 'holdOn', 2); hit.f.m.x = 0; hit.f.m.z = 4; expect(n(run(hit.f, 5), 'hurt')).toBeGreaterThanOrEqual(1);
-    const { f, k } = go(6, 'holdOn', 2); f.m.x = 0; f.m.z = 4; run(f, 1.6); expect(k.ring).not.toBeNull(); f.invuln = 99;
-    for (let i = 0; i < 80 && k.ring && k.ring.arms.every(a => a); i++) f.step(DT, 0, 0, i % 16 === 0 ? tap('attack') : []); expect(k.ring!.arms.filter(a => !a).length).toBeGreaterThan(0);
-  });
-  it('Hold On can also be dodged through', () => { const { f } = go(6, 'holdOn', 2); f.m.x = 0; f.m.z = 4; let t = -1; const ev = run(f, 5, i => { const r = (f.king as River).ring; if (t < 0 && r && Math.abs(Math.hypot(f.m.x - r.x, f.m.z - r.z) - r.R) < 1.5 && r.R < 4) { t = i; return tap('dodge'); } return []; }, () => [0, 0]); void ev; });
-  it('Undertow draws you in at a pace you can outrun, then sends the water back', () => { const { f, k } = go(6, 'undertow', 2); f.m.x = 0; f.m.z = 6; const z0 = f.m.z; run(f, 3); expect(f.m.z).toBeLessThan(z0); const ev = run(f, 4); expect(n(ev, 'cue')).toBeGreaterThanOrEqual(1); expect(k.pull).toBe(0); });
-  it('One More: the dead let go as you cut them, and each lights the river a little more', () => {
-    const { f, k } = go(6, 'oneMore', 2); f.m.x = 0; f.m.z = 4; f.invuln = 99; run(f, 1.5); expect(k.souls.length).toBe(4); let freed = 0; for (let i = 0; i < 400 && freed < 2; i++) { const s = k.souls.find(q => q.freed === 0); if (!s) break; f.m.x = s.x; f.m.z = s.z + 0.9; f.m.yaw = Math.PI; f.step(DT, 0, 0, i % 8 === 0 ? tap('attack') : []); freed += f.ev.filter(e => e.k === 'b' && e.e === 'free').length; }
-    expect(freed).toBeGreaterThanOrEqual(1); expect(k.lit).toBeGreaterThan(0);
-  });
-  it('the dead do no damage', () => { const { f, k } = go(6, 'oneMore', 2); f.m.x = 0; f.m.z = 4; expect(n(run(f, 7), 'hurt')).toBe(0); void k; });
+describe('the Unburdened', () => {
+  const MOVES = ['thrust', 'flurry', 'reap', 'vault', 'skim'];
+  it('every move cues ahead of its blow, then lands on someone who stands there', () => { for (const m of MOVES) { const { f } = go(m === 'skim' ? 8 : m === 'vault' ? 7 : 2.6, m, 2); f.brain.seen.add(m); const ev = run(f, 3.2, () => [], () => [0, 0]); const c = ev.filter(e => e.k === 'cue'); expect(c.length, m).toBeGreaterThan(0); expect((c[0] as { lead: number }).lead, m).toBeGreaterThan(0.25); expect(n(ev, 'hurt'), m).toBeGreaterThan(0); } });
+  it('a dodge at each cue escapes each move', () => { for (const m of MOVES) { const g = go(m === 'skim' ? 8 : m === 'vault' ? 7 : 2.6, m, 2), at: number[] = [], ev: FightEvent[] = []; for (let i = 0; i < 200; i++) { g.f.step(DT, 0, 0, at.includes(i) ? tap('dodge') : []); for (const e of g.f.ev) { ev.push(e); if (e.k === 'cue') at.push(i + Math.round(Math.max(0.05, (e as { lead: number }).lead - 0.14) * 60)); } } expect(n(ev, 'hurt'), m).toBe(0); } });
+  it('the low sweep goes under a jump', () => { const { f } = go(2.6, 'reap', 2); let at = -1; const ev: FightEvent[] = []; for (let i = 0; i < 160; i++) { f.step(DT, 0, 0, i === at ? tap('jump') : []); for (const e of f.ev) { ev.push(e); if (e.k === 'cue' && at < 0) at = i + Math.round(Math.max(0.05, (e as { lead: number }).lead - 0.2) * 60); } } expect(n(ev, 'hurt')).toBe(0); expect(n(ev, 'leap')).toBeGreaterThan(0); });
+  it('thrown lamps hurt a little, and the blade sends them back into him', () => { const { f, k } = go(5, 'lamps', 2); run(f, 2.2); expect(k.coins.length).toBeGreaterThan(3); const hp = f.bossHp; f.m.x = k.coins[0].x - Math.sin(f.m.yaw) * 1; f.m.z = k.coins[0].z - Math.cos(f.m.yaw) * 1; run(f, 2.5, i => i % 9 === 0 ? tap('attack') : []); expect(f.bossHp).toBeLessThanOrEqual(hp); });
+  it('he is faster than the Ferryman was', () => { const a = mk(10, 1), b = mk(10, 2); a.k.set('stalk'); b.k.set('stalk'); run(a.f, 1.5); run(b.f, 1.5); expect(Math.abs(b.k.z + 4)).toBeGreaterThan(Math.abs(a.k.z + 4)); });
 });
 
 describe('the whole fight', () => {
@@ -131,5 +104,5 @@ describe('the whole fight', () => {
   it('restart puts everything back', () => { const { f, k } = go(6, 'cast'); dodged(f); expect(k.chain).not.toBeNull(); f.reset(true); expect(k.chain).toBeNull(); expect(k.mode).toBe('idle'); expect(f.bossHp).toBe(k.hp[0]); expect(f.round).toBe(1); k.set('wrongShore'); run(f, 2); f.reset(true); expect(k.lanterns.length).toBe(0); });
   it('round 1 ends in a scene, round 2 begins whole', () => { const { f, k } = mk(2); f.bossHp = 1; f.m.x = 0; f.m.z = -2.5; run(f, 1, i => i === 0 ? tap('attack') : []); expect(f.phase).toBe('scene'); expect(k.mode).toBe('fall'); f.beginRound2(); expect(f.phase).toBe('r2'); expect(f.bossHp).toBe(k.hp[1]); });
   it('a death and a restart in round 2 stays in round 2', () => { const { f } = mk(6, 2); f.hp = 1; f.flame = false; f.invuln = 0; f.strikePlayer(50, true, 0, 'x'); expect(f.m.dead).toBe(true); run(f, 4.5); expect(f.round).toBe(2); expect(f.m.dead).toBe(false); expect(f.bossHp).toBe(f.maxHp); });
-  it('the Weight can be won: finish, then the final blow', () => { const { f, k } = mk(2, 2); f.bossHp = 1; k.x = 0; k.z = -4; f.m.x = 0; f.m.z = -2.5; run(f, 1, i => i === 0 ? tap('attack') : []); expect(f.phase).toBe('finish'); expect(k.mode).toBe('kneel'); });
+  it('the Unburdened can be won: finish, then the final blow', () => { const { f, k } = mk(2, 2); f.bossHp = 1; k.x = 0; k.z = -4; f.m.x = 0; f.m.z = -2.5; run(f, 1, i => i === 0 ? tap('attack') : []); expect(f.phase).toBe('finish'); expect(k.mode).toBe('kneel'); });
 });

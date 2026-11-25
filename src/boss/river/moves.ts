@@ -1,11 +1,11 @@
-// The Ferryman's and the Weight's attack tables: what each move threatens, and when. No rendering imports.
+// The Ferryman's attack tables, net on and net off: what each move threatens, and when. No rendering imports.
 import type { Strike, Zone } from '../moves2.ts';
 
 const circle = (r: number, delay: number, at: Zone['at'] = 'mark'): Zone => ({ shape: 'circle', at, r, delay });
 export type RiverMode = 'idle' | 'stalk' | 'strafe' | 'lowWater' | 'sounding' | 'pushOff' | 'turnBoat' | 'cast' | 'haul' | 'haulIn' | 'wheelIron' | 'dragDeep' | 'gather' | 'wrongShore' | 'coldHands'
-  | 'wake' | 'breach' | 'coins' | 'tide' | 'holdOn' | 'undertow' | 'oneMore' | 'reel' | 'reel2' | 'snap' | 'kneel' | 'fall' | 'riseW' | 'die2';
+  | 'thrust' | 'flurry' | 'reap' | 'vault' | 'skim' | 'lamps' | 'reel' | 'reel2' | 'snap' | 'kneel' | 'fall' | 'riseW' | 'die2';
 export const FERRY_MODES: RiverMode[] = ['idle', 'stalk', 'strafe', 'lowWater', 'sounding', 'pushOff', 'turnBoat', 'cast', 'haul', 'haulIn', 'wheelIron', 'dragDeep', 'gather', 'wrongShore', 'coldHands', 'reel', 'snap', 'kneel', 'fall'];
-export const WEIGHT_MODES: RiverMode[] = ['idle', 'strafe', 'wake', 'breach', 'coins', 'tide', 'holdOn', 'undertow', 'oneMore', 'reel2', 'kneel', 'riseW', 'die2'];
+export const BARE_MODES: RiverMode[] = ['idle', 'stalk', 'strafe', 'thrust', 'flurry', 'reap', 'vault', 'skim', 'lamps', 'reel2', 'kneel', 'riseW', 'die2'];
 
 export const RIVER_ATTACKS: Record<string, Strike[]> = {
   // --- the Pole
@@ -23,13 +23,12 @@ export const RIVER_ATTACKS: Record<string, Strike[]> = {
   gather: [],
   wrongShore: [{ kind: 'ground', cue: 4.5, t: [5.35, 5.45], dmg: 0, mark: 'head', silent: true }],
   coldHands: [{ kind: 'ground', cue: 0.5, t: [1.9, 2.0], dmg: 0, mark: 'head', silent: true }],
-  // --- the Weight
-  wake: [{ kind: 'ground', cue: 0.7, t: [2.55, 2.7], dmg: 15, down: true, mark: 'head', zones: [circle(3.2, 1.85)] }],
-  breach: [],
-  coins: [{ kind: 'ground', cue: 0.5, t: [1.0, 1.1], dmg: 0, mark: 'head', silent: true }],
-  tide: [{ kind: 'ground', cue: 0.6, t: [1.5, 1.6], dmg: 0, mark: 'head', silent: true }],
-  holdOn: [{ kind: 'ground', cue: 0.5, t: [1.0, 1.1], dmg: 0, mark: 'head', silent: true }],
-  undertow: [{ kind: 'ground', cue: 3.5, t: [4.2, 4.3], dmg: 11, down: true, mark: 'head', zones: [{ shape: 'ring', at: 'self', delay: 0.7, speed: 8.2, max: 15 }], silent: false }],
-  oneMore: [],
+  // --- the Unburdened
+  thrust: [{ kind: 'red', cue: 0.28, t: [0.64, 0.76], dmg: 14, mark: 'cleaver', box: [5.6, 0.75] }],
+  flurry: [0.66, 1.11, 1.55].map((t, i) => ({ kind: 'white' as const, cue: t - 0.42, t: [t, t + 0.1] as [number, number], dmg: 9, mark: 'cleaver' as const, ...(i === 2 ? { box: [5.2, 0.8] as [number, number] } : { arc: [4.3, 110] as [number, number] }) })),
+  reap: [{ kind: 'white', cue: 0.5, t: [1.02, 1.2], dmg: 12, mark: 'cleaver', arc: [5.4, 180], low: true }],
+  vault: [{ kind: 'ground', cue: 0.3, t: [1.42, 1.54], dmg: 14, down: true, mark: 'cleaver', zones: [circle(2.6, 1.1)] }],
+  skim: [{ kind: 'red', cue: 0.3, t: [1.06, 1.2], dmg: 15, down: true, mark: 'cleaver', box: [4.2, 0.9] }],
+  lamps: [{ kind: 'ground', cue: 0.5, t: [1.0, 1.1], dmg: 0, mark: 'head', silent: true }],
 };
 for (const l of Object.values(RIVER_ATTACKS)) for (const q of l) q.dmg = Math.round(q.dmg * 1.3);
