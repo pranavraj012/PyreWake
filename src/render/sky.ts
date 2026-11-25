@@ -5,12 +5,14 @@ import { FOG } from './surface.ts';
 export const ECLIPSE = { value: 0 };
 /** First light, 0-1. */
 export const DAWN = { value: 0 };
+/** The river's far bank: one thin line of daylight on the horizon, 0-1. */
+export const LINE = { value: 0 };
 /** Night sky dome with a hazed moon and drifting cloud. Also used to build the environment map. */
 export function makeSky(moonDir: THREE.Vector3) {
   const mat = new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false, uniforms: { uMoon: { value: moonDir }, uT: FOG.uFogP, uEnv: { value: 0 }, uEcl: ECLIPSE, uDawn: DAWN },
+    side: THREE.BackSide, depthWrite: false, fog: false, uniforms: { uMoon: { value: moonDir }, uT: FOG.uFogP, uEnv: { value: 0 }, uEcl: ECLIPSE, uDawn: DAWN, uLine: LINE },
     vertexShader: `varying vec3 d; void main(){ d = position; vec4 p = projectionMatrix * vec4(mat3(modelViewMatrix) * position, 1.); gl_Position = p.xyww; }`,
-    fragmentShader: `varying vec3 d; uniform vec3 uMoon; uniform vec4 uT; uniform float uEnv, uEcl, uDawn;
+    fragmentShader: `varying vec3 d; uniform vec3 uMoon; uniform vec4 uT; uniform float uEnv, uEcl, uDawn, uLine;
 float h(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); }
 float n(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f); return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z); }
 float fbm(vec3 p){ float a=.5,s=0.; for(int i=0;i<6;i++){ s+=a*n(p); p=p*2.03+vec3(7.1,3.3,1.7); a*=.5; } return s; }
@@ -27,6 +29,7 @@ void main(){ vec3 r = normalize(d); float y = max(r.y, 0.), m = max(dot(r, uMoon
  c += vec3(.16,.052,.014) * exp(-max(r.y,0.) * 13.) * .12;
  if (uEcl > .001) { vec2 sh = vec2(dot(r - uMoon, normalize(cross(uMoon, vec3(0., 1., 0.)))), (r - uMoon).y); float bite = smoothstep(.0425, .0395, length(sh - vec2(.11 * (1. - uEcl), .03 * (1. - uEcl)))); vec3 cor = vec3(1., .16, .04) * (exp(-max(ang - .04, 0.) * 46.) * 1.6 + exp(-max(ang - .04, 0.) * 9.) * .35) * (.7 + .5 * fbm(vec3(sh * 26., uT.w * .2))); vec3 e = c * vec3(.42, .14, .11) + vec3(.0075, .0014, .0011) * (1. + 2. * cl2) + cor * smoothstep(.037, .041, ang); e *= 1. - bite * .98 * smoothstep(.0415, .0385, ang); c = mix(c * (1. - .9 * bite * step(ang, .0405)), e, smoothstep(.3, 1., uEcl)); }
  if (uDawn > .001) { float hz = exp(-max(r.y, 0.) * 5.), side = .35 + .65 * smoothstep(-.6, .9, -r.z * .8 + r.x * .5); c += uDawn * side * (vec3(.34, .13, .035) * hz + vec3(.06, .04, .05) * exp(-max(r.y, 0.) * 1.6) * (.6 + cover * .9)); }
+ if (uLine > .001) { float side = smoothstep(-.5, .5, -r.z - r.x * .15), bn = exp(-pow((r.y - .012) * 170., 2.)), hz = exp(-abs(r.y) * 22.); c *= 1. - .68 * uLine; c += uLine * side * (vec3(1.1, .6, .26) * bn * 2.4 + vec3(.3, .13, .045) * hz * .3); }
  if (r.y < 0.) c = mix(c, vec3(.012,.0125,.014), smoothstep(0., -.12, r.y));
  gl_FragColor = vec4(c, 1.); }`,
   });

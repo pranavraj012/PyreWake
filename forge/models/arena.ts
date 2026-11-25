@@ -157,7 +157,7 @@ function steleField(): Field {
 export async function stele(): Promise<Mesh> { const q = meshField(steleField(), { voxel: 0.026, mat: 16, bounds: [[-0.75, -0.05, -0.75], [0.75, 3.35, 0.75]] }); bakeAO(q.mesh, [q.sample], 0.45); return decimate(q.mesh, 2600); }
 
 /** The same stone, already in pieces: cells grown from a few seeds, with rough breaks between. One mesh; each piece rides its own bone, pivoting at its centre. */
-async function shatter(name: string, f: Field, w: number, top: number, seeds: V3[], tris: number): Promise<Mesh> {
+export async function shatter(name: string, f: Field, w: number, top: number, seeds: V3[], tris: number): Promise<Mesh> {
   const parts: Mesh[] = [], info: { c: V3; h: V3 }[] = [];
   for (let k = 0; k < seeds.length; k++) {
     const s = seeds[k], g = new Field(0.01); g.put(any((x, y, z) => f.eval(x, y, z)));

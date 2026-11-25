@@ -6,29 +6,30 @@ import type { Fx } from '../render/impact.ts';
 import { SCARS } from '../render/surface.ts';
 import { shadowOnly } from '../render/shadowProxy.ts';
 import { FALL, makeProps, type Prop } from './props.ts';
+/** Boats are the fifth carving: its whole and stand-in, and its pieces are the last of `bits`. */
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), UP = V(0, 1, 0), R = Math.random, rr = (a: number, b: number) => a + (b - a) * R();
 interface Bit { c: [number, number, number]; h: [number, number, number] }
 interface Body { bone: THREE.Bone; h: THREE.Vector3; p: THREE.Vector3; q: THREE.Quaternion; v: THREE.Vector3; w: THREE.Vector3; awake: boolean; still: number; size: number; heard: boolean }
 interface Wreck { prop: Prop; mesh: THREE.SkinnedMesh; inv: THREE.Quaternion; bodies: Body[]; fixed: number; fall: { t: number; yaw: number; axis: THREE.Vector3; pivot: THREE.Vector3; rest: { p: THREE.Vector3; q: THREE.Quaternion }[] } | null }
-export interface RuinKit { stele: THREE.BufferGeometry; steleXs: THREE.BufferGeometry; pillars: THREE.BufferGeometry[]; pillarsXs: THREE.BufferGeometry[]; bits: THREE.BufferGeometry[]; info: Bit[][]; shards: THREE.BufferGeometry[]; stone: THREE.Material; loose: THREE.Material; depth: { inst: THREE.Material; skin: THREE.Material }; tier: Tier }
+export interface RuinKit { boat?: { whole: THREE.BufferGeometry; xs: THREE.BufferGeometry }; stele: THREE.BufferGeometry; steleXs: THREE.BufferGeometry; pillars: THREE.BufferGeometry[]; pillarsXs: THREE.BufferGeometry[]; bits: THREE.BufferGeometry[]; info: Bit[][]; shards: THREE.BufferGeometry[]; stone: THREE.Material; loose: THREE.Material; depth: { inst: THREE.Material; skin: THREE.Material }; tier: Tier }
 
 export class Ruin {
-  group = new THREE.Group(); props: Prop[] = makeProps(); /** Where lamps still burn. */ lamps: { p: THREE.Vector3; lit: boolean; id: number }[] = []; fx!: Fx; dust!: Dust; /** Told when a piece of stone lands hard. */ heard: (x: number, z: number, size: number) => void = () => { }; /** Told when a lamp goes out or is restored. */ onLamp: (i: number, lit: boolean) => void = () => { };
+  group = new THREE.Group(); props: Prop[]; /** Where lamps still burn. */ lamps: { p: THREE.Vector3; lit: boolean; id: number }[] = []; fx!: Fx; dust!: Dust; /** Told when a piece of stone lands hard. */ heard: (x: number, z: number, size: number) => void = () => { }; /** Told when a lamp goes out or is restored. */ onLamp: (i: number, lit: boolean) => void = () => { };
   shake = 0; private k: RuinKit; private whole: THREE.InstancedMesh[] = []; private where = new Map<number, [THREE.InstancedMesh, THREE.InstancedMesh, number, THREE.Matrix4]>(); private wrecks = new Map<number, Wreck>();
   private shards: THREE.InstancedMesh[] = []; private shardI = 0; private rising: { m: THREE.InstancedMesh; i: number; t: number; p: THREE.Vector3; q: THREE.Quaternion; s: number }[] = []; private scarI = 0; private loose: { m: THREE.InstancedMesh; i: number; p: THREE.Vector3; q: THREE.Quaternion; s: THREE.Vector3; v: THREE.Vector3; w: THREE.Vector3; hold: number }[] = []; private kept = new Map<string, [THREE.InstancedMesh, number, THREE.Matrix4]>();
 
-  constructor(k: RuinKit) {
-    this.k = k; const all = (f: (p: Prop) => boolean, g: THREE.BufferGeometry, xs: THREE.BufferGeometry) => {
+  constructor(k: RuinKit, props: Prop[] = makeProps()) {
+    this.k = k; this.props = props; const all = (f: (p: Prop) => boolean, g: THREE.BufferGeometry, xs: THREE.BufferGeometry) => {
       const list = this.props.filter(f), make = (q: THREE.BufferGeometry, m: THREE.Material) => new THREE.InstancedMesh(q, m, list.length), o = make(g, k.stone), sh = shadowOnly(make, xs, k.depth.inst);
       o.receiveShadow = true; o.customDepthMaterial = k.depth.inst; o.frustumCulled = false;
       list.forEach((p, i) => { const M = new THREE.Matrix4().compose(V(p.x, -0.03, p.z), new THREE.Quaternion().setFromAxisAngle(UP, p.yaw), V(1, 1, 1)); o.setMatrixAt(i, M); sh.setMatrixAt(i, M); this.where.set(p.id, [o, sh, i, M]); }); this.group.add(o, sh); this.whole.push(o);
     };
-    all(p => p.kind === 'lamp', k.stele, k.steleXs); for (let s = 0; s < 3; s++) all(p => p.kind === 'pillar' && p.shape === s, k.pillars[s], k.pillarsXs[s]);
+    all(p => p.kind === 'lamp', k.stele, k.steleXs); for (let s = 0; s < 3; s++) all(p => p.kind === 'pillar' && p.shape === s, k.pillars[s], k.pillarsXs[s]); if (k.boat) all(p => p.kind === 'boat', k.boat.whole, k.boat.xs);
     this.props.forEach(p => { if (p.kind === 'lamp') this.lamps.push({ p: V(p.x, 3.05, p.z), lit: true, id: p.id }); });
     // every wreck exists from the start, unseen: nothing is built in the middle of a fight
     for (const p of this.props) {
-      const n = p.kind === 'lamp' ? 0 : p.shape + 1, mesh = new THREE.SkinnedMesh(k.bits[n], k.loose), bones = k.info[n].map(b => { const o = new THREE.Bone(); o.position.fromArray(b.c); mesh.add(o); return o; });
+      const n = p.kind === 'lamp' ? 0 : p.kind === 'boat' ? 4 : p.shape + 1, mesh = new THREE.SkinnedMesh(k.bits[n], k.loose), bones = k.info[n].map(b => { const o = new THREE.Bone(); o.position.fromArray(b.c); mesh.add(o); return o; });
       mesh.updateMatrixWorld(true); mesh.bind(new THREE.Skeleton(bones)); mesh.position.set(p.x, -0.03, p.z); mesh.rotation.y = p.yaw; mesh.castShadow = mesh.receiveShadow = true; mesh.customDepthMaterial = k.depth.skin; mesh.frustumCulled = false; mesh.visible = false; mesh.updateMatrixWorld(true); this.group.add(mesh);
       const q = new THREE.Quaternion().setFromAxisAngle(UP, p.yaw);
       this.wrecks.set(p.id, { prop: p, mesh, inv: q.clone().invert(), fall: null, fixed: 0, bodies: bones.map((bone, i) => { const h = V(...k.info[n][i].h); return { bone, h, p: V(), q: new THREE.Quaternion(), v: V(), w: V(), awake: false, still: 0, size: Math.cbrt(h.x * h.y * h.z), heard: false }; }) });
@@ -39,17 +40,17 @@ export class Ruin {
   warm(on: boolean) { for (const w of this.wrecks.values()) w.mesh.visible = on ? true : w.prop.broken; for (const s of this.shards) s.count = on ? 1 : Math.min(this.shardI >> 1, s.instanceMatrix.count); }
   private hide(p: Prop) { const [o, sh, i] = this.where.get(p.id)!, z = new THREE.Matrix4().makeScale(0, 0, 0); for (const m of [o, sh]) { m.setMatrixAt(i, z); m.instanceMatrix.needsUpdate = true; } }
   private swap(p: Prop) {
-    const w = this.wrecks.get(p.id)!, n = p.kind === 'lamp' ? 0 : p.shape + 1; this.hide(p); w.mesh.visible = true; w.fall = null; const q0 = new THREE.Quaternion().setFromAxisAngle(UP, p.yaw);
+    const w = this.wrecks.get(p.id)!, n = p.kind === 'lamp' ? 0 : p.kind === 'boat' ? 4 : p.shape + 1; this.hide(p); w.mesh.visible = true; w.fall = null; const q0 = new THREE.Quaternion().setFromAxisAngle(UP, p.yaw);
     w.bodies.forEach((b, i) => { b.p.fromArray(this.k.info[n][i].c).applyQuaternion(q0).add(w.mesh.position); b.q.copy(q0); b.v.set(0, 0, 0); b.w.set(0, 0, 0); b.awake = false; b.still = 0; b.heard = false; this.put(w, b); }); return w;
   }
   private put(w: Wreck, b: Body) { b.bone.position.copy(b.p).sub(w.mesh.position).applyQuaternion(w.inv); b.bone.quaternion.copy(w.inv).multiply(b.q); b.bone.updateMatrix(); }
   /** A blow on stone. `at` is where it bit. */
   struck(p: Prop, power: number, dx: number, dz: number, broken: boolean, t: number) {
     const s = V(p.x - dx * p.r, p.kind === 'lamp' ? 1.2 : 1.4, p.z - dz * p.r), back = V(-dx, 0.5, -dz); this.fx.sparks.emit(s, back, 14 + power * 8, 4, 1.6, 0.6, t); this.dust.emit(s, 3, 0.6, 0.5, 1.2, t);
-    if (!broken) return; const w = this.swap(p); if (p.kind !== 'lamp') return; w.fixed = 1;
+    if (!broken) return; const w = this.swap(p); if (p.kind === 'pillar') return; w.fixed = p.kind === 'boat' ? 0 : 1;
     // a lamp goes over with its fire in it
     w.bodies.forEach((b, i) => { if (i < w.fixed) return; const up = b.p.y / p.h, k = 1.2 + power * 0.5; b.awake = true; b.v.set(dx * k * rr(0.5, 1.2) + rr(-0.8, 0.8), rr(0.2, 1.4) * up + power * 0.2, dz * k * rr(0.5, 1.2) + rr(-0.8, 0.8)); b.w.set(dz * rr(1, 4) + rr(-2, 2), rr(-2, 2), -dx * rr(1, 4) + rr(-2, 2)); });
-    const L = this.lamps.find(l => l.id === p.id); if (L?.lit) { L.lit = false; this.onLamp(this.lamps.indexOf(L), false); const f = V(p.x + dx * 1.6, 0, p.z + dz * 1.6); for (let i = 0; i < 3; i++) this.fx.bursts.add('fire', L.p.clone().add(V(dx * i * 0.5, -i * 0.6, dz * i * 0.5)), 1.4, 0.6, t + i * 0.08, i); for (let i = 0; i < 3; i++) this.fx.bursts.add('pillar', V(f.x + rr(-0.6, 0.6), 0, f.z + rr(-0.6, 0.6)), rr(0.7, 1.2), 1.1, t + 0.35 + i * 0.09); this.fx.sparks.emit(L.p, V(dx, 0.3, dz), 50, 4, 1.6, 1, t); this.fx.sparks.emit(f, V(0, 0.8, 0), 40, 2, 2, -2, t + 0.4); this.scar(2, f.x, f.z, 1.3, 0, 0, 1); }
+    const L = p.kind === 'lamp' ? this.lamps.find(l => l.id === p.id) : undefined; if (L?.lit) { L.lit = false; this.onLamp(this.lamps.indexOf(L), false); const f = V(p.x + dx * 1.6, 0, p.z + dz * 1.6); for (let i = 0; i < 3; i++) this.fx.bursts.add('fire', L.p.clone().add(V(dx * i * 0.5, -i * 0.6, dz * i * 0.5)), 1.4, 0.6, t + i * 0.08, i); for (let i = 0; i < 3; i++) this.fx.bursts.add('pillar', V(f.x + rr(-0.6, 0.6), 0, f.z + rr(-0.6, 0.6)), rr(0.7, 1.2), 1.1, t + 0.35 + i * 0.09); this.fx.sparks.emit(L.p, V(dx, 0.3, dz), 50, 4, 1.6, 1, t); this.fx.sparks.emit(f, V(0, 0.8, 0), 40, 2, 2, -2, t + 0.4); this.scar(2, f.x, f.z, 1.3, 0, 0, 1); }
     this.dust.emit(V(p.x, 0.4, p.z), 9, 1.8, 1.1, 2.2, t); this.shake = Math.max(this.shake, 0.35);
   }
   /** The foot of a temple pillar has gone. */

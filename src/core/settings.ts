@@ -1,6 +1,6 @@
 // What the player has chosen. Kept on this device only.
-export interface Settings { /** 0 measured, 1 fierce, 2 relentless. */ temper: 0 | 1 | 2; /** 0-1. */ music: number; sfx: number; shake: number; /** 1 full, 0 reduced: ink frames and bright flashes. */ flash: number; /** Controller vibration. */ rumble: number; /** Best winning time in seconds, per temper. */ best: [number, number, number]; /** Training done. */ learned: boolean; /** Remapped controls; anything missing is the default. */ binds?: { keys?: Partial<Record<string, string[]>>; pad?: Partial<Record<string, string[]>> } }
-const BASE: Settings = { temper: 1, music: 0.8, sfx: 0.8, shake: 1, flash: 1, rumble: 0.8, best: [0, 0, 0], learned: false };
+export interface Settings { /** 0 measured, 1 fierce, 2 relentless. */ temper: 0 | 1 | 2; /** 0-1. */ music: number; sfx: number; shake: number; /** 1 full, 0 reduced: ink frames and bright flashes. */ flash: number; /** Controller vibration. */ rumble: number; /** Best winning time in seconds, per temper. */ best: [number, number, number]; /** Training done. */ learned: boolean; /** Bosses beaten: bit 0 the Hanged King, bit 1 the Ferryman. Older saves have none. */ beaten: number; /** Remapped controls; anything missing is the default. */ binds?: { keys?: Partial<Record<string, string[]>>; pad?: Partial<Record<string, string[]>> } }
+const BASE: Settings = { temper: 1, music: 0.8, sfx: 0.8, shake: 1, flash: 1, rumble: 0.8, best: [0, 0, 0], learned: false, beaten: 0 };
 const load = (): Settings => { try { return { ...BASE, ...JSON.parse(localStorage.getItem('pyrewake') ?? '{}') }; } catch { return { ...BASE }; } };
 export const settings: Settings = load();
 const subs: (() => void)[] = [];
