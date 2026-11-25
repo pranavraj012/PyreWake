@@ -6,7 +6,8 @@ export function startLoop(sim: (dt: number) => void, draw: (alpha: number, frame
     raf = requestAnimationFrame(tick);
     const ms = now - last; last = now;
     if (document.hidden) return;
-    acc = Math.min(acc + ms / 1000, STEP * 4);
+    // catch up fully down to 10 fps, so a slow phone plays at the right speed instead of in slow motion
+    acc = Math.min(acc + ms / 1000, STEP * 6);
     while (acc >= STEP) { sim(STEP); acc -= STEP; }
     draw(acc / STEP, ms);
   };

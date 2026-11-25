@@ -65,11 +65,14 @@ export class PlayerView {
     add('hr', this.lean * mv); add('sr', this.lean * 0.6 * mv);
     // arms swing fore and aft from the shoulder, elbows bending more as the pace rises
     const arm = (th: number, out_: number) => { const d = V(out_, -Math.cos(th * DEG), Math.sin(th * DEG)).normalize(); return [Math.atan2(d.x, d.z) / DEG, Math.asin(d.y) / DEG]; };
-    const thL = -c * (20 + 34 * run) + 6 * run, [laz, lel] = arm(thL, 0.22 - 0.3 * run * Math.max(0, Math.sin(thL * DEG)));
-    set('la', laz, w); set('le', lel + 30 * run * w, w); set('ll', 0.9 - 0.26 * run, w); set('xl', 10 + 10 * run, w);
-    // the sword hand pumps against the free one; the blade hangs back and down, tip near the stone
-    const thR = c * (8 + 10 * run) - 22 - 8 * run, [raz, rel] = arm(thR, -0.18);
-    set('ra', raz, w); set('re', rel + 8 * run, w); set('rl', 0.88 - 0.1 * run, w); set('ba', -170 + c * 5 * w, w); set('be', -30 + 6 * run + Math.sin(2 * T * ph) * 3 * w - 4 * spr, w);
+    // turning: the body banks into the turn and the outside arm swings wide for balance
+    const bank = Math.max(-1, Math.min(1, this.lean / 12)) * mv, outL = Math.max(0, -bank) * 0.5, outR = Math.max(0, bank) * 0.4;
+    const thL = -c * (16 + 20 * run) - 6 * run, [laz, lel] = arm(thL, 0.2 + outL - 0.24 * run * Math.max(0, Math.sin(thL * DEG)));
+    set('la', laz, w); set('le', lel + (8 + 16 * run) * w + 30 * outL, w); set('ll', 0.88 - 0.3 * run, w); set('xl', 14 + 14 * run, w);
+    // the sword hand stays out by the hip and pumps a little against the free one; the blade hangs back and down, tip near the stone
+    const thR = c * (8 + 8 * run) - 24 - 6 * run, [raz, rel] = arm(thR, -0.3 - outR);
+    set('ra', raz, w); set('re', rel + 6 * run + 20 * outR, w); set('rl', 0.9 - 0.08 * run, w); set('xr', -8, w); set('ba', -164 + c * 4 * w, w); set('be', -30 + 6 * run + Math.sin(2 * T * ph) * 3 * w - 4 * spr, w);
+    add('sr', bank * 6); add('nr', -bank * 5);
     // guard: the upper body belongs to the weapon, the hips keep walking
     this.guardK += ((m.guarding ? 1 : 0) - this.guardK) * Math.min(1, dt * (m.guarding ? 26 : 12)); const g = this.guardK;
     if (g > 0.005) { const G = this.arm.guard; for (let i = 0; i < N; i++) { if (FEET[i] && mv > 0.3) continue; const k = LOWER[i] ? g * (1 - 0.55 * mv) : g; out[i] += (G[i] - out[i]) * k; } add('sp', br * 0.8 * g); }
