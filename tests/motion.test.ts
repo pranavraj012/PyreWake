@@ -21,7 +21,7 @@ describe('player motion', () => {
     for (let i = 0; i < 300; i++) {
       m.step(DT, 0, -stick, []); t += DT; v.update(DT, m, t);
       ['L', 'R'].forEach((S, k) => {
-        const a = ankle(v, S), st = v.gait.stance[k] && v.gait.pitch[k] <= 0; // heel still down
+        const a = ankle(v, S), st = v.stride.stance[k] && v.stride.pitch[k] <= 0; // heel still down
         if (i > 150 && st && was[k]) { const d = Math.hypot(a.x - prev[k].x, a.z - prev[k].z); worst = Math.max(worst, d); sum += d; n++; }
         prev[k].copy(a); was[k] = st; expect(a.y).toBeGreaterThan(0.02);
       });
@@ -30,7 +30,7 @@ describe('player motion', () => {
   });
   for (const a of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) it(`guard step at ${Math.round(a * 57)} deg: planted feet do not slide`, () => {
     const { m, v } = make(); m.guardHeld = true; let t = 0, sum = 0, n = 0; const prev = [new THREE.Vector3(), new THREE.Vector3()], was = [false, false];
-    for (let i = 0; i < 240; i++) { m.step(DT, Math.sin(m.yaw + a), Math.cos(m.yaw + a), []); t += DT; v.update(DT, m, t); ['L', 'R'].forEach((S, k) => { const q = ankle(v, S), st = v.gait.stance[k] && v.gait.pitch[k] <= 0; if (i > 90 && st && was[k]) { sum += Math.hypot(q.x - prev[k].x, q.z - prev[k].z); n++; } prev[k].copy(q); was[k] = st; }); }
+    for (let i = 0; i < 240; i++) { m.step(DT, Math.sin(m.yaw + a), Math.cos(m.yaw + a), []); t += DT; v.update(DT, m, t); ['L', 'R'].forEach((S, k) => { const q = ankle(v, S), st = v.stride.stance[k] && v.stride.pitch[k] <= 0; if (i > 90 && st && was[k]) { sum += Math.hypot(q.x - prev[k].x, q.z - prev[k].z); n++; } prev[k].copy(q); was[k] = st; }); }
     expect(n).toBeGreaterThan(20); expect(sum / n).toBeLessThan(0.008);
   });
   it('turning hard while running does not tear the legs', () => {

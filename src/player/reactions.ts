@@ -31,13 +31,16 @@ def('heal', { dur: 0.95, chain: 0.66, free: 0.7, blend: 0.14, fx: [{ t: 0.46, ki
   { t: 0.28, hy: -0.12, sp: 18, np: 10, nw: 6, la: -16, le: -22, ll: 0.42, xl: 40 }, { t: 0.44, sp: 20, np: 14, ll: 0.38, le: -24 },
   { t: 0.56, hy: -0.02, hp: -4, sp: -12, np: 16, ll: 0.46, la: 4 }, { t: 0.95, hy: -0.06, hp: 0, sp: 0, sw: 4, np: 4, nw: 24, ra: -62, re: -62, rl: 0.92, la: 18, le: -64, ll: 0.82, xl: 8 } ] });
 
-// Cinder Rush. Coil, gone, then standing with the back turned while the trail goes up behind. `move` is a fraction of the dash length.
+// Cinder Rush. Coil, gone, then rounding on it while the trail goes up behind. `move` is a fraction of the dash length.
 def('rush', { dur: 1.75, chain: 0.6, free: 0.95, blend: 0.08, move: [[0, 0], [0.1, 0.02], [0.2, 0.5], [0.32, 0.94], [0.44, 1], [1.75, 1]], fx: [{ t: 0.09, kind: 'vanish' }, { t: 0.36, kind: 'reform' }], keys: [
   { t: 0, air: 0, tw: 0, hx: 0, hy: -0.3, hp: 26, hw: -40, sp: 22, sw: -24, np: -38, nw: 44, ra: -110, re: -26, rl: 0.9, ba: -168, be: -8, la: 30, le: -20, ll: 0.7, lg: 0, flx: 0.04, fly: 0, flz: 0.38, flw: 0, flp: 0, frx: -0.06, fry: 0, frz: -0.46, frw: -30, frp: 44 },
   { t: 0.1, hy: -0.36, hp: 32 }, { t: 0.2, hw: 10, sw: 16, nw: -10, ra: 10, re: -6, rl: 0.98, ba: 10, be: -6, la: 100, le: -8 },
   { t: 0.36, hy: -0.4, hp: 22, hw: 34, sp: 24, sw: 34, np: -20, nw: -30, ra: 78, re: -8, rl: 0.95, ba: 112, be: -6, la: 112, le: 4, ll: 0.85, flx: 0.14, flz: 0.42, frx: -0.16, frz: -0.46, frw: -40, frp: 20 },
-  { t: 0.6, hy: -0.34, hp: 16, hw: 30, sp: 16, ra: 80, ba: 118 },
-  { t: 0.86, hy: -0.05, hp: -2, hw: -14, sp: -4, sw: 4, np: 4, nw: 10, ra: -52, re: -50, rl: 0.95, ba: -70, be: -36, la: 22, le: -66, ll: 0.88, flx: 0.06, flz: 0.14, flw: 4, frx: -0.07, frz: -0.14, frw: -40, frp: 0 },
-  { t: 1.2, hy: -0.02, hp: -3, sp: -6, np: 8, nw: -34, nr: -4, ra: -58, re: -58, ba: -84, be: -38 }, { t: 1.45, nw: -36 },
-  { t: 1.75, hy: -0.035, hp: -2, hw: -30, sp: -3, sw: 6, np: 9, nw: 20, nr: 3, ra: -62, re: -66, rl: 0.93, ba: -128, be: -33, la: 18, le: -70, ll: 0.86, frw: -58, flz: 0.13, frz: -0.16 } ] });
+  { t: 0.6, tw: 0, hy: -0.34, hp: 16, hw: 30, sp: 16, ra: 80, ba: 118 },
+  // and round on it: a pivot on the front foot, the blade drawn through the turn, back in guard facing what it just cut
+  { t: 0.6001, tw: -180 }, { t: 0.72, tw: -150, hy: -0.3, hw: 40, sw: 40, ra: 88, re: 4, ba: 140, be: 2, la: 60, le: -10 },
+  { t: 0.92, tw: -8, hy: -0.24, hp: 14, hw: -26, sp: 12, sw: -20, np: -10, nw: 26, ra: -96, re: -6, rl: 0.96, ba: -156, be: -4, la: 70, le: -6, ll: 0.8, flx: 0.1, flz: 0.32, flw: 0, frx: -0.12, frz: -0.34, frw: -44, frp: 10 },
+  { t: 1.05, tw: 2, ba: -166, be: -10 },
+  { t: 1.4, tw: 0, hy: -0.14, hp: 8, hw: -38, sp: 12, sw: 2, np: -14, nw: 34, ra: -58, re: -52, rl: 0.82, ba: -158, be: -24, la: 12, le: -38, ll: 0.62, xl: 12, flx: 0.09, flz: 0.27, flw: -8, frx: -0.1, frz: -0.27, frw: -62, frp: 0 },
+  { t: 1.75, tw: 0, hy: -0.13 } ] });
 }

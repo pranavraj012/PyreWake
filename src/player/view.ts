@@ -10,9 +10,10 @@ import { Ghosts, Ribbon, type Fx } from '../render/fx.ts';
 import { SHARED } from '../render/surface.ts';
 import { Blaze } from '../render/marks.ts';
 import type { Motor } from './motor.ts';
+import { Stride } from './stride.ts';
 import type { Weapon } from '../weapons/weapon.ts';
 
-const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const DEG = Math.PI / 180, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /** Unhurried and level: weight low, eyes ahead, the blade carried rather than swung. */
 const WALKP = makePose({ hy: -0.05, hp: 5, sp: 6, np: -8, ra: -96, re: -66, rl: 0.94, ba: -156, be: -30, la: 26, le: -74, ll: 0.9, xl: 10, flz: 0.02, frz: 0.02, frw: -7, flw: 7 });
@@ -22,7 +23,7 @@ const RUNP = makePose({ hy: -0.1, hp: 12, sp: 11, np: -18, ra: -128, re: -60, rl
 const FEET = CH.map(c => /^f[lr]/.test(c)), LOWER = CH.map(c => /^h/.test(c));
 
 export class PlayerView {
-  group = new THREE.Group(); rig = new Rig(HUMAN); body = new Body(this.rig, HUMAN_SPEC); footing = new Footing(); gait = new Gait([0, 0.5]); chains: Chains;
+  group = new THREE.Group(); rig = new Rig(HUMAN); body = new Body(this.rig, HUMAN_SPEC); footing = new Footing(); gait = new Gait([0, 0.5]); stride = new Stride(); /** Lean from speeding up (+) or pulling up (-), degrees. */ private push = 0; private spPrev = 0; chains: Chains;
   /** What casts the body's shadow: the mesh itself, or a stand-in. */ shadow!: THREE.Object3D; mesh: THREE.SkinnedMesh; weapon: THREE.Mesh; blade: Ribbon; eye: Ribbon; ghosts: Ghosts; fx: Fx; arm: Weapon;
   pose: Pose = new Float32Array(N); private src = new Float32Array(N); private tmp = new Float32Array(N); private inert = new Inertial(); private source = ''; private wasGait = false;
   private yawPrev = 0; private lean = 0; private drop = 0; ember = 0.35; /** 0-1, from the fire meter: the arms answer. */ fireK = 0; /** Aura step 0-4, eased. */ aura = { value: 0 }; auraStep = 0; /** Length of the fire beyond the steel (Last Rites; a lick of it at full aura). */ private long = 0; blaze = new Blaze(); shake = 0; private ghostT = 0; steps = 0; private time = 0; private stepped = false;
@@ -48,18 +49,27 @@ export class PlayerView {
   /** After a teleport. */
   reset() { this.footing.reset(); this.blade.clear(); this.eye.clear(); this.dis.value = 0; this.guardK = 0; this.chains.reset(); this.wasGait = false; this.tipPrev.set(0, -99, 0); }
   private locomotion(m: Motor, out: Pose, dt: number) {
-    const s = m.speed, ph = this.gait.phase * Math.PI * 2, run = sst(2.2, 4.6, s), mv = sst(0.1, 1.0, s), spr = sst(5.4, 6.8, s);
+    const s = m.speed, run = sst(2.2, 4.6, s), mv = sst(0.1, 1.0, s), spr = sst(5.4, 6.8, s);
     const calm = sst(1.2, 3.2, m.calm), br = Math.sin(this.time * 1.7);
     for (let i = 0; i < N; i++) { const idle = this.arm.ready[i] + (this.arm.rest[i] - this.arm.ready[i]) * calm, mo = WALKP[i] + (RUNP[i] - WALKP[i]) * run; out[i] = idle + (mo - idle) * mv; }
-    const add = (c: Ch, v: number) => { out[IX[c]] += v; };
+    const add = (c: Ch, v: number) => { out[IX[c]] += v; }, set = (c: Ch, v: number, k: number) => { out[IX[c]] += (v - out[IX[c]]) * k; };
     // breath and weight shift at rest
     add('sp', br * 1.1 * (1 - mv)); add('hy', br * 0.004 * (1 - mv)); add('re', br * 0.8 * (1 - mv)); add('nw', Math.sin(this.time * 0.43) * 4 * (1 - mv) * calm); add('hx', Math.sin(this.time * 0.6) * 0.008 * (1 - mv));
-    // walk: a rolling swagger. run: driving and level
-    const w = mv * (1 - run), r = mv * run, c = Math.cos(ph), c2 = Math.cos(ph * 2), s1 = Math.sin(ph);
-    add('hy', -c2 * (0.011 * w) + Math.cos(ph * 2 + 1.1) * 0.036 * r); add('hx', s1 * 0.012 * w + s1 * 0.008 * r);
-    add('hw', c * (5 * w + 9 * r)); add('hr', -s1 * (1.6 * w + 2 * r)); add('sw', -c * (7 * w + 14 * r)); add('sr', s1 * (1.2 * w + 1.2 * r)); add('nw', c * (2.4 * w + 5.5 * r)); add('sp', -c2 * 0.8 * w);
-    add('la', -c * 8 * w); add('le', -c * 13 * w); add('la', -c * 30 * r); add('le', -c * 22 * r); add('ll', 0.06 * c * r); add('ra', c * (4 * w + 6 * r)); add('re', c * (2 * w + 5 * r)); add('be', Math.sin(ph * 2) * 1.0 * w - 4 * spr); add('sp', 5 * spr); add('hp', 5 * spr);
+    // phase 0 = left heel down. Left leg forward means left hip forward, right shoulder forward, left arm back.
+    const T = Math.PI * 2, ph = this.stride.phase, D = this.stride.duty, c = Math.cos(T * ph), mid = Math.cos(T * (ph - D / 2)), bob = Math.cos(2 * T * (ph - D / 2)), w = mv;
+    const hipA = 6 + 5 * run, chA = 5 + 6 * run;
+    add('hw', -c * hipA * w); add('sw', c * (hipA + chA) * w); add('nw', -c * chA * 0.85 * w);
+    add('hr', mid * (3.5 - 1.5 * run) * w); add('sr', -mid * 2 * w); add('hx', mid * (0.018 - 0.01 * run) * w);
+    add('hy', bob * (0.012 * (1 - run) - 0.032 * run) * w); add('sp', -bob * 2.2 * run * w);
+    add('hp', 5 * spr + this.push * w); add('sp', 6 * spr + this.push * 0.6 * w); add('np', -(5 * spr + this.push * 1.4) * w);
     add('hr', this.lean * mv); add('sr', this.lean * 0.6 * mv);
+    // arms swing fore and aft from the shoulder, elbows bending more as the pace rises
+    const arm = (th: number, out_: number) => { const d = V(out_, -Math.cos(th * DEG), Math.sin(th * DEG)).normalize(); return [Math.atan2(d.x, d.z) / DEG, Math.asin(d.y) / DEG]; };
+    const thL = -c * (20 + 34 * run) + 6 * run, [laz, lel] = arm(thL, 0.22 - 0.3 * run * Math.max(0, Math.sin(thL * DEG)));
+    set('la', laz, w); set('le', lel + 30 * run * w, w); set('ll', 0.9 - 0.26 * run, w); set('xl', 10 + 10 * run, w);
+    // the sword hand pumps against the free one; the blade hangs back and down, tip near the stone
+    const thR = c * (8 + 10 * run) - 22 - 8 * run, [raz, rel] = arm(thR, -0.18);
+    set('ra', raz, w); set('re', rel + 8 * run, w); set('rl', 0.88 - 0.1 * run, w); set('ba', -170 + c * 5 * w, w); set('be', -30 + 6 * run + Math.sin(2 * T * ph) * 3 * w - 4 * spr, w);
     // guard: the upper body belongs to the weapon, the hips keep walking
     this.guardK += ((m.guarding ? 1 : 0) - this.guardK) * Math.min(1, dt * (m.guarding ? 26 : 12)); const g = this.guardK;
     if (g > 0.005) { const G = this.arm.guard; for (let i = 0; i < N; i++) { if (FEET[i] && mv > 0.3) continue; const k = LOWER[i] ? g * (1 - 0.55 * mv) : g; out[i] += (G[i] - out[i]) * k; } add('sp', br * 0.8 * g); }
@@ -75,6 +85,7 @@ export class PlayerView {
     this.time = t; const p = this.pose;
     let dy = m.yaw - this.yawPrev; dy -= Math.round(dy / 6.2832) * 6.2832; this.yawPrev = m.yaw; this.lean += ((-dy / Math.max(dt, 1e-3)) * Math.min(1, m.speed / 5) * 3.2 - this.lean) * Math.min(1, dt * 8); this.lean = Math.max(-16, Math.min(16, this.lean));
     if (m.events.includes('about')) this.about(180);
+    { const a = (m.speed - this.spPrev) / Math.max(dt, 1e-3); this.spPrev = m.speed; this.push += (Math.max(-9, Math.min(8, a * 0.7)) - this.push) * Math.min(1, dt * 6); }
     const inClip = m.state === 'clip' && m.clip, key = inClip ? 'c' + m.started : 'loco';
     this.locomotion(m, this.tmp, dt);
     if (inClip) sampleClip(m.clip!, m.t, this.tmp, this.src); else this.src.set(this.tmp);
@@ -87,14 +98,11 @@ export class PlayerView {
     const root = this.group.matrixWorld, L = this.body.limbs.footL, R = this.body.limbs.footR;
     const gaiting = !inClip && m.speed > 0.35 && m.y === 0;
     if (gaiting) {
-      if (!this.wasGait) { this.gait.reset(this.footing.world); this.gait.phase = this.stepped ? 0.1 : 0.6; this.stepped = !this.stepped; }
-      const run = sst(2.2, 4.6, m.speed), k = Math.min(1, m.speed / 1.6), fw = 0.11 - 0.025 * run, rest = [V(fw, 0.09, 0.0 - 0.06 * run), V(-fw, 0.09, 0.0 - 0.06 * run)].map(v => v.applyMatrix4(root));
-      const stride = (1.62 + (3.5 - 1.62) * run + Math.max(0, m.speed - 5.3) * 0.34) * (0.45 + 0.55 * k);
-      this.gait.update(dt, V(m.vx, 0, m.vz), stride, 0.61 - 0.35 * run, 0.06 + 0.2 * run, rest, 40 + 42 * run, 30 + 12 * run, 9 + 5 * run);
-      const inv = root.clone().invert(); L.copy(this.gait.pos[0]).applyMatrix4(inv); R.copy(this.gait.pos[1]).applyMatrix4(inv);
-      p[IX.flp] = this.gait.pitch[0]; p[IX.frp] = this.gait.pitch[1]; L.y += Math.max(0, Math.sin(p[IX.flp] * 0.01745)) * 0.15; R.y += Math.max(0, Math.sin(p[IX.frp] * 0.01745)) * 0.15;
-      this.steps += this.gait.landed.length; if (run > 0.6) for (const i of this.gait.landed) this.fx.puffs.emit(this.gait.pos[i], 2, 0.5, 0.7, t);
-      this.footing.adopt(this.gait.pos[0], this.gait.pos[1]);
+      if (!this.wasGait) { this.stride.reset(this.footing.world, this.stepped ? 0.12 : 0.62); this.stepped = !this.stepped; }
+      const run = sst(2.2, 4.6, m.speed); this.stride.update(dt, V(m.vx, 0, m.vz), root, run, sst(5.4, 6.8, m.speed), L, R);
+      p[IX.flp] = this.stride.pitch[0]; p[IX.frp] = this.stride.pitch[1]; p[IX.flw] = 0; p[IX.frw] = 0;
+      this.steps += this.stride.landed.length; for (const i of this.stride.landed) this.fx.puffs.emit(this.stride.pos[i], run > 0.6 ? 2 : 1, 0.3 + 0.3 * run, 0.6, t);
+      this.footing.adopt(this.stride.pos[0], this.stride.pos[1]);
     } else {
       this.body.footTargets(p, L, R); this.footing.update(L, R, root, dt, p[IX.air], 0.09); this.steps += this.footing.events.length;
     }
@@ -111,7 +119,7 @@ export class PlayerView {
     const tr = inClip ? m.clip!.trail ?? (m.clip!.hit ? [m.clip!.hit[0], (m.clip!.hits ?? [m.clip!.hit]).at(-1)![1]] : null) : null, hot = !!tr, hitEnd = tr ? tr[1] : 0;
     this.blade.push(this.base, this.tip, hot ? sst(5, 15, this.tipSpeed) * sst(tr![0] - 0.07, tr![0] - 0.02, m.t) * sst(hitEnd + 0.12, hitEnd + 0.03, m.t) * (m.clip!.reel || m.clip!.trail ? 1.5 : 1) : 0, t); this.blade.update(t);
     const hb = this.rig.bones[this.rig.i('head')]; this.eyeW.set(0.032, 0.067, 0.085); hb.localToWorld(this.eyeW);
-    const ew = sst(3.5, 8, sp) * 0.5 + (hot ? 0.25 : 0) + (this.auraStep >= 2 ? 0.45 : 0); const up = V(0, 0.0075, 0); this.eye.push(this.eyeW.clone().sub(up), this.eyeW.clone().add(up), ew, t); this.eye.update(t);
+    const ew = (hot ? 0.25 : 0) + (this.auraStep >= 2 ? 0.45 : 0) + (inClip && /^dodge|rush/.test(m.clip!.name) ? 0.3 : 0); const up = V(0, 0.0075, 0); this.eye.push(this.eyeW.clone().sub(up), this.eyeW.clone().add(up), ew, t); this.eye.update(t);
     // the blade tip scraping stone
     if (!hot && this.tip.y < 0.09 && this.tipSpeed > 0.7 && Math.random() < Math.min(0.75, this.tipSpeed * 0.16)) this.fx.sparks.emit(V(this.tip.x, 0.03, this.tip.z), V(-m.vx * 0.1, 0.5, -m.vz * 0.1), 2, 1.5 + this.tipSpeed * 0.25, 1.2, 0.45, t);
     if (hot && this.tipSpeed > 12 && Math.random() < 0.8) this.fx.sparks.emit(this.tip, V(0, 0.3, 0), 2, 0.9, 1.6, -0.9, t);
