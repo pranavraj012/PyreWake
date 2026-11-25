@@ -6,7 +6,7 @@ const LIST: Record<TrackName, { start: number; from: number; end: number; xf: nu
   hang: { start: 0, from: 0, end: 40.5, xf: 3 }, beneath: { start: 0, from: 0, end: 123.3, xf: 0.2 }, morning: { start: 0, from: 0, end: 83, xf: 5 },
 };
 const SILENCE = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
-interface Deck { el: HTMLAudioElement; g: GainNode; lp: BiquadFilterNode; name: TrackName | null; level: number; stopAt: number }
+interface Deck { el: HTMLAudioElement; g: GainNode; lp: BiquadFilterNode; name: TrackName | null; level: number; stopAt: number; /** Being slowed to a halt: since when, over how long. */ tape?: [number, number] }
 
 export class Tracks {
   private ctx: AudioContext; private decks: Deck[] = []; private urls = new Map<TrackName, string>(); private cur: Deck | null = null; private want = { gain: 1, lp: 20000 }; private primed = false; private started = false;
@@ -22,7 +22,7 @@ export class Tracks {
   prime() { if (this.primed) return; this.primed = true; for (const d of this.decks) if (!d.name) void d.el.play().catch(() => { this.primed = false; }); }
   private ramp(p: AudioParam, v: number, tc: number) { p.cancelScheduledValues(this.ctx.currentTime); p.setTargetAtTime(v, this.ctx.currentTime, tc); }
   private put(n: TrackName, at: number, fade: number) {
-    const now = this.ctx.currentTime, d = this.decks.filter(x => x !== this.cur).sort((a, b) => a.stopAt - b.stopAt)[0]; const url = this.urls.get(n)!;
+    const now = this.ctx.currentTime, d = this.decks.filter(x => x !== this.cur).sort((a, b) => a.stopAt - b.stopAt)[0]; const url = this.urls.get(n)!; d.tape = undefined; d.el.playbackRate = 1;
     if (d.el.src !== url) d.el.src = url; d.name = n; d.stopAt = 0; d.g.gain.cancelScheduledValues(now); d.g.gain.setValueAtTime(0, now);
     const go = () => { try { d.el.currentTime = at; } catch { /* not seekable yet */ } }; if (d.el.readyState >= 1) go(); else d.el.addEventListener('loadedmetadata', go, { once: true });
     void d.el.play().catch(() => { /* waits for a tap */ }); d.lp.frequency.setValueAtTime(this.want.lp, now); this.ramp(d.g.gain, this.want.gain, fade / 3); d.level = this.want.gain; return d;
@@ -36,8 +36,11 @@ export class Tracks {
     if (n && this.cur?.name === n) { this.ramp(this.cur.g.gain, gain, 0.5); this.ramp(this.cur.lp.frequency, lp, 0.4); return; }
     if (this.cur) { this.drop(this.cur, fade); this.cur = null; } if (n && this.has(n)) this.cur = this.put(n, at >= 0 ? at : LIST[n].start, n === 'beneath' ? 0.1 : fade);
   }
+  /** A hand on the record. */
+  stopTape(secs: number) { const d = this.cur; if (!d) return; (d.el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = false; d.tape = [this.ctx.currentTime, secs]; this.cur = null; this.ramp(d.lp.frequency, 300, secs * 0.4); d.g.gain.cancelScheduledValues(this.ctx.currentTime); d.g.gain.setTargetAtTime(0, this.ctx.currentTime + secs * 0.55, secs * 0.16); d.stopAt = this.ctx.currentTime + secs * 1.5; }
   update() {
-    const now = this.ctx.currentTime; for (const d of this.decks) if (d.stopAt && now > d.stopAt) { d.el.pause(); d.stopAt = 0; d.name = null; }
+    const now = this.ctx.currentTime; for (const d of this.decks) if (d.tape) { const u = (now - d.tape[0]) / d.tape[1]; d.el.playbackRate = Math.max(0.2, 1 - 0.8 * Math.min(1, u) ** 0.8); if (u > 1.5) d.tape = undefined; }
+    for (const d of this.decks) if (d.stopAt && now > d.stopAt) { d.el.pause(); d.stopAt = 0; d.name = null; d.el.playbackRate = 1; (d.el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true; }
     const c = this.cur; if (!c?.name) return; const T = LIST[c.name], t = c.el.currentTime; if (c.el.paused && this.primed) void c.el.play().catch(() => { });
     if (T.xf && t > T.end - T.xf) { const old = c; this.cur = this.put(c.name, T.from, T.xf); this.drop(old, T.xf); }
   }

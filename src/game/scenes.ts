@@ -76,20 +76,21 @@ export class Intro {
   step(dt: number, time: number): number {
     const { f, fx, hud, pv } = this.kit, m = f.m, k = f.king, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.6);
     if (t < 11.0) this.kneel();
-    c.at(t, 0.1, 'wind', () => sound.play('sub', { gain: 0.5, wet: 0.8 }));
+    c.at(t, 0.1, 'wind', () => sound.play('doom', { gain: 0.6 }));
     c.at(t, 1.3, 'place', () => hud.say('The Charnel Court', 2.6, 'place'));
     c.at(t, 3.2, 'b0', () => sound.play('kBreath', { gain: 0.5, wet: 0.9, x: 0, z: -4, bus: 'voice' }));
     for (let i = 0; i < 3; i++) c.at(t, 4.5 + i * 0.75, 's' + i, () => sound.play('scrape', { x: m.x, z: m.z, gain: 0.5, rate: 0.8 }));
     c.at(t, 6.9, 'eye', () => { pv.ember = 1.9; sound.play('flare', { gain: 0.6 }); sound.play('heart', { gain: 0.8 }); });
-    c.at(t, 8.7, 'b1', () => sound.play('kBreath', { gain: 1.1, wet: 0.6, x: 0, z: -4, bus: 'voice', rate: 0.85 })); c.at(t, 9.9, 'tick', () => { sound.play('bone', { gain: 0.7, wet: 0.6 }); });
+    c.at(t, 8.7, 'b1', () => sound.play('kBreath', { gain: 1.1, wet: 0.6, x: 0, z: -4, bus: 'voice', rate: 0.85 })); c.at(t, 9.9, 'tick', () => { sound.play('groan', { gain: 0.6, x: 0, z: -4 }); });
     c.at(t, 10.5, 'hb', () => sound.play('heart', { gain: 0.9 }));
     // it gets up the wrong way
     c.at(t, 11.0, 'wake', () => { k.mt = k.prev = 4.55; });
-    c.at(t, 11.2, 'j1', () => { sound.play('crackBone', { gain: 0.9, wet: 0.5 }); sound.play('bone', { gain: 0.9 }); this.lens.trauma = 0.5; }); c.at(t, 11.72, 'j2', () => { sound.play('crackBone', { gain: 1, wet: 0.5 }); sound.play('thud', { gain: 0.5 }); this.lens.trauma = 0.6; });
-    c.at(t, 12.3, 'j3', () => { sound.play('crackBone', { gain: 1, wet: 0.5 }); this.lens.trauma = 0.5; });
-    c.at(t, 12.75, 'roar', () => { sound.play('kScreech', { gain: 1, wet: 0.6, bus: 'voice' }); sound.duck(0.4, 0.8); this.lens.trauma = 0.9; hud.say('The Hanged King', 2.0, 'title'); fx.puffs.emit(V(0, 0, -4), 18, 3, 1.6, time); fx.bursts.add('ground', V(0, 0.06, -4), 9, 0.9, time, 0, 0.7, 0.3, 0.1); });
+    // each joint is drawn in before it lands
+    for (const [n, at] of [11.2, 11.72, 12.32].entries()) { c.at(t, at - 0.42, 'r' + n, () => sound.play('rise' + n, { gain: 0.95, x: 0, z: -4 })); c.at(t, at, 'j' + n, () => { this.lens.trauma = 0.55 + n * 0.1; fx.puffs.emit(V(0, 0, -4), 6, 2, 1.1, time); }); }
+    c.at(t, 11.9, 'swell', () => sound.play('swell', { gain: 0.8 }));
+    c.at(t, 12.75, 'roar', () => { sound.play('kScreech', { gain: 0.95, bus: 'voice' }); sound.play('braam', { gain: 0.85 }); sound.duck(0.4, 0.8); this.lens.trauma = 0.9; hud.say('The Hanged King', 2.0, 'title'); fx.puffs.emit(V(0, 0, -4), 18, 3, 1.6, time); fx.bursts.add('ground', V(0, 0.06, -4), 9, 0.9, time, 0, 0.7, 0.3, 0.1); });
     if (t > 12.75 && t < 14) this.lens.trauma = Math.max(this.lens.trauma, 0.7 * (1 - E(13, 14, t)));
-    c.at(t, 14.5, 'ready', () => { m.begin('flick'); sound.play('whooshH', { gain: 0.6 }); });
+    c.at(t, 14.5, 'ready', () => { m.begin('flick'); sound.play('sheathe', { gain: 0.7 }); });
     c.at(t, 14.85, 'burn', () => { pv.ember = 2; sound.play('aura1', { gain: 0.8 }); pv.boomAt.set(m.x, 1.3, m.z); pv.boomK = 0.4; for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283; fx.bursts.add('pillar', V(m.x + Math.cos(a) * 0.9, 0, m.z + Math.sin(a) * 0.9), 1.1, 0.7, time + i * 0.015); } fx.sparks.emit(V(m.x, 1, m.z), V(0, 0.6, 0), 60, 3, 2.2, -1.8, time); });
     if (t >= INTRO_LEN) this.end();
     return t > 4.0 && m.z > 5.6 && t < 11 ? -0.4 : 0;
@@ -125,12 +126,12 @@ export class Ending {
     c.at(t, 6.6, 'cutaway', () => this.place());
     // he doesn't look back
     if (t > 6.7 && t < 14.2) { f.sceneMove = { x: 0, z: 0.4 }; } else f.sceneMove = { x: 0, z: 0 };
-    c.at(t, 7.9, 'blast', () => { const p = V(0, 1.2, -11); for (let i = 0; i < 5; i++) fx.bursts.add('fire', p.clone().add(V((Math.random() - 0.5) * 2.4, Math.random() * 1.8 - 0.4, 0)), 4.4, 1.0, time + i * 0.05, i); fx.bursts.add('flare', p, 12, 0.5, time); for (let i = 0; i < 9; i++) fx.bursts.add('pillar', V((i - 4) * 0.8, 0, -11 + Math.random()), 3.2, 1, time + Math.abs(i - 4) * 0.04); fx.sparks.emit(p, V(0, 0.8, 0.2), 180, 7, 2.4, -1.4, time); fx.sparks.emit(p, V(0, 0.5, 0.4), 120, 5, 2.4, -2.2, time + 0.1); fx.puffs.emit(V(0, 0, -11), 20, 3.6, 2, time); pv.boomAt.set(0, 2, -10); pv.boomK = 1.1; this.lens.trauma = 0.7; sound.play('boom', { gain: 0.9, wet: 0.8 }); sound.play('sub', { gain: 0.8 }); });
+    c.at(t, 7.9, 'blast', () => { const p = V(0, 1.2, -11); for (let i = 0; i < 5; i++) fx.bursts.add('fire', p.clone().add(V((Math.random() - 0.5) * 2.4, Math.random() * 1.8 - 0.4, 0)), 4.4, 1.0, time + i * 0.05, i); fx.bursts.add('flare', p, 12, 0.5, time); for (let i = 0; i < 9; i++) fx.bursts.add('pillar', V((i - 4) * 0.8, 0, -11 + Math.random()), 3.2, 1, time + Math.abs(i - 4) * 0.04); fx.sparks.emit(p, V(0, 0.8, 0.2), 180, 7, 2.4, -1.4, time); fx.sparks.emit(p, V(0, 0.5, 0.4), 120, 5, 2.4, -2.2, time + 0.1); fx.puffs.emit(V(0, 0, -11), 20, 3.6, 2, time); pv.boomAt.set(0, 2, -10); pv.boomK = 1.1; this.lens.trauma = 0.7; sound.play('boom', { gain: 1 }); sound.play('doom', { gain: 0.8 }); });
     if (t > 8 && t < 14 && Math.random() < 0.8) fx.sparks.emit(V((Math.random() - 0.5) * 7, 0.2 + Math.random() * 3, m.z - 2 - Math.random() * 6), V(0, 0.6, 0.5), 3, 1, 1.8, -1.6, time);
     c.at(t, 11.5, 'eye', () => { sound.play('heart', { gain: 0.6 }); });
     if (t > 11.6 && t < 14.2) pv.ember = Math.max(0.2, pv.ember - dt * 0.6);
     c.at(t, 14.2, 'rest', () => { m.begin('flick'); sound.play('whooshH', { gain: 0.5 }); });
-    c.at(t, 14.9, 'title', () => { hud.say('Morning, at Last', 3.6, 'victory', 'The dead lie still. The fire remembers their names.'); sound.play('bra', { gain: 0.5, bus: 'music', wet: 0.7 }); sound.play('cho', { gain: 0.6, bus: 'music', wet: 0.9 }); sound.play('sub', { gain: 0.5 }); });
+    c.at(t, 14.9, 'title', () => { hud.say('Morning, at Last', 3.6, 'victory', 'The dead lie still. The fire remembers their names.'); sound.play('uiGo', { gain: 0.6 }); });
     if (t >= END_LEN && !this.over) { this.over = true; this.clear = 1; this.dawn = 1; document.body.classList.remove('cine'); hud.won(f); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {

@@ -41,7 +41,7 @@ await go('lessons', async () => {
 });
 await go('turn', async () => {
   await open('turn'); await p.evaluate(() => { __f.passive = true; __king.x = 0; __king.z = -3; __m.revive(0, -1.2, Math.PI); __m.begin('light1'); }); await until(() => __turn.t >= 0);
-  await sheet('turn', [0.3, 1.5, 2.5, 3.2, 4.4, 5.4, 6.4, 7.1, 7.6, 8.9, 9.8, 11, 12.2, 12.8, 13.4, 14, 14.7, 15.3, 15.6, 16.2, 17, 17.5, 18.2, 18.7, 19.4, 20.5, 21.4, 22.4, 23.4, 24.4, 25.2, 26], t => __turn.t >= t);
+  await sheet('turn', [0.3, 2.4, 4.4, 7.0, 7.9, 8.4, 9.2, 10.2, 11.2, 12.3, 12.9, 13.3, 14.0, 14.5, 15.2, 15.45, 15.64, 15.8, 16.1, 16.5, 16.75, 17.3, 18.0, 18.4, 18.9, 19.3, 19.6, 20.2, 21.4, 22.6, 23.6, 24.6, 25.4, 26.2, 27, 27.5], t => __turn.t >= t);
   await until(() => __f.phase === 'r2'); for (const ms of [250, 500, 1100]) { await p.waitForTimeout(ms); await one('bar' + ms); }
 });
 await go('ending', async () => {

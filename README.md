@@ -82,7 +82,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Motion | a small clip language over named pose channels, solved with two-bone IK, foot locking, inertialised blending, and simulated cloth and hair |
 | Combat | 60 Hz fixed step with no rendering imports, so whole fights run headless in tests |
 | Rendering | three.js (WebGL 2) with one layered surface shader, own HDR chain, height fog, GPU particles |
-| Sound | 155 sounds synthesised sample by sample in a worker (modal metal, formant voices, debris, fire) and a court reverb; music is six CC0 recordings that follow the fight (see `LICENSES.md`), with a synthesised score standing in until they load |
+| Sound | 148 designed sounds, each layered from CC0 recordings and synthesis (a snap, a punch, a sub tuned to the score's key, steel or something wet, a tail) and mastered for small speakers by `forge/sound/kitchen.py`; a synthesised set stands in if the pack is missing. Music is six CC0 recordings that follow the fight. Credits in `LICENSES.md` |
 | Checks | unit tests, bots that play hundreds of headless fights, per-tier performance budgets, scripted screenshots |
 
 ```
@@ -112,6 +112,7 @@ src/ui/ src/input/ src/arena/ src/core/
 | `npm run menu` | checks the title screen, full screen, pause and boss bar |
 | `npm run scenes` | films the intro, the turn, the ending and Last Rites, frame by frame |
 | `npm run moments` | drives the game to each key moment and captures it |
+| `python forge/sound/kitchen.py` | recook the sound pack (needs the CC0 sources in `assets_src/sfx`) |
 | `npm run forge [names]` | rebake models (`textures` needs the CC0 sources in `assets_src/`) |
 
 Address options: `?nointro`, `?still`, `?touch`, `?tier=phone|mid|high`, `?bench=player`, `?bench=king`, `?bench=beneath`, `?shot=<name>`, `?round2` (start in round 2), `?turn` (one hit from the cutscene), `?fps`.

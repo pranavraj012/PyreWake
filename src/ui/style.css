@@ -115,3 +115,6 @@ kbd { font: 600 12px/1 "Segoe UI", system-ui, sans-serif; color: #efe6d6; backgr
 .training .cut .lesson { opacity: 0; } .touch .press { bottom: 24%; left: 44%; }
 @media (max-height: 480px) { .lesson { top: 4px; padding: 6px 20px 8px; } .lesson h3 { margin: 4px 0 1px; font-size: 20px; } .lesson p { font-size: 13px; } .verse { bottom: 4%; font-size: 18px; padding: 20px 40px; } .press.held kbd { font-size: 24px; padding: 10px 18px; } }
 @media (prefers-reduced-motion: reduce) { .press.held kbd { animation: none; } }
+
+#load { text-align: center; letter-spacing: normal; } #load h1 { margin: 0 0 22px; font: 400 clamp(34px, 6vw, 76px)/1 "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; letter-spacing: .06em; color: #d8c4a6; text-shadow: 0 0 40px #ff5a1455; } #load i { display: block; width: min(46vw, 300px); height: 2px; margin: 0 auto 16px; background: #241a14; overflow: hidden; } #load i::after { content: ""; display: block; width: 40%; height: 100%; background: linear-gradient(90deg, #0000, #ff8a3a, #0000); animation: burn 1.3s infinite ease-in-out; } @keyframes burn { from { transform: translateX(-110%); } to { transform: translateX(270%); } } #load span { color: #8c8176; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { #load i::after { animation: none; width: 100%; } }

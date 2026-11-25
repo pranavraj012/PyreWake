@@ -40,7 +40,8 @@ export class Director {
     fx.sparks.emit(n, d, Math.round(12 + pw * 16), 3.4 + pw * 1.8, 1.3, 0.5, t); fx.gore.emit(n, d, Math.round(12 + pw * 12), 2.6 + pw * 1.0, 1.4, 0.8, t); fx.sparks.emit(n, V(0, 0.4, 0), Math.round(3 + pw * 3), 0.9, 2, -1.2, t);
     // the blow lights the room for an instant
     pv.boomAt.copy(n); pv.boomK = Math.max(pv.boomK, 0.03 + pw * 0.03); cam.hit(pw, v); this.hud.struck(pw);
-    sound.play('slice', { ...pos, gain: light ? 0.5 : 0.75, rate: 1.15 - Math.min(0.35, pw * 0.1) }); sound.play(pw > 1.7 ? 'fleshH' : 'flesh', { ...pos, gain: light ? 0.55 : 0.8 + pw * 0.08, rate: pw > 2.4 ? 0.88 : 1 }); if (pw > 1.15 || Math.random() < 0.35) sound.play('bone', { ...pos, gain: 0.4 + pw * 0.16, rate: e.head ? 1.25 : 1 }); if (e.kind === 'fire') sound.play('fire', { ...pos, gain: 0.7 }); if (pw > 2.6) { sound.play('sub', { gain: 0.6 }); sound.duck(0.5, 0.2); }
+    // each cut of a chain lands a little higher than the last; the closer drops
+    const deep = Math.min(5, m.depth), up = pw > 1.7 ? 1 : 1 + 0.028 * deep; sound.play(pw > 1.7 ? 'fleshH' : 'flesh', { ...pos, gain: light ? 0.62 : 0.78 + pw * 0.06, rate: (pw > 2.4 ? 0.9 : up) * (e.head ? 1.08 : 1) }); if (e.kind === 'fire') sound.play('fire', { ...pos, gain: 0.7 }); if (pw > 2.6) { sound.play('doom', { gain: 0.5 }); sound.duck(0.5, 0.25); }
     this.painT -= pw; if (e.reel || this.painT < 0) { this.painT = 2.5 + Math.random() * 3; this.say('kPain', 'bPain', e.reel ? 1 : 0.7); } this.buzz(8 + pw * 9);
   }
   /** After the simulation and views have stepped. `dt` is simulated time, 0 while frozen on a hit. */
@@ -122,7 +123,7 @@ export class Director {
         else if (e === 'fx:ritesEnd') { sound.play('whooshH', { ...me, gain: 0.6 }); cam.snap(m, { x: k.hx, z: k.hz }); }
         else if (e === 'fx:riposte') sound.play('parry', { ...me, gain: 0.6, rate: 1.1 });
         else if (e === 'fx:impale') { sound.play('fleshH', { ...pos, gain: 1.1 }); sound.play('riteCut', { ...pos, gain: 0.5, rate: 0.7 }); const p = pv.tip.clone(); fx.gore.emit(p, V(Math.sin(m.yaw), 0.3, Math.cos(m.yaw)), 70, 5, 1.6, 0.9, t); fx.bursts.add('flare', p, 3.4, 0.3, t); cam.trauma = 0.7; kv.flinch(m.yaw, 3); this.buzz(80); }
-        else if (e === 'fx:twist') { sound.play('crackBone', { ...pos, gain: 1, wet: 0.5 }); sound.play('fire', { ...pos, gain: 0.9 }); cam.trauma = 0.6; kv.flinch(m.yaw + 1.5, 2.4); for (let i = 0; i < 3; i++) fx.bursts.add('fire', V(k.hx, 1.2 + i * 0.4, k.hz), 2.2, 0.6, t + i * 0.06, i); this.say('bPain', 'bPain', 1); }
+        else if (e === 'fx:twist') { sound.play('fleshH', { ...pos, gain: 1, rate: 0.75 }); sound.play('groan', { ...pos, gain: 0.8 }); sound.play('fire', { ...pos, gain: 0.8 }); cam.trauma = 0.6; kv.flinch(m.yaw + 1.5, 2.4); for (let i = 0; i < 3; i++) fx.bursts.add('fire', V(k.hx, 1.2 + i * 0.4, k.hz), 2.2, 0.6, t + i * 0.06, i); this.say('bPain', 'bPain', 1); }
         else if (e === 'fx:finale') { sound.play('whooshB', { gain: 1, rate: 1.3 }); }
         else if (e === 'fx:blur') sound.play('whoosh', { ...me, gain: 0.8, rate: 1.5 });
         else if (e === 'fx:reckon') { sound.play('sheathe', { ...me, gain: 0.9, wet: 0.5 }); for (let i = 0; i < 7; i++) fx.bursts.add('slash', V(k.hx + (Math.random() - 0.5) * 0.9, 0.8 + Math.random() * 1.8, k.hz + (Math.random() - 0.5) * 0.9), 3.4, 0.3, t + i * 0.035, Math.random() * 3.1, 1.7, 0.8, 0.3); }

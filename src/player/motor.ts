@@ -35,6 +35,8 @@ export class Motor {
   private end() { this.state = 'free'; this.clip = null; this.idleT = 0; }
   /** Feet high enough for low blows and ground fire to pass under. */
   get over() { return this.y > D.jump.clear; }
+  /** How far into the current chain. */
+  get depth() { return this.deep; }
   /** Where Last Rites began, and facing from target to hero then. */
   get ritesFrom() { return this.rites; }
   get targetDist() { return this.target ? Math.hypot(this.target.x - this.x, this.target.z - this.z) : 99; }
@@ -137,7 +139,7 @@ export class Motor {
     if (this.state === 'clip' && this.clip) {
       const c = this.clip; const t0 = this.t; this.t += dt; this.calm = /flick|clench/.test(c.name) ? this.calm + dt : 0; this.guarding = false;
       for (const f of c.fx ?? []) if (f.t > t0 && f.t <= this.t) { this.events.push('fx:' + f.kind); if (f.kind === 'rcut') this.ritesStep(false); if (f.kind === 'rlast') this.ritesStep(true); }
-      for (const h of c.hits ?? (c.hit ? [c.hit] : [])) if (t0 < h[0] && this.t >= h[0]) this.events.push('swing');
+      for (const h of c.hits ?? (c.hit ? [c.hit] : [])) { const s = Math.max(0.005, h[0] - 0.075); if (t0 < s && this.t >= s) this.events.push('swing'); }
       const scale = c.name === 'rush' ? this.rushDist : 1, m = moveAt(c, this.t) * scale; let d = m - this.lastMove; this.lastMove = m;
       if (c.hit && t0 < c.hit[0]) d += this.gap * dt / c.hit[0];
       const my = isDodge(c) || /^(hurt|down|block|rush)$/.test(c.name) ? this.moveYaw : this.yaw; dx = Math.sin(my) * d; dz = Math.cos(my) * d;

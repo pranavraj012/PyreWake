@@ -38,7 +38,7 @@ function draw(s: number, f0: number, f1: number, cut: number, grit = 170): F { c
 /** A dry crack: a few joints going, one of them large. */
 function cracks(s: number, n: number, big: number): F { const o = buf(s); for (let k = 0; k < n; k++) { const f = rr(420, 1500), g = k === 0 ? 1 : rr(0.2, 0.6), at = k === 0 ? big : R() * s * 0.6; add(o, modal(0.12, [[f, 1, 0.011], [f * 1.63, 0.8, 0.008], [f * 2.71, 0.5, 0.005], [f * 4.3, 0.3, 0.003]], 0.0015), g * 2.2, at); add(o, pluckNoise(0.05, 0.004, 1800), g, at); } return add(o, thump(0.25, 150, 60, 0.04, 2.4), 0.9, big); }
 /** Scattered little impacts: gravel, splinters, embers. */
-function grains(s: number, n: number, f0: number, f1: number, d: number, spread: (u: number) => number, q = 8): F { const o = buf(s); for (let k = 0; k < n; k++) { const at = spread(R()) * s, L = d * rr(0.5, 1.5), f = f0 * Math.pow(f1 / f0, R()), x = shape(noise(L * 5), t => ex(t, L)), y = svf(x, f, q, 'bp'); add(o, y, rr(0.2, 1), at); } return o; }
+function grains(s: number, n: number, f0: number, f1: number, d: number, spread: (u: number) => number, q = 8): F { const o = buf(s); for (let k = 0; k < n; k++) { const at = spread(R()) * s, L = d * rr(0.5, 1.5), f = f0 * Math.pow(f1 / f0, R()), x = shape(noise(L * 5), t => ex(t, L)), y = svf(x, f, Math.min(q, 1.4), 'bp'); add(o, y, rr(0.2, 1), at); } return o; }
 const early = (u: number) => u * u * u;
 
 /** A throat: glottal pulses with jitter and a subharmonic, noise breath, moving formants, then a torn waveshaper. */
