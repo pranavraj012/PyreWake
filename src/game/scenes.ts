@@ -15,7 +15,7 @@ export class Lens {
   /** Frame a shot. A new `n` is a cut; the same one eases. */
   aim(cam: THREE.PerspectiveCamera, n: number, p: THREE.Vector3, l: THREE.Vector3, fov: number, time: number, roll = 0) {
     if (this.cut !== n) { this.cut = n; this.look.copy(l); } else this.look.lerp(l, 0.2);
-    cam.position.copy(p); cam.lookAt(this.look); cam.fov = fov * (cam.aspect > 1.9 ? 0.94 : 1);
+    cam.position.copy(p); cam.lookAt(this.look); cam.userData.focus = this.look; cam.fov = fov * (cam.aspect > 1.9 ? 0.94 : 1);
     const k = this.trauma * this.trauma; cam.rotateZ(roll + Math.sin(time * 47) * 0.014 * k + Math.sin(time * 0.7) * 0.004); cam.rotateX(Math.sin(time * 59) * 0.016 * k + Math.sin(time * 0.9) * 0.0022); cam.rotateY(Math.sin(time * 0.6 + 1) * 0.0026); cam.updateProjectionMatrix();
   }
 }
@@ -54,7 +54,7 @@ export class Prologue {
     const t = this.t, m = this.kit.f.m, L = this.lens, i = Math.min(3, Math.floor(t / LINE)), u = (t - i * LINE) / LINE, p = this.fires[4] ?? this.fires[0], r = Math.hypot(p.x, p.z), ox = p.x / r, oz = p.z / r;
     if (i === 0) L.aim(cam, 1, V(p.x - ox * (4.6 - u * 0.9) + oz * 1.5, 0.7 + u * 0.2, p.z - oz * (4.6 - u * 0.9) - ox * 1.5), V(p.x, 1.35, p.z), 40, time);
     else if (i === 1) L.aim(cam, 2, V(1.9 - u * 0.6, 0.6 + u * 0.3, 3.4 - u * 0.8), V(-0.1, 2.5 + u * 0.3, -4), 46, time, -0.03);
-    else if (i === 2) L.aim(cam, 3, V(5 - u * 2.2, 2.0 + u * 1.2, 12 - u * 1.2), V(-5, 7.6 + u * 0.6, -18), 54, time);
+    else if (i === 2) L.aim(cam, 3, V(2.6 - u * 1.6, 2.0 + u * 1.2, 12 - u * 1.2), V(-5, 7.6 + u * 0.6, -18), 54, time);
     else L.aim(cam, 4, V(m.x - 0.75 + u * 0.2, 1.42 + u * 0.08, m.z - 1.35 + u * 0.25), V(m.x + 0.02, 1.36 + u * 0.16, m.z), 36 - u * 3, time);
   }
 }

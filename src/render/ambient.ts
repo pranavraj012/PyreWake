@@ -1,4 +1,5 @@
 // Fire, embers, smoke, falling ash. All instanced, all GPU-animated.
+import { DUST } from './fx.ts';
 import * as THREE from 'three';
 import { FOG } from './surface.ts';
 import type { Tier } from '../core/quality.ts';
@@ -15,9 +16,9 @@ function quads(count: number, attrs: Record<string, [number, (i: number) => numb
 }
 const R = Math.random;
 
-export function makeFires(at: THREE.Vector3[], per = 6, size = 1) {
+export function makeFires(at: THREE.Vector3[], per = 6, size = 1, spread = 0.6) {
   const g = quads(at.length * per, {
-    aP: [4, i => { const p = at[Math.floor(i / per)], a = R() * 6.28, d = R() * 0.6; return [p.x + Math.cos(a) * d, p.y + 0.15 + R() * 0.5, p.z + Math.sin(a) * d, R() * 10]; }],
+    aP: [4, i => { const p = at[Math.floor(i / per)], a = R() * 6.28, d = R() * spread; return [p.x + Math.cos(a) * d, p.y + (0.15 + R() * 0.5) * spread / 0.6, p.z + Math.sin(a) * d, R() * 10]; }],
     aS: [2, () => { const s = (0.9 + R() * 0.8) * size; return [s * 1.15, s * 1.9]; }],
   });
   const m = new THREE.ShaderMaterial({
@@ -34,9 +35,9 @@ void main(){ float t = uT.w * 1.15 + s * 7.; vec2 p = u; p.x += (fbm(vec2(u.x * 
 export function makeSmoke(at: THREE.Vector3[]) {
   const per = 7, g = quads(at.length * per, { aP: [4, i => { const p = at[Math.floor(i / per)]; return [p.x, p.y + 1, p.z, (i % per) / per + R() * 0.1]; }] });
   const m = new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, uniforms: { uT: FOG.uFogP },
+    transparent: true, depthWrite: false, uniforms: { uT: FOG.uFogP, uTint: DUST },
     vertexShader: `attribute vec4 aP; uniform vec4 uT; varying vec2 u; varying float k, s; void main(){ u = position.xy + vec2(.5,0.); s = aP.w * 37.; k = fract(uT.w * .075 + aP.w); float z = 1.1 + k * 4.6; vec3 c = aP.xyz + vec3(sin(s + k * 3.) * .5 + k * k * 2.6, k * 8.5, cos(s) * .4); vec3 r = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]), up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]); gl_Position = projectionMatrix * viewMatrix * vec4(c + (r * position.x + up * (position.y - .5)) * z, 1.); }`,
-    fragmentShader: `varying vec2 u; varying float k, s; ${NOISE} void main(){ vec2 q = u - .5; float d = fbm(u * 3. + s + vec2(0., -k * 2.)); float a = smoothstep(.5, .12, length(q) + (d - .5) * .42) * smoothstep(0., .18, k) * smoothstep(1., .4, k) * .3; vec3 c = mix(vec3(.16,.06,.022), vec3(.02,.023,.029), smoothstep(0., .22, k)); gl_FragColor = vec4(c * (.6 + d * .6), a); }`,
+    fragmentShader: `uniform vec3 uTint; varying vec2 u; varying float k, s; ${NOISE} void main(){ vec2 q = u - .5; float d = fbm(u * 3. + s + vec2(0., -k * 2.)); float a = smoothstep(.5, .12, length(q) + (d - .5) * .42) * smoothstep(0., .18, k) * smoothstep(1., .4, k) * .3; vec3 c = mix(vec3(.16,.06,.022), uTint * .14, smoothstep(0., .22, k)); gl_FragColor = vec4(c * (.6 + d * .6), a); }`,
   });
   const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; mesh.renderOrder = 6; return mesh;
 }
@@ -52,13 +53,15 @@ export function makeEmbers(at: THREE.Vector3[], tier: Tier) {
 }
 
 /** Ash flakes wrapped in a box around the camera. */
+/** 0 ash drifting down; 1 a gale with fire in it. `drift` is the wind, summed. */
+export const STORM = { k: { value: 0 }, drift: { value: 0 } };
 export function makeAsh(tier: Tier) {
   const n = Math.round(1100 * tier.particles), g = quads(n, { aP: [4, () => [R(), R(), R(), R()]] });
   const m = new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { uT: FOG.uFogP, uMoonDir: FOG.uMoonDir },
-    vertexShader: `attribute vec4 aP; uniform vec4 uT; varying float a; varying vec2 u; mat3 rx(float t){ float c=cos(t),s=sin(t); return mat3(1,0,0,0,c,s,0,-s,c); } mat3 ry(float t){ float c=cos(t),s=sin(t); return mat3(c,0,-s,0,1,0,s,0,c); }
-void main(){ u = position.xy + vec2(.5,0.); float s = aP.w * 40.; vec3 box = vec3(26.,13.,26.); vec3 p = aP.xyz * box + vec3(uT.w * .35 + sin(uT.w * .5 + s) * .5, -uT.w * (.32 + aP.w * .35), uT.w * .12 + cos(uT.w * .4 + s) * .5); vec3 c = mod(p - cameraPosition, box) - box * .5 + cameraPosition; vec3 q = ry(uT.w * (1. + aP.w) + s) * rx(uT.w * 1.3 + s) * ((position - vec3(0.,.5,0.)) * (.012 + .028 * aP.w * aP.w)); vec4 v = viewMatrix * vec4(c + q, 1.); a = smoothstep(1.6, 4., -v.z) * smoothstep(13., 8., -v.z) * smoothstep(0., .5, c.y); gl_Position = projectionMatrix * v; }`,
-    fragmentShader: `varying float a; varying vec2 u; void main(){ if (length((u - .5) * vec2(1., 1.5)) > .46) discard; gl_FragColor = vec4(vec3(.17,.18,.195), a * .75); }`,
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { uT: FOG.uFogP, uMoonDir: FOG.uMoonDir, uS: STORM.k, uD: STORM.drift },
+    vertexShader: `attribute vec4 aP; uniform vec4 uT; uniform float uS, uD; varying float hot; varying float a; varying vec2 u; mat3 rx(float t){ float c=cos(t),s=sin(t); return mat3(1,0,0,0,c,s,0,-s,c); } mat3 ry(float t){ float c=cos(t),s=sin(t); return mat3(c,0,-s,0,1,0,s,0,c); }
+void main(){ u = position.xy + vec2(.5,0.); float s = aP.w * 40.; vec3 box = vec3(26.,13.,26.); hot = smoothstep(.55, .6, fract(aP.w * 7.3)) * smoothstep(0., .5, uS); vec3 p = aP.xyz * box + vec3(uD * (.7 + .6 * aP.w), sin(uD * .4 + s) * .5, uD * .22) + vec3(uT.w * .35 + sin(uT.w * .5 + s) * .5, -uT.w * (.32 + aP.w * .35), uT.w * .12 + cos(uT.w * .4 + s) * .5); vec3 c = mod(p - cameraPosition, box) - box * .5 + cameraPosition; vec3 q = ry(uT.w * (1. + aP.w) + s) * rx(uT.w * 1.3 + s) * ((position - vec3(0.,.5,0.)) * (.012 + .028 * aP.w * aP.w) * (1. + 1.3 * hot * uS)); vec4 v = viewMatrix * vec4(c + q, 1.); a = smoothstep(1.6, 4., -v.z) * smoothstep(13., 9., -v.z) * smoothstep(0., .5, c.y); gl_Position = projectionMatrix * v; }`,
+    fragmentShader: `varying float a, hot; varying vec2 u; void main(){ if (length((u - .5) * vec2(1., 1.5)) > .46) discard; gl_FragColor = vec4(mix(vec3(.17,.18,.195), vec3(2.6,.62,.08), hot), a * .75); }`,
   });
   const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; mesh.renderOrder = 8; return mesh;
 }

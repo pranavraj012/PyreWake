@@ -172,6 +172,7 @@ def _(i): return Pot(3.0).add(snap(1.3), 1.1).add(doom(2.2, D1), 1.2).add(punch(
 def _(i):
     o = Pot(2.8)
     for k in range(4): o.add(lp(load(WM + 'wood_breaking_0%d.ogg' % (1 + k % 2), 0.34 + .04 * k), 2600), 0.6, k * 0.09).add(sub(0.3, D1 * 2, 140, 0.1), 0.4, k * 0.09)
+    o.add(hp(load(USC + 'gallows1.wav', 0.9, start=.35, dur=1.2), 50), 1.0, 0.36).add(hp(load(USC + 'beam.wav', 0.7, start=1.0, dur=1.6), 60), 0.5, 0.5)
     return o.add(doom(1.8), 1.2, 0.46).add(groan(0.5, 0, 0.8), 0.5).verb(1.6, 0.2).glue(1.8).out(0.97, True)
 
 # ---------------------------------------------------------------- the hero
@@ -308,6 +309,54 @@ def _(i):
     return o.add(doom(2.2, D1), 1.4, 1.3).add(braam(2.2, D1 * 2, 0.7), 0.45, 1.3).verb(1.8, 0.2).glue(1.9).out(0.92, True)
 @cook('die')
 def _(i): return Pot(4.2).add(doom(3.0, D1 * 2 ** (-2 / 12)), 1).add(air(2.4, 2400, 120, 0.1, 0.8), 0.6).add(load(RPG + 'spell_fire_05.ogg', 0.6), 0.6).add(braam(3.4, D1 * 2 * 2 ** (-2 / 12), 0.35), 0.45).verb(2.8, 0.4, bright=2600).glue(1.5).out(0.9, True)
+# ---------------------------------------------------------------- stone
+def rock(i=0, p=1.0, top=5200, dur=None): return lp(hp(load(BRK + ['bfh1_rock_breaking_01.ogg', 'bfh1_rock_breaking_02.ogg', 'bfh1_rock_breaking_03.ogg', 'bfh1_rock_falling_05.ogg'][i % 4], p, dur=dur), 60), top)
+def crumble(i=0, p=1.0, top=4200): return lp(hp(load([BRK + 'bfh1_rock_falling_0%d.ogg' % (1 + i % 9), 'sfx_100_v2/sfx100v2_stones_0%d.ogg' % (1 + i % 3)][i % 2], p), 90), top)
+def wall(at, p=1.0, dur=3.0, top=7000): return lp(hp(load(USC + 'wall.wav', p, start=at, dur=dur), 55), top)
+def heavy(i, p=1.0, dur=0.9): return hp(load(USC + 'heavy.wav', p, start=[0, 2.4, 4.4, 6.4, 8.5][i % 5], dur=dur), 45)
+def rocks(at, p=1.0, dur=2.5): return hp(load(USC + 'rocks.wav', p, start=at, dur=dur), 90)
+@cook('chip', 4)
+def _(i): p = 1 + 0.07 * (i - 1.5); return Pot(1.2).add(snap(0.8, i), 0.8).add(punch(1.0 * p, i, 0.07), 0.9).add(rock(i, 0.95 * p, 6500, 0.5), 0.75).add(edge(i, 0.8, 0.05), 0.2).add(crumble(i, 0.9 * p), 0.4, 0.08).add(sub(0.3, D1 * 2, 190, 0.09), 0.8).add(heavy(i, 1.25 * p, 0.4), 0.45).verb(0.9, 0.12, bright=3800).glue(1.6).out(0.75)
+@cook('stone', 4)
+def _(i): p = 1 + 0.1 * (i - 1.5); return Pot(1.1).add(punch(0.75 * p, i, 0.1), 0.9).add(sub(0.35, D1 * 2, 140, 0.11), 0.9).add(rock(i + 1, 0.7 * p, 2600, 0.5), 0.6).add(crumble(i + 3, 0.75 * p, 3000), 0.4, 0.04).add(heavy(i, 0.9 * p, 0.8), 0.8).verb(0.8, 0.12, bright=2600).glue(1.5).out(0.5)
+@cook('shatter', 3)
+def _(i): p = 1 - 0.06 * i; return Pot(3.0).add(snap(1.1, i), 1).add(punch(0.7 * p, i, 0.2), 1).add(sub(0.8, D1, 190, 0.28, 0.04, 2), 1).add(rock(i, 0.62 * p, 5200), 0.95).add(rock(i + 1, 0.85 * p, 6000), 0.5, 0.07).add(crumble(i, 0.8), 0.6, 0.22).add(crumble(i + 4, 0.65), 0.5, 0.5).add(crumble(i + 7, 0.9), 0.3, 0.95).add(wall(10.6 + .4 * i, 1.0, 2.6), 0.8).add(heavy(i, 0.85), 0.6).add(rocks([4.5, 12.4, 19][i], 0.95), 0.5, 0.35).verb(1.4, 0.18, bright=3600).glue(1.8).out(0.92)
+@cook('crackStone', 2)
+def _(i):
+    o = Pot(2.4)
+    for k, at in enumerate((0, .13, .31, .4, .72)): o.add(rock(k + i, 1.1 - .1 * k, 6500, 0.4), 0.9 - .1 * k, at).add(snap(0.6, k), 0.5, at).add(sub(0.4, D1 * 2, 150, 0.1), 0.6, at)
+    o.add(hp(load(USC + 'structure.wav', 0.8, start=.2 + i, dur=2.2), 60), 0.8, 0.05); return o.add(groan(0.5, i, 1.6), 0.8, 0.2).verb(1.6, 0.22, bright=3200).glue(1.7).out(0.85)
+@cook('collapse', 2)
+def _(i):
+    o = Pot(5.0).add(doom(3.2, D1), 1.4).add(snap(1.0), 0.8).add(punch(0.5, 1 + i, 0.4), 1.2).add(rock(0, 0.45, 3400), 1.0).add(rock(2, 0.6, 4600), 0.7, 0.05).add(lp(load('sfx_100_v2/sfx100v2_thunder_01.ogg', 0.8), 900), 0.5)
+    o.add(wall(10.4, 0.82, 3.2), 1.1).add(hp(load(USC + 'boulders.wav', 0.8, start=[9.8, 2.3][i], dur=3.6), 45), 0.9, 0.06).add(rocks(12.4 + 3 * i, 0.85, 3.2), 0.6, 0.9)
+    for k in range(9): o.add(crumble(k + i, 0.55 + .06 * k, 3600), 0.65 - .05 * k, 0.12 + 0.2 * k + .05 * (k % 2))
+    for k in range(4): o.add(punch(0.6 + .08 * k, k, 0.1), 0.5, 0.2 + .27 * k)
+    return o.verb(2.2, 0.26, bright=2800).glue(2.0).out(1.0, True)
+@cook('quake')
+def _(i):
+    s = 6.0; t = T(s); w = np.minimum(1, t / 0.25) * np.exp(-np.maximum(0, t - 1.6) / 1.5); r = lp(hp(noise(s), 28), 160) * (0.6 + 0.4 * np.sin(2 * np.pi * 7.3 * t + 2 * np.sin(2 * np.pi * 1.7 * t))) * w
+    o = Pot(s).add(norm(r), 1.0).add(doom(3.4, D1), 1.2).add(braam(3.6, D1 * 2 * 2 ** (1 / 12), 0.6), 0.5, 0.1).add(groan(0.3, 0, 3.4), 0.7, 0.2).add(lp(load('sfx_100_v2/sfx100v2_thunder_01.ogg', 0.6), 1400), 0.6, 0.1)
+    o.add(hp(load(USC + 'quake.wav', 0.75, start=9.5, dur=4.5), 40), 0.7, 0.1).add(load(USC + 'rumble.wav', 0.7, dur=5), 0.6)
+    for k in range(8): o.add(crumble(k, 0.6 + .05 * k, 3200), 0.4, 0.4 + .42 * k).add(rock(k, 0.5, 2600, 1.2), 0.35, 0.3 + .5 * k)
+    return o.verb(3.0, 0.3, bright=2600).glue(1.9).out(1.0, True)
+#: Beds: whole seconds that meet their own beginning, with a quarter second spare at each end (sound.ts loops the middle).
+LOOPS = {'storm', 'wind', 'fireBed'}
+def ring(x, L, fade=1.5):
+    """`L` seconds cut from a recording so that its end runs into its start."""
+    n, f = int(L * SR), int(fade * SR); x = x[:n + f].copy(); assert len(x) == n + f, len(x) / SR; u = np.sin(np.linspace(0, np.pi / 2, f)); x[:f] = x[:f] * u + x[n:] * u[::-1]; return x[:n]
+def bed(L, left, right, level, top=0.5):
+    """Two different stretches, one for each ear, evened out to one loudness."""
+    x = np.stack([left, right]); w = int(.8 * SR); e = np.sqrt(np.maximum(1e-9, np.stack([np.convolve(np.r_[c[-w:] ** 2, c ** 2, c[:w] ** 2], np.ones(w) / w, 'same')[w:-w] for c in x]).mean(0))); x = x / e ** .6
+    x = x / np.sqrt((x ** 2).mean()) * 10 ** (level / 20); x = np.tanh(x / top) * top; o = Pot(L + .5); o.x[:] = np.concatenate([x[:, -(SR // 4):], x, x[:, :SR // 4]], 1)[:, :o.x.shape[1]]; return o.x
+USC = 'usc/'
+@cook('storm')
+def _(i): L = 12; g = lambda a, b: ring(hp(load(USC + 'gust.wav', start=a), 60)[:int(14 * SR)] + .5 * hp(load(USC + 'spooky.wav', start=b), 400)[:int(14 * SR)], L); return bed(L, g(1, 4), g(7.5, 22), -22)
+@cook('wind')
+def _(i): L = 14; g = lambda a, b: ring(lp(load(USC + 'spooky.wav', start=a), 3800)[:int(16 * SR)] + .4 * lp(load(USC + 'spooky.wav', .6, start=b)[:int(16 * SR)], 900), L); return bed(L, g(2, 20), g(30, 8), -24)
+@cook('fireBed')
+def _(i): L = 12; g = lambda a, b: ring(hp(load(USC + 'fire.wav', start=a), 120)[:int(14 * SR)] + .55 * hp(load(USC + 'firelow.wav', start=b), 45)[:int(14 * SR)], L); return bed(L, g(6, 2), g(28, 20), -24)
+
 @cook('uiMove')
 def _(i): return Pot(0.16).add(lp(load('rpg_sound_pack/cloth.wav', 1.8, dur=0.1), 3000), 0.8).add(sub(0.1, D1 * 4, 190, 0.02), 0.6).out(0.16)
 @cook('uiPick')
@@ -342,7 +391,7 @@ def main():
     for name, (n, f) in R.items():
         if only and not any(name.startswith(o) for o in only): continue
         for i in range(n):
-            x = plate(f(i), name); assert np.isfinite(x).all(), name
+            x = f(i) if name in LOOPS else plate(f(i), name); assert np.isfinite(x).all(), name
             on = np.argmax(np.abs(x).max(0) > np.abs(x).max() * .5) / SR
             print('%-10s%d %s %.2fs peak %.2f loudest %.1f dB  above 250 Hz %.0f%%  first at %.0f ms' % (name, i, 'st' if x.shape[0] == 2 else 'mo', x.shape[1] / SR, np.abs(x).max(), rms(x), share(x) * 100, on * 1000))
             pcm = (np.clip(x.T, -1, 1) * 32767).astype('<i2').tobytes(); r = subprocess.run(['ffmpeg', '-v', 'error', '-f', 's16le', '-ar', str(SR), '-ac', str(x.shape[0]), '-i', '-', '-c:a', 'libmp3lame', '-b:a', '160k' if x.shape[0] == 2 else '112k', '-f', 'mp3', '-'], input=pcm, capture_output=True); assert r.stdout, r.stderr

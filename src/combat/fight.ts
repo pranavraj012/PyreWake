@@ -3,13 +3,14 @@ import type { Strike, Zone } from '../boss/moves2.ts';
 import { King, isAttack, type KingMode } from '../boss/king.ts';
 import { Brain, type Style } from '../boss/brain.ts';
 import type { Motor, Press } from '../player/motor.ts';
+import { FALL, type Prop } from '../arena/props.ts';
 import { D } from './difficulty.ts';
 
 export type FightEvent =
   | { k: 'hit'; power: number; dmg: number; reel: boolean; kind: 'blade' | 'fire'; head: boolean } | { k: 'cue'; strike: Strike; lead: number; first: boolean } | { k: 'block' } | { k: 'parry' }
   | { k: 'evade'; perfect: boolean } | { k: 'hurt'; dmg: number; down: boolean } | { k: 'rush' } | { k: 'detonate'; hit: boolean } | { k: 'heal' } | { k: 'deny'; a: string }
   | { k: 'ready'; a: 'skill1' | 'skill2' | 'ultimate' } | { k: 'dead' } | { k: 'reset' } | { k: 'zone'; z: Hazard } | { k: 'zoneHit'; z: Hazard } | { k: 'shot'; p: Shot } | { k: 'shotHit'; p: Shot }
-  | { k: 'style'; style: Style } | { k: 'snap' } | { k: 'flame' } | { k: 'aura'; tier: number; up: boolean } | { k: 'break'; by: 'sunder' | 'rites' | 'heavy' } | { k: 'leap' } | { k: 'half' } | { k: 'round2' } | { k: 'finish' } | { k: 'won' } | { k: 'rites'; hit: boolean } | { k: 'hero' };
+  | { k: 'style'; style: Style } | { k: 'snap' } | { k: 'flame' } | { k: 'aura'; tier: number; up: boolean } | { k: 'break'; by: 'sunder' | 'rites' | 'heavy' } | { k: 'leap' } | { k: 'prop'; p: Prop; power: number; dx: number; dz: number; broken: boolean; by: 'hero' | 'boss' } | { k: 'topple'; p: Prop; yaw: number } | { k: 'fell'; p: Prop; yaw: number; hit: boolean } | { k: 'restore' } | { k: 'half' } | { k: 'round2' } | { k: 'finish' } | { k: 'won' } | { k: 'rites'; hit: boolean } | { k: 'hero' };
 export interface Hazard { id: number; shape: Zone['shape']; x: number; z: number; yaw: number; r: number; len: number; half: number; t: number; delay: number; dmg: number; down: boolean; speed: number; max: number; done: boolean; visual: boolean; first: boolean; mode: KingMode }
 export interface Shot { id: number; x: number; z: number; dx: number; dz: number; t: number; life: number; speed: number; r: number; dmg: number; power: number; big: boolean; hit: boolean }
 export type Phase = 'r1' | 'scene' | 'r2' | 'finish' | 'won';
@@ -21,6 +22,7 @@ export class Fight {
   /** The flame in the chest: relights you once per round. */ flame = true;
   /** Hit-stop left (real seconds). */ stop = 0; private slowT = 0; private slowK = 1; private teachSlow = false;
   invuln = 0; private reelCd = 0; private swung = ''; private spent = new Set<string>(); private boom = -1; private boomAt = { ax: 0, az: 0, bx: 0, bz: 0 }; deadT = -1; private queue: Press[] = []; private wasReady = { skill1: false, skill2: false, ultimate: false };
+  /** Breakable stone, and pillars on their way down. */ props: Prop[] = []; private falling: { p: Prop; yaw: number; t: number; h: Hazard | null }[] = []; private chipped = '';
   hazards: Hazard[] = []; shots: Shot[] = []; private ids = 0; private hero = false;
   /** Turns the boss's brain off (workbench, tests). */ passive = false;
   /** Scripted movement during a scene. */ sceneMove = { x: 0, z: 0 };
@@ -95,6 +97,7 @@ export class Fight {
     if (this.phase === 'won' && k.mode === 'die2' && k.mt > 5.3) k.mt = k.prev = 5.3;
     if (!frozen) { k.pace = (this.round === 2 ? (this.brain.style === 'eclipse' ? 1.1 : 1.04) : 1) * D.temper[this.brain.temper].pace; k.step(dt, m.x, m.z); } else { k.cues.length = k.live.length = 0; k.ended = null; }
     this.sync();
+    if (this.props.length && this.phase !== 'won') this.stone(dt, live);
     if (live) { this.playerHits(); this.bossHits(); if (!frozen) this.zones(dt); this.fly(dt); if (this.boom > 0 && (this.boom -= dt) <= 0) this.detonate(); }
     else if (this.phase === 'finish') { if (m.clip?.name === 'finale' && m.t > 2.0) { this.phase = 'won'; k.set('die2'); this.ev.push({ k: 'hit', power: 3.4, dmg: 1, reel: false, kind: 'fire', head: false }, { k: 'won' }); this.stop = 0.2; this.slow(0.25, 1.6); } }
     for (const [a, ok] of [['skill1', this.fire >= D.rush.cost], ['skill2', this.fire >= D.sunder.cost], ['ultimate', this.wake >= 100]] as const) { if (ok && !this.wasReady[a] && live) this.ev.push({ k: 'ready', a }); this.wasReady[a] = ok; }
@@ -112,6 +115,50 @@ export class Fight {
       const last = i === W.length - 1, p = (c.power ?? 1) * (c.name === m.weapon.heavy ? 0.75 + 0.35 * m.charge : 1) * (last ? D.lastHit[c.name] ?? 1 : 1) * (c.name === m.weapon.air.hit && m.sky > 0 ? D.jump.bonus : 1);
       this.swung = id; this.gainFire(D.gain.hit * Math.min(p, 2.4)); this.damage(m.weapon.damage * p, Math.min(p, 3.4), !!c.reel && last, p < 0.9 ? 0.028 : p < 1.2 ? 0.055 : p < 1.8 ? 0.075 : p < 3 ? 0.12 : 0.15, 'blade', c.name === m.weapon.heavy && m.charge >= 3 ? 'heavy' : null);
     });
+  }
+  /** Give the court its stone. */
+  furnish(p: Prop[]) { this.props = p; this.block(); }
+  private block() { this.m.blockers = this.props.filter(p => !p.broken); }
+  /** A blow on stone. Lamps shatter; a temple pillar that gives way comes down, toward whatever cut its foot. */
+  hitProp(p: Prop, power: number, fromX: number, fromZ: number, by: 'hero' | 'boss', dmg = power) {
+    if (p.broken) return; const L = Math.hypot(p.x - fromX, p.z - fromZ) || 1, dx = (p.x - fromX) / L, dz = (p.z - fromZ) / L; p.hp -= dmg; const broken = p.hp <= 0; if (broken) { p.broken = true; this.block(); }
+    this.ev.push({ k: 'prop', p, power, dx, dz, broken, by });
+    if (broken && p.kind === 'pillar') this.topple(p, Math.atan2(-dx, -dz));
+  }
+  private topple(p: Prop, yaw: number) {
+    const len = FALL.len(p), h: Hazard = { id: ++this.ids, shape: 'line', x: p.x, z: p.z, yaw, r: 0, len, half: FALL.half, t: 0, delay: FALL.time, dmg: FALL.dmg, down: true, speed: 0, max: 0, done: false, visual: false, first: false, mode: 'idle' };
+    this.hazards.push(h); this.falling.push({ p, yaw, t: 0, h }); this.ev.push({ k: 'topple', p, yaw });
+  }
+  /** Everything within `r` of a point gives way at once. */
+  shatterNear(x: number, z: number, r: number, by: 'hero' | 'boss' = 'boss') { for (const p of this.props) if (!p.broken && Math.hypot(p.x - x, p.z - z) < r + p.r) this.hitProp(p, 4, x, z, by, 99); }
+  /** Scenes: this lamp bursts, thrown away from a point. */
+  drop(p: Prop, x: number, z: number) { if (p.broken) return; p.broken = true; this.block(); const L = Math.hypot(p.x - x, p.z - z) || 1; this.raise({ k: 'prop', p, power: 4, dx: (p.x - x) / L, dz: (p.z - z) / L, broken: true, by: 'boss' }); }
+  /** Scenes: bring this pillar down this way. */
+  fell(p: Prop, yaw: number) { if (p.broken) return; p.broken = true; this.block(); this.raise({ k: 'prop', p, power: 4, dx: -Math.sin(yaw), dz: -Math.cos(yaw), broken: true, by: 'boss' }); this.falling.push({ p, yaw, t: 0, h: null }); this.raise({ k: 'topple', p, yaw }); }
+  private stone(dt: number, live: boolean) {
+    const m = this.m, k = this.king, c = m.clip;
+    // the hero's blade, dash and dive
+    if (c) {
+      const W = c.hits ?? (c.hit ? [c.hit] : []);
+      W.forEach((w, i) => { const id = m.started + '/' + i; if (m.t < w[0] || m.t > w[1] + 0.02 || this.chipped === id) return; let any = false; for (const p of this.props) { if (p.broken) continue; const dx = p.x - m.x, dz = p.z - m.z, d = Math.hypot(dx, dz) - p.r; if (d > (c.reach ?? m.weapon.reach) - 0.15) continue; let a = Math.atan2(dx, dz) - m.yaw; a -= Math.round(a / 6.2832) * 6.2832; if (Math.abs(a) * 57.3 > Math.min(100, c.arc ?? m.weapon.arc)) continue; any = true; this.hitProp(p, c.power ?? 1, m.x, m.z, 'hero', Math.max(1, c.power ?? 1)); } if (any) this.chipped = id; });
+      if (c.name === 'rush' && m.t > 0.08 && m.t < 0.45) for (const p of this.props) if (!p.broken && p.kind === 'lamp' && Math.hypot(p.x - m.x, p.z - m.z) < p.r + 0.8) this.hitProp(p, 3, m.x - Math.sin(m.yaw), m.z - Math.cos(m.yaw), 'hero', 99);
+    }
+    for (const e of m.events) if (e === 'fx:rites') this.shatterNear(k.hx, k.hz, 5.5, 'hero');
+    for (const s of this.shots) if (s.big) for (const p of this.props) if (!p.broken && Math.hypot(p.x - s.x, p.z - s.z) < p.r + 0.9) this.hitProp(p, 3, s.x - s.dx, s.z - s.dz, 'hero', 99);
+    if (live) {
+      // the boss: its blows, and simply being in the way of it
+      if (isAttack(k.mode)) for (const s of k.live) { if (!s.box && !s.arc) continue; const id = k.serial + '/' + k.strikes.indexOf(s); for (const p of this.props) { const key = 'p' + p.id + '/' + id; if (p.broken || this.spent.has(key) || !k.covers(s, p.x, p.z, p.r + 0.3)) continue; this.spent.add(key); this.hitProp(p, 3, k.x, k.z, 'boss', p.kind === 'lamp' ? 99 : 2.5); } }
+      for (const h of this.hazards) if (!h.visual && h.t >= h.delay && h.t - dt < h.delay && !this.falling.some(f => f.h === h)) for (const p of this.props) { if (p.broken) continue; const dx = p.x - h.x, dz = p.z - h.z, fw = dx * Math.sin(h.yaw) + dz * Math.cos(h.yaw), sd = Math.abs(dx * Math.cos(h.yaw) - dz * Math.sin(h.yaw)); if (h.shape === 'circle' ? Math.hypot(dx, dz) < h.r + p.r + 0.4 : h.shape === 'line' && fw > 0 && fw < h.len && sd < h.half + p.r) this.hitProp(p, 3, h.x, h.z, 'boss', p.kind === 'lamp' ? 99 : h.shape === 'circle' ? 3 : 1.5); }
+      if (!k.hanging && k.y < 1.2) for (const p of this.props) { if (p.broken) continue; const dx = p.x - k.x, dz = p.z - k.z, d = Math.hypot(dx, dz); if (d < k.r + p.r) { if (p.kind === 'lamp') this.hitProp(p, 3, k.x, k.z, 'boss', 99); else if (d > 1e-3) { k.x = p.x - dx / d * (k.r + p.r); k.z = p.z - dz / d * (k.r + p.r); } } }
+    }
+    // pillars on their way down
+    for (const f of this.falling) {
+      f.t += dt; if (f.t < FALL.time) continue; const len = FALL.len(f.p), on = (x: number, z: number, r: number) => { const dx = x - f.p.x, dz = z - f.p.z, fw = dx * Math.sin(f.yaw) + dz * Math.cos(f.yaw), sd = Math.abs(dx * Math.cos(f.yaw) - dz * Math.sin(f.yaw)); return fw > 0.2 && fw < len + r * 0.5 && sd < FALL.half + r; };
+      for (const p of this.props) if (!p.broken && p !== f.p && p.kind === 'lamp' && on(p.x, p.z, p.r)) this.hitProp(p, 4, f.p.x, f.p.z, 'boss', 99);
+      let hit = false; if (live && f.h && this.bossHp > 0 && k.y < 1.5 && !k.hanging && on(k.x, k.z, k.r)) { hit = true; const was = this.streak; this.damage(FALL.boss, 3.4, true, 0.16, 'fire', 'rites'); this.streak = was; }
+      this.ev.push({ k: 'fell', p: f.p, yaw: f.yaw, hit });
+    }
+    this.falling = this.falling.filter(f => f.t < FALL.time);
   }
   private shoot(dmg: number, power: number, big: boolean) { const m = this.m, a = m.target && m.targetDist < 18 ? Math.atan2(m.target.x - m.x, m.target.z - m.z) : m.yaw, p: Shot = { id: ++this.ids, x: m.x + Math.sin(a) * 0.9, z: m.z + Math.cos(a) * 0.9, dx: Math.sin(a), dz: Math.cos(a), t: 0, life: big ? 1.1 : 0.75, speed: big ? 17 : 15, r: big ? 1.5 : 0.8, dmg, power, big, hit: false }; this.shots.push(p); this.ev.push({ k: 'shot', p }); }
   private fly(dt: number) {
@@ -193,7 +240,7 @@ export class Fight {
     k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2') k.set('idle'); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' });
   }
   reset(all = false) {
-    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; }
+    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; if (this.props.length) { for (const p of this.props) { p.broken = false; p.hp = p.max; } this.block(); this.raise({ k: 'restore' }); } } this.falling.length = 0;
     this.phase = this.round === 2 ? 'r2' : 'r1'; this.hp = D.hp; this.fire = this.round === 2 ? 50 : 0; this.heals = D.heals; this.flame = true; this.bossHp = this.maxHp; this.deadT = -1; this.invuln = 1; this.boom = -1; this.slowT = this.stop = 0; this.spent.clear(); this.queue = []; this.hazards.length = 0; this.shots.length = 0; this.streak = 0; this.setAura(); if (this.round === 1) this.hits = 0;
     m.revive(this.spawn.x, this.spawn.z, this.spawn.yaw); k.form = this.round; k.armed = this.round === 1; k.crawling = false; k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); this.brain.reset(this.round); this.sync(); this.raise({ k: 'reset' });
   }

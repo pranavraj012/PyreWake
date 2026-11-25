@@ -1,9 +1,9 @@
 // Recorded music (all CC0, see LICENSES.md): streamed from a few shared players, crossfaded, looped with an overlap.
-export type TrackName = 'vigil' | 'king' | 'crawl' | 'hang' | 'beneath' | 'morning';
+export type TrackName = 'menu' | 'vigil' | 'king' | 'crawl' | 'hang' | 'beneath' | 'eclipse' | 'morning';
 /** `start` is where it comes in, `from` where a loop picks up, `end` where it lets go, `xf` the overlap in seconds (0: plays once). */
 const LIST: Record<TrackName, { start: number; from: number; end: number; xf: number }> = {
-  vigil: { start: 0, from: 0, end: 53, xf: 0 }, king: { start: 0, from: 15.2, end: 87, xf: 3 }, crawl: { start: 18, from: 0, end: 107.9, xf: 0.25 },
-  hang: { start: 0, from: 0, end: 40.5, xf: 3 }, beneath: { start: 0, from: 0, end: 123.3, xf: 0.2 }, morning: { start: 0, from: 0, end: 83, xf: 5 },
+  menu: { start: 0, from: 0, end: 81.0, xf: 0.3 }, vigil: { start: 0, from: 0, end: 53, xf: 0 }, king: { start: 0, from: 15.2, end: 87, xf: 3 }, crawl: { start: 18, from: 0, end: 107.9, xf: 0.25 },
+  hang: { start: 0, from: 0, end: 40.5, xf: 3 }, beneath: { start: 0, from: 0, end: 123.3, xf: 0.2 }, eclipse: { start: 0, from: 0, end: 124.1, xf: 0.2 }, morning: { start: 0, from: 0, end: 83, xf: 5 },
 };
 const SILENCE = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 interface Deck { el: HTMLAudioElement; g: GainNode; lp: BiquadFilterNode; name: TrackName | null; level: number; stopAt: number; /** Being slowed to a halt: since when, over how long. */ tape?: [number, number] }
@@ -15,7 +15,7 @@ export class Tracks {
     for (let i = 0; i < 3; i++) { const el = new Audio(); el.preload = 'auto'; (el as HTMLAudioElement & { playsInline?: boolean }).playsInline = true; el.src = SILENCE; const s = ctx.createMediaElementSource(el), g = ctx.createGain(), lp = ctx.createBiquadFilter(); g.gain.value = 0; lp.type = 'lowpass'; lp.frequency.value = 20000; s.connect(lp).connect(g).connect(out); this.decks.push({ el, g, lp, name: null, level: 0, stopAt: 0 }); }
   }
   /** One after another, in the order they are needed. Until a piece has arrived the synthesised score stands in. */
-  async load() { if (this.started) return; this.started = true; for (const n of Object.keys(LIST) as TrackName[]) try { const r = await fetch(`${import.meta.env.BASE_URL}music/${n}.mp3`); if (r.ok) this.urls.set(n, URL.createObjectURL(await r.blob())); } catch { /* offline: the synthesised score carries on */ } }
+  async load() { if (this.started) return; this.started = true; for (const n of Object.keys(LIST) as TrackName[]) try { const r = await fetch(`${import.meta.env.BASE_URL}music/${n}.mp3?v=${__V__}`); if (r.ok) this.urls.set(n, URL.createObjectURL(await r.blob())); } catch { /* offline: the synthesised score carries on */ } }
   has(n: TrackName) { return this.urls.has(n); }
   get playing() { return this.cur?.name ?? null; }
   /** From a tap or key: phones only let a player speak later if it was touched once by hand. */
@@ -34,7 +34,7 @@ export class Tracks {
     // wanted from a later point than it has reached: jump there on the beat of whatever caused it
     if (n && this.cur?.name === n && at >= 0 && this.cur.el.currentTime < at - 0.5) { const old = this.cur; this.cur = this.put(n, at, 0.15); this.drop(old, 0.5); return; }
     if (n && this.cur?.name === n) { this.ramp(this.cur.g.gain, gain, 0.5); this.ramp(this.cur.lp.frequency, lp, 0.4); return; }
-    if (this.cur) { this.drop(this.cur, fade); this.cur = null; } if (n && this.has(n)) this.cur = this.put(n, at >= 0 ? at : LIST[n].start, n === 'beneath' ? 0.1 : fade);
+    if (this.cur) { this.drop(this.cur, fade); this.cur = null; } if (n && this.has(n)) this.cur = this.put(n, at >= 0 ? at : LIST[n].start, n === 'beneath' || n === 'eclipse' ? 0.1 : fade);
   }
   /** A hand on the record. */
   stopTape(secs: number) { const d = this.cur; if (!d) return; (d.el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = false; d.tape = [this.ctx.currentTime, secs]; this.cur = null; this.ramp(d.lp.frequency, 300, secs * 0.4); d.g.gain.cancelScheduledValues(this.ctx.currentTime); d.g.gain.setTargetAtTime(0, this.ctx.currentTime + secs * 0.55, secs * 0.16); d.stopAt = this.ctx.currentTime + secs * 1.5; }

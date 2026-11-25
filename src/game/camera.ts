@@ -37,6 +37,7 @@ export class FollowCam {
 }
 
 /** Title screen: the hero at the gate, the King small and waiting beyond. Drifts slowly. */
+const MENU_AT = new THREE.Vector3();
 export function menuCam(cam: THREE.PerspectiveCamera, t: number, x: number, z: number) {
-  cam.position.set(x - 1.15 + Math.sin(t * 0.11) * 0.2, 1.0 + Math.sin(t * 0.17) * 0.06, z + 2.75 + Math.sin(t * 0.09) * 0.15); cam.lookAt(x - 1.25, 1.95, z - 8); cam.fov = cam.aspect > 1.9 ? 42 : 46; cam.updateProjectionMatrix();
+  cam.position.set(x - 1.15 + Math.sin(t * 0.11) * 0.2, 1.0 + Math.sin(t * 0.17) * 0.06, z + 2.75 + Math.sin(t * 0.09) * 0.15); cam.lookAt(x - 1.25, 1.95, z - 8); cam.userData.focus = MENU_AT.set(x, 1.3, z - 3.5); cam.fov = cam.aspect > 1.9 ? 42 : 46; cam.updateProjectionMatrix();
 }

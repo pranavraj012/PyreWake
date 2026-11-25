@@ -16,7 +16,7 @@ class Sound {
   private async pack() {
     const c = this.ctx; if (!c) return;
     try {
-      const r = await fetch(`${import.meta.env.BASE_URL}sfx/sfx.pak`); if (!r.ok) return; const b = await r.arrayBuffer(), n = new DataView(b).getUint32(0, true), head = JSON.parse(new TextDecoder().decode(new Uint8Array(b, 4, n))) as [string, number, number][]; let at = 4 + n; const jobs: [string, ArrayBuffer, number][] = head.map(([k, len, frames]) => { const x = b.slice(at, at + len); at += len; return [k, x, frames]; });
+      const r = await fetch(`${import.meta.env.BASE_URL}sfx/sfx.pak?v=${__V__}`); if (!r.ok) return; const b = await r.arrayBuffer(), n = new DataView(b).getUint32(0, true), head = JSON.parse(new TextDecoder().decode(new Uint8Array(b, 4, n))) as [string, number, number][]; let at = 4 + n; const jobs: [string, ArrayBuffer, number][] = head.map(([k, len, frames]) => { const x = b.slice(at, at + len); at += len; return [k, x, frames]; });
       const fam = new Map<string, number>(); for (const [k] of jobs) { const m = /^(.*?)(\d+)$/.exec(k); if (m) fam.set(m[1], Math.max(fam.get(m[1]) ?? 0, +m[2] + 1)); }
       // a few at a time: decoding must not stall the title screen
       const next = async () => { for (let j = jobs.shift(); j; j = jobs.shift()) { const a = await c.decodeAudioData(j[1]); this.bufs.set(j[0], a); this.real.set(j[0], Math.max(0, a.length / c.sampleRate - j[2] / 44100) > 0.02 ? 1105 / 44100 : 0); } };
@@ -56,7 +56,7 @@ class Sound {
   /** A bed that fades in and out. */
   bed(name: string, gain: number, bus: Bus = 'amb', rate = 1, tc = 0.6) {
     const c = this.ctx; if (!c) return; let l = this.loops.get(name); const b = this.bufs.get(name);
-    if (!l) { if (!b || gain <= 0) return; const src = c.createBufferSource(), g = c.createGain(); src.buffer = b; src.loop = true; g.gain.value = 0; src.connect(g).connect(this.bus[bus]); src.start(); l = { src, g }; this.loops.set(name, l); }
+    if (!l) { if (!b || gain <= 0) return; const src = c.createBufferSource(), g = c.createGain(); src.buffer = b; src.loop = true; if (this.real.has(name)) { src.loopStart = 0.2 + this.real.get(name)!; src.loopEnd = src.loopStart + Math.floor(b.duration - 0.4); } g.gain.value = 0; src.connect(g).connect(this.bus[bus]); src.start(); l = { src, g }; this.loops.set(name, l); }
     l.g.gain.setTargetAtTime(gain, c.currentTime, tc); l.src.playbackRate.setTargetAtTime(rate, c.currentTime, 0.4);
   }
   duck(to: number, secs: number) { if (!this.ctx) return; const g = this.duckG.gain, t = this.ctx.currentTime; g.cancelScheduledValues(t); g.setTargetAtTime(to, t, 0.02); g.setTargetAtTime(1, t + secs, 0.35); }

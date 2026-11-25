@@ -6,3 +6,4 @@ docs/ROADMAP.md
 *.local
 .env*
 .claude/
+docs/BOSS2.md

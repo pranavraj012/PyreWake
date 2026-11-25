@@ -1,16 +1,17 @@
 // node tools/analyse.mjs [fights] : what different kinds of player actually see. Moves, spells and music, from headless fights.
-import { Fight } from '../src/combat/fight.ts'; import { Motor } from '../src/player/motor.ts'; import { King } from '../src/boss/king.ts'; import { Brain } from '../src/boss/brain.ts'; import { KHANDA } from '../src/weapons/khanda.ts'; import { D } from '../src/combat/difficulty.ts';
+import { makeProps } from '../src/arena/props.ts'; import { Fight } from '../src/combat/fight.ts'; import { Motor } from '../src/player/motor.ts'; import { King } from '../src/boss/king.ts'; import { Brain } from '../src/boss/brain.ts'; import { KHANDA } from '../src/weapons/khanda.ts'; import { D } from '../src/combat/difficulty.ts';
 const N = +(process.argv[2] ?? 60), DT = 1 / 60, tap = a => [{ a, up: false }, { a, up: true }];
 const MUSIC = { executioner: 'king', crawler: 'crawl', hanged: 'hang', blades: 'beneath', eclipse: 'beneath' };
 /** mash: only attack. dodger: mashes and dodges about two blows in three. explorer: also holds, jumps, sprints, spells. */
 const KIND = { mash: { dodge: 0 }, dodger: { dodge: .65 }, spells: { dodge: .65, spell: true }, explorer: { dodge: .7, spell: true, hold: .16, jump: .05, pause: .12 } };
 function bout(kind, seed) {
   let s = seed * 7919 + 13; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-  const f = new Fight(new Motor(), new King(), new Brain(seed)), m = f.m, k = f.king, o = KIND[kind]; m.z = 5; let act = -1, last = 0, up = -1, wait = 0, prev = f.bossHp, src = 'free', tr = 'king', trAt = 0;
+  const f = new Fight(new Motor(), new King(), new Brain(seed)), m = f.m, k = f.king, o = KIND[kind]; m.z = 5; f.furnish(makeProps()); let act = -1, last = 0, up = -1, wait = 0, prev = f.bossHp, src = 'free', tr = 'king', trAt = 0;
   const R = { clips: {}, dmg: {}, secs: {}, tracks: [], uses: {}, hitsTaken: 0, spellDmg: {}, t: 0, win: false, r1: 0, gap: [], lastSame: 0, run: 0 }; let chains = [], deaths = 0, idle = 0, total = 0, seenAt = {}, music = [];
   for (let i = 0; i < 60 * 600; i++) {
     if (f.phase === 'scene') { R.r1 = f.time; music.push([tr, f.time - trAt]); tr = 'beneath'; trAt = f.time; f.beginRound2(); prev = f.bossHp; }
     const d = m.targetDist, a = Math.atan2(k.hx - m.x, k.hz - m.z); let p = [], go = d > 2 ? 1 : 0;
+    for (const e of f.ev) { if (e.k === 'prop' && e.broken) R[e.p.kind] = (R[e.p.kind] ?? 0) + 1; if (e.k === 'fell' && e.hit) R.crush = (R.crush ?? 0) + 1; }
     for (const e of f.ev) if (e.k === 'cue' && rnd() < o.dodge) act = i + Math.round(Math.max(.1, e.lead - .16 + (rnd() - .5) * .22) * 60);
     if (up === i) { p = [{ a: 'attack', up: true }]; up = -1; }
     else if (act === i) p = tap('dodge');
@@ -31,6 +32,7 @@ for (const kind of Object.keys(KIND)) {
   const L = Array.from({ length: N }, (_, i) => bout(kind, i + 1)), sum = k => L.reduce((o, r) => { for (const [a, b] of Object.entries(r[k])) o[a] = (o[a] ?? 0) + b; return o; }, {}), clips = sum('clips'), dmg = sum('dmg'), T = L.reduce((a, r) => a + r.t, 0), tot = Object.values(dmg).reduce((a, b) => a + b, 0), win = L.filter(r => r.win).length / N;
   const at = Object.entries(clips).filter(([c]) => known.includes(c)).sort((a, b) => b[1] - a[1]), n = at.reduce((a, b) => a + b[1], 0), pc = x => (x * 100).toFixed(0) + '%';
   console.log(`\n== ${kind}: wins ${pc(win)}, ${(T / N / 60).toFixed(2)} min, blows taken ${(L.reduce((a, r) => a + r.hitsTaken, 0) / N).toFixed(1)}, standing free ${pc(L.reduce((a, r) => a + r.idle, 0) / N)} of the time`);
+  console.log('stone per fight:', ['lamp', 'pillar', 'crush'].map(q => `${q} ${(L.reduce((x, r) => x + (r[q] ?? 0), 0) / N).toFixed(1)}`).join(', '));
   console.log(`attacks per minute ${(n / T * 60).toFixed(0)}; different moves per fight ${(L.reduce((a, r) => a + Object.keys(r.seen).filter(c => known.includes(c)).length, 0) / N).toFixed(1)} of ${known.length}; never seen: ${known.filter(c => !clips[c]).join(' ') || 'none'}`);
   console.log('share: ' + at.slice(0, 16).map(([c, q]) => `${c} ${pc(q / n)}`).join('  '));
   for (const [i, ch] of KHANDA.chains.entries()) { const c = ch.map(x => clips[x] ?? 0), dm = ch.reduce((a, x) => a + (dmg[x] ?? 0), 0); console.log(`chain ${'ABC'[i]} per fight: ${c.map(x => (x / N).toFixed(1)).join(' > ')}  (starts that reach the closer ${pc(c[4] / Math.max(1, c[0]))}), damage ${pc(dm / tot)}`); }

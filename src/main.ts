@@ -6,13 +6,13 @@ import { regainFullscreen } from './core/fullscreen.ts';
 import { Input } from './input/input.ts';
 import { mountTouch } from './input/touch.ts';
 import { loadGeo, loadTextures, useLowLod } from './render/assets.ts';
-import { DEPTH, FOG, SHARED, installFog, surface } from './render/surface.ts';
+import { DEPTH, FOG, RIM, SHARED, installFog, setScars, surface } from './render/surface.ts';
 import { makeSky } from './render/sky.ts';
 import { Post } from './render/post.ts';
-import { Puffs, Sparks } from './render/fx.ts';
+import { Dust, Puffs, Sparks } from './render/fx.ts';
 import { Bursts } from './render/impact.ts';
 import { skinnedShadow } from './render/shadowProxy.ts';
-import { PILLARS, buildCourt } from './arena/court.ts';
+import { buildCourt } from './arena/court.ts';
 import { Motor } from './player/motor.ts';
 import { BODY_CLIPS } from './player/clips.ts';
 import { KHANDA } from './weapons/khanda.ts';
@@ -41,7 +41,7 @@ const app = document.getElementById('app')!, canvas = document.createElement('ca
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false, depth: false });
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.info.autoReset = false; renderer.autoClear = false;
 renderer.toneMapping = THREE.NoToneMapping; renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
-installFog(tier); if (tier.name !== 'high') useLowLod();
+setScars(tier.name === 'phone' ? 6 : 14); installFog(tier); if (tier.name !== 'high') useLowLod();
 
 const scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0, 0.01);
 const cam = new THREE.PerspectiveCamera(46, 1, 0.12, 500);
@@ -77,22 +77,22 @@ async function boot() {
   const dis = { value: 0 }, pFlash = { value: new THREE.Vector4(1, 0.3, 0.1, 0) }, kFlash = { value: new THREE.Vector4(1, 0.4, 0.1, 0) }, none = { value: 0 }, kDis = { value: 0 }, bDis = { value: 0 }, bFlash = { value: new THREE.Vector4(1, 0.4, 0.1, 0) }, bAt = { value: new THREE.Vector4(0, 0, 0, 1) }, wounds = () => ({ w: { value: Array.from({ length: 5 }, () => new THREE.Vector4()) }, n: { value: Array.from({ length: 5 }, () => new THREE.Vector3(0, 1, 0)) } }), kW = wounds(), bW = wounds(), aura = { value: 0 }, bEmber = { value: 0.8 }, pAt = { value: new THREE.Vector4(0, 0, 0, 1) }, kAt = { value: new THREE.Vector4(0, 0, 0, 1) };
   const skin = (d: { value: number }, f: { value: THREE.Vector4 }, at: { value: THREE.Vector4 }, more: object = {}) => surface(tex, tier, { ash: 0.12, fx: { dis: d, flash: f, at, ...more } });
   const pMat = skin(dis, pFlash, pAt, { aura }), pHeld = skin(dis, pFlash, pAt, { aura }), kMat = skin(kDis, kFlash, kAt, { wounds: kW }), kHeld = skin(kDis, kFlash, kAt), bMat = skin(bDis, bFlash, bAt, { wounds: bW, ember: bEmber }), barkMat = surface(tex, tier, { world: true, ash: 0.2 });
-  const fx = { sparks: new Sparks(Math.round(900 * tier.particles), tier.particles), gore: new Sparks(Math.round(260 * tier.particles), tier.particles, true), puffs: new Puffs(), bursts: new Bursts() }; scene.add(fx.sparks.mesh, fx.puffs.mesh, fx.gore.mesh, fx.bursts.mesh);
+  const fx = { sparks: new Sparks(Math.round(900 * tier.particles), tier.particles), gore: new Sparks(Math.round(260 * tier.particles), tier.particles, true), puffs: new Puffs(), bursts: new Bursts() }; const dust = new Dust(tier.name === 'phone' ? 40 : 110); scene.add(fx.sparks.mesh, fx.puffs.mesh, fx.gore.mesh, fx.bursts.mesh, dust.mesh); court.ruin.fx = fx; court.ruin.dust = dust;
   const pv = new PlayerView(scene, gPlayer, gPlayerLo, gKhanda, pMat, pHeld, DEPTH, fx, tier.name === 'phone' ? 2 : 4, KHANDA); pv.dis = dis; pv.flash = pFlash; pv.flashAt = pAt; pv.aura = aura; void none;
   if (tier.name !== 'phone') { pv.glow = new THREE.PointLight(0xff9450, 1, 6, 1.6); scene.add(pv.glow); }
   const king = new KingView(scene, gKing, gCleaver, gRoot, kMat, kHeld, barkMat, DEPTH, fx); king.flash = kFlash; king.flashAt = kAt; king.wounds = kW; king.dissolve = kDis;
   const beneath = new KingView(scene, gBen, gCleaver, gRoot, bMat, kHeld, barkMat, DEPTH, fx, king.sim, 2); beneath.flash = bFlash; beneath.flashAt = bAt; beneath.wounds = bW; beneath.dissolve = bDis; beneath.ember = bEmber;
   pv.shadow = skinnedShadow(pv.mesh, sPlayer, DEPTH.skin); skinnedShadow(king.mesh, sKing, DEPTH.skin); skinnedShadow(beneath.mesh, sBen, DEPTH.skin); beneath.show(false);
   if (tier.name === 'phone') pv.weapon.castShadow = king.cleaver.castShadow = false;
-  const m = new Motor(KHANDA); m.blockers = PILLARS;
-  const fight = new Fight(m, king.sim), prompts = new Prompts(), hud = new Hud(app, input); fight.passive = !!(SHOT || BENCH || Q.has('still'));
-  const follow = new FollowCam(); follow.blockers = PILLARS;
-  const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath] }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
+  const m = new Motor(KHANDA);
+  const fight = new Fight(m, king.sim), prompts = new Prompts(), hud = new Hud(app, input); fight.furnish(court.ruin.props); fight.passive = !!(SHOT || BENCH || Q.has('still'));
+  const follow = new FollowCam(); follow.blockers = m.blockers;
+  const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath], court }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => ending.start(); onSettings(() => { fight.brain.temper = settings.temper; }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0, turned = false;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
-  const omen = (k: number) => { if (Math.abs(k - omenK) < 0.002 && k !== 0) return; omenK = k; ECLIPSE.value = k; moon.color.lerpColors(M0, M1, k); moon.intensity = 2.5 - 1.3 * k; post.shaft.value.set(0.5 - 0.24 * k, 0.66 - 0.6 * k, 0.9 - 0.87 * k); FOG.uFogCol.value.lerpColors(F0, F1, k); FOG.uFogMoon.value.lerpColors(G0, G1, k); hemi.color.setRGB(0.56 + 0.04 * k, 0.65 - 0.25 * k, 0.8 - 0.3 * k, THREE.LinearSRGBColorSpace); hemi.intensity = 0.3 + 0.1 * k; kick.intensity = 0.55 + 0.6 * k; kick.color.setRGB(0.86, 0.7 - 0.16 * k, 0.6 - 0.28 * k); court.omen(k); dawn(dawnK, true); };
+  const omen = (k: number) => { if (Math.abs(k - omenK) < 0.002 && k !== 0) return; omenK = k; ECLIPSE.value = k; moon.color.lerpColors(M0, M1, k); moon.intensity = 2.5 - 1.3 * k; post.shaft.value.set(0.5 - 0.24 * k, 0.66 - 0.6 * k, 0.9 - 0.87 * k); FOG.uFogCol.value.lerpColors(F0, F1, k); FOG.uFogMoon.value.lerpColors(G0, G1, k); hemi.color.setRGB(0.56 + 0.04 * k, 0.65 - 0.25 * k, 0.8 - 0.3 * k, THREE.LinearSRGBColorSpace); hemi.intensity = 0.3 - 0.04 * k; RIM.value.set(0.36 + 0.54 * k, 0.45 - 0.17 * k, 0.6 - 0.48 * k, 1.25 + 0.35 * k); dust.tint.value.set(0.17 + 0.05 * k, 0.175 - 0.02 * k, 0.19 - 0.07 * k); court.omen(k); dawn(dawnK, true); };
   /** First light, over whatever the sky is doing. */
-  const dawn = (k: number, force = false) => { if (!force && Math.abs(k - dawnK) < 0.002) return; dawnK = k; const o = omenK; kick.intensity = 0.55 + 0.6 * o + 1.5 * k; kick.color.setRGB(0.86 + 0.1 * k, 0.7 - 0.16 * o, 0.6 - 0.28 * o - 0.1 * k); hemi.intensity = 0.3 + 0.1 * o + 0.3 * k; post.exposure.value = 1.75 + 0.25 * k; DAWN.value = k; };
+  const dawn = (k: number, force = false) => { if (!force && Math.abs(k - dawnK) < 0.002) return; dawnK = k; const o = omenK; kick.intensity = 0.55 + 0.2 * o + 1.5 * k; kick.color.setRGB(0.86 + 0.1 * k, 0.7 - 0.16 * o, 0.6 - 0.28 * o - 0.1 * k); hemi.intensity = 0.3 - 0.04 * o + 0.3 * k; post.exposure.value = 1.75 + 0.25 * k; DAWN.value = k; };
   document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && !menu.open && !turn.active && fight.phase !== 'won' && !intro.active && !story.active && !ending.active && !hud.paused && !m.dead) hud.setPaused(true); });
   hud.onRestart = () => { if (lessons.active) { train(); return; } ending.stop(); dawn(0); turnWait = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
@@ -145,15 +145,17 @@ async function boot() {
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     lessons.step(dt, sd); hud.lesson(lessons.active ? lessons.card : null);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
-    turn.step(dt, t); ending.step(dt, t); if (!story.active) dir.mono = Math.max(turn.mono, lessons.mono); if (turn.active) { omen(turn.omen); dawn(turn.dawn); court.flames(turn.flame); post.exposure.value = (1.75 + 0.25 * turn.dawn) * turn.dim + turn.flash * 3.2; dir.dark = turn.dark; turned = true; } else if (turned) { turned = false; court.flames(1); dir.dark = 0; post.exposure.value = 1.75; } else if (ending.active) { omen(1 - ending.clear); dawn(ending.dawn); } else if (fight.round === 2 && omenK < 1) omen(1);
+    turn.step(dt, t); ending.step(dt, t); if (!story.active) dir.mono = Math.max(turn.mono, lessons.mono); if (turn.active) { omen(turn.omen); dawn(turn.dawn); court.flames(turn.flame); post.exposure.value = (1.75 + 0.25 * turn.dawn) * turn.dim + turn.flash * (settings.flash ? 3.2 : 0.6); dir.dark = turn.dark; turned = true; } else if (turned) { turned = false; court.flames(1); dir.dark = 0; post.exposure.value = 1.75; } else if (ending.active) { omen(1 - ending.clear); dawn(ending.dawn); } else if (fight.round === 2 && omenK < 1) omen(1);
     if (sound.score && /^(still|vigil|lesson)$/.test(sound.score.mood) && !menu.open && !intro.active && !story.active && !turn.active && !lessons.active && fight.round === 1) sound.score.set('spar'); if (sound.score && (story.active || intro.active)) sound.score.set('vigil'); if (sound.score && lessons.active) sound.score.set('lesson'); if (sound.score && sound.score.mood === 'spar' && fight.hits > 2) sound.score.set('r1');
     { const c = m.clip?.name, on = (c === 'rites' && m.t < 4.4) || c === 'finale'; if (on !== document.body.classList.contains('cut')) document.body.classList.toggle('cut', on); }
     if (!menu.open && !intro.active && !story.active && !lessons.active) prompts.step(sd, fight);
+    court.ruin.step(sd, t, [{ x: m.x, z: m.z, r: m.y > 0.6 ? -9 : 0.35, push: 1 + m.speed * 0.25 }, { x: king.sim.x, z: king.sim.z, r: king.sim.y > 0.6 || king.sim.hanging ? -9 : 0.8, push: 3.2 }]); follow.blockers = m.blockers;
+    court.storm(fight.round === 2 && fight.phase !== 'won' ? (fight.brain.style === 'eclipse' ? 1 : 0.3) : 0); post.heat.value = omenK * 0.8;
     dir.step(sd, dt, t);
   };
   renderer.compile(scene, cam); resize();
   // draw every effect once so the first hit doesn't hitch
-  pv.ghosts.warm(true); dir.cue.mesh.visible = true; for (const r of [pv.blade, pv.eye]) r.mesh.visible = true; beneath.show(true); dir.crescents.group.children.forEach(c => { c.visible = true; }); omen(1); post.render(scene, cam, moon, 0); pv.ghosts.warm(false); dir.cue.mesh.visible = false; beneath.show(false); dir.crescents.group.children.forEach(c => { c.visible = false; }); omen(0);
+  court.ruin.warm(true); pv.ghosts.warm(true); dir.cue.mesh.visible = true; for (const r of [pv.blade, pv.eye]) r.mesh.visible = true; beneath.show(true); dir.crescents.group.children.forEach(c => { c.visible = true; }); omen(1); post.render(scene, cam, moon, 0); court.ruin.warm(false); pv.ghosts.warm(false); dir.cue.mesh.visible = false; beneath.show(false); dir.crescents.group.children.forEach(c => { c.visible = false; }); omen(0);
   if (Q.has('round2')) { omen(1); king.show(false); beneath.show(true); fight.beginRound2(); } if (Q.has('turn')) { bars(false); fight.bossHp = 1; fight.hits = 5; fight.passive = true; }
   const { mountBench } = BENCH ? await import('./bench.ts') : { mountBench: null };
   const bench = mountBench?.({ scene, cam, m, pv, king: BENCH === 'beneath' ? beneath : king, clips: { ...KHANDA.clips, ...BODY_CLIPS }, kingClips: KING_CLIPS, modes: BENCH === 'beneath' ? BENEATH_MODES : KING_MODES, which: BENCH!, step, setTime: (v: number) => { t = FOG.uFogP.value.w = SHARED.uTime.value = v; } });
@@ -173,13 +175,14 @@ async function boot() {
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, baseFov)) { /* composed shot */ follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: king.sim.hx, z: king.sim.hz, solid: !king.sim.hanging && king.sim.y < 0.5, h: king.sim.y * 0.6 + (king.sim.hanging ? 1.7 : king.sim.crawling ? 1.2 : /kneel|fall|crash/.test(king.sim.mode) ? 1.5 : king.sim.form === 2 ? 1.9 : 2.2) }, input.takeLook(), t, baseFov);
     if (!SHOT && !BENCH && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
+    { const fz = cam.userData.focus as THREE.Vector3 | undefined, film = menu.open || turn.active || ending.active || story.active || intro.active, on = film || cam.userData.frame === true, want = on && fz ? (menu.open ? 0.4 : film ? 0.8 : 0.6) : 0; cam.userData.frame = false; post.dof.amt += (want - post.dof.amt) * (want && post.dof.amt < 0.02 ? 1 : Math.min(1, ms / 90)); if (fz) post.dof.focus = Math.max(0.5, fz.distanceTo(cam.position)); }
     sky.position.copy(cam.position); cam.updateMatrixWorld();
     focus.set(m.x, 0, m.z); court.update(t, focus); sound.listen(cam.position.x * 0.3 + m.x * 0.7, cam.position.z * 0.3 + m.z * 0.7, follow.yaw);
     const c0 = performance.now(); renderer.info.reset(); post.render(scene, cam, moon, t); const cpu = performance.now() - c0;
     acc += ms; n++; frames++;
     if (acc > 500) { fps.textContent = `${Math.round(1000 * n / acc)} fps  ${tier.name}  x${dyn.scale.toFixed(2)}  ${renderer.info.render.calls} draws  ${(renderer.info.render.triangles / 1000) | 0}k tris`; acc = n = 0; }
     if (!SHOT && !BENCH && frames > 60 && dyn.update(ms)) resize();
-    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __king: king.sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __story: story, __lessons: lessons, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __camPos: () => cam.position.toArray(), __bill: bill });
+    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: court, __king: king.sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __story: story, __lessons: lessons, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __camPos: () => cam.position.toArray(), __bill: bill });
   };
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }

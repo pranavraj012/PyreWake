@@ -20,8 +20,10 @@ export class Turn {
   private off = false; private at(t: number, id: string, f: () => void) { if (this.t >= t && !this.done.has(id)) { this.done.add(id); if (!this.off) f(); } }
   /** Straight to the end state. */
   skip() { if (!this.active || this.t < 0.8) return; this.become(); this.kit.hud.verse(''); this.kit.f.king.mt = this.kit.f.king.prev = 4.6; this.off = true; this.t = TURN_LEN; }
+  /** What it costs the court. Each call brings down what is left up to this step. */
+  private wreck(n: number) { const { f } = this.kit; for (const p of f.props) { if (p.kind === 'lamp' && p.z < -1) { if (n >= 2) f.drop(p, 0, -3); } else if (p.kind === 'pillar' && p.z < -12) { const i = p.x < -3 ? 0 : p.x > 3 ? 1 : 2; if (n >= 3 + i) f.fell(p, Math.atan2(-p.x, -p.z) + (i === 0 ? 0.5 : i === 1 ? -0.5 : 0.25)); } } }
   private become() {
-    if (this.burst) return; this.burst = true; const { f, k1, k2 } = this.kit, { king: k, m } = f; k1.show(false); this.dis.value = 0; k.form = 2; k.armed = false; k.crawling = false; k.set('rise2'); k.x = 0; k.z = -3; k.y = 0; k.yaw = 0; k2.show(true); k2.settle(); if (Math.hypot(m.x, m.z - 4.6) > 0.8) { m.revive(0, 4.6, Math.PI); this.kit.pv.reset(); }
+    if (this.burst) return; this.burst = true; const { f, k1, k2 } = this.kit, { king: k, m } = f; k1.show(false); this.dis.value = 0; k.form = 2; k.armed = false; k.crawling = false; k.set('rise2'); k.x = 0; k.z = -3; k.y = 0; k.yaw = 0; k2.show(true); k2.settle(); this.wreck(2); if (Math.hypot(m.x, m.z - 4.6) > 0.8) { m.revive(0, 4.6, Math.PI); this.kit.pv.reset(); }
   }
   step(dt: number, time: number) {
     if (!this.active) return; this.t += dt; const { t } = this, { f, fx, pv, k1, hud } = this.kit, { m, king: k } = f, L = this.lens, here = { x: 0, z: -3 }; L.trauma *= Math.exp(-dt * 2.6); this.mono *= Math.exp(-dt * 1.1); this.flash *= Math.exp(-dt * 4.5);
@@ -61,7 +63,7 @@ export class Turn {
     // --- one pair of arms after another. The sound starts before the joint does: it has to be drawn in first.
     ARMS.forEach((at, i) => {
       this.at(at - 0.42, 'draw' + i, () => sound.play('rise' + i, { gain: 1 }));
-      this.at(at, 'arm' + i, () => { L.trauma = Math.max(L.trauma, 0.6 + i * 0.14); this.flash = Math.max(this.flash, 0.08 + i * 0.04); this.ring = i + 1; fx.sparks.emit(V(0, 1.3, -3), V(0, 0.6, 0), 40, 4, 2.4, -1, time); fx.puffs.emit(V(0, 0, -3), 8, 2.4, 1.2, time); fx.bursts.add('ground', V(0, 0.06, -3), 5 + i * 3, 0.7, time); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283 + i * 0.4, r = 3.4 + i * 1.7; fx.bursts.add('pillar', V(Math.cos(a) * r, 0, -3 + Math.sin(a) * r), 2.2 + i * 0.5, 0.8, time + q * 0.012); } });
+      this.at(at, 'arm' + i, () => { L.trauma = Math.max(L.trauma, 0.6 + i * 0.14); this.flash = Math.max(this.flash, 0.08 + i * 0.04); this.ring = i + 1; this.wreck(3 + i); fx.sparks.emit(V(0, 1.3, -3), V(0, 0.6, 0), 40, 4, 2.4, -1, time); fx.puffs.emit(V(0, 0, -3), 8, 2.4, 1.2, time); fx.bursts.add('ground', V(0, 0.06, -3), 5 + i * 3, 0.7, time); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283 + i * 0.4, r = 3.4 + i * 1.7; fx.bursts.add('pillar', V(Math.cos(a) * r, 0, -3 + Math.sin(a) * r), 2.2 + i * 0.5, 0.8, time + q * 0.012); } });
     });
     this.at(ROAR - 0.75, 'breathIn', () => sound.play('swell', { gain: 1 }));
     this.at(ROAR, 'roar', () => { sound.play('bRoar', { bus: 'voice', gain: 1.1, ...here }); sound.play('braam', { gain: 0.8 }); sound.play('doom', { gain: 1 }); sound.score?.set('reveal'); hud.say('The One Beneath', 3.8, 'title'); this.flash = 0.5; });
@@ -69,7 +71,7 @@ export class Turn {
     if (t > ROAR && t < ROAR + 2.4) L.trauma = Math.max(L.trauma, 0.75 * (1 - E(ROAR + 1, ROAR + 2.4, t)));
     this.at(TURN_LEN - 2.7, 'draw', () => { m.begin('flick'); sound.play('sheathe', { gain: 0.7 }); pv.ember = 1.8; });
     this.at(TURN_LEN - 2.2, 'lit', () => { sound.play('aura2', { gain: 0.9 }); pv.ember = 2; pv.boomAt.set(m.x, 1.3, m.z); pv.boomK = 0.4; for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; fx.bursts.add('pillar', V(m.x + Math.cos(a) * 0.9, 0, m.z + Math.sin(a) * 0.9), 1.1, 0.7, time + i * 0.015); } });
-    if (t >= TURN_LEN) { this.become(); this.t = -1; this.rest(); this.omen = 1; this.dis.value = 0; document.body.classList.remove('cine'); if (k.mode === 'rise2') k.set('idle'); f.beginRound2(); this.onEnd(); sound.score?.set('r2'); }
+    if (t >= TURN_LEN) { this.become(); this.wreck(5); this.t = -1; this.rest(); this.omen = 1; this.dis.value = 0; document.body.classList.remove('cine'); if (k.mode === 'rise2') k.set('idle'); f.beginRound2(); this.onEnd(); sound.score?.set('r2'); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {
     const t = this.t, m = this.kit.f.m, L = this.lens, go = (n: number, p: THREE.Vector3, l: THREE.Vector3, f: number, roll = 0) => L.aim(cam, n, p, l, f, time, roll);
@@ -109,5 +111,5 @@ export function actionCam(cam: THREE.PerspectiveCamera, f: Fight, hero: number, 
   else if (hero > 0) { px = m.x - sx * 4.0 - fx * 0.6; pz = m.z - sz * 4.0 - fz * 0.6; py = 0.6; lx = m.x + fx * 0.9; lz = m.z + fz * 0.9; ly = 1.8; fov = 46; }
   else return false;
   const R = Math.hypot(px, pz); if (R > 22) { px *= 22 / R; pz *= 22 / R; }
-  cam.position.set(px, py, pz); cam.lookAt(lx, ly, lz); cam.fov = fov * (cam.aspect > 1.9 ? 0.94 : 1); cam.updateProjectionMatrix(); return true;
+  cam.position.set(px, py, pz); cam.lookAt(lx, ly, lz); (cam.userData.focus as THREE.Vector3 | undefined ?? (cam.userData.focus = V())).set(lx, ly, lz); cam.userData.frame = true; cam.fov = fov * (cam.aspect > 1.9 ? 0.94 : 1); cam.updateProjectionMatrix(); return true;
 }

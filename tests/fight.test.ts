@@ -9,6 +9,7 @@ import { Motor, type Press } from '../src/player/motor.ts';
 import { BODY_CLIPS } from '../src/player/clips.ts';
 import { KHANDA } from '../src/weapons/khanda.ts';
 import { Prompts } from '../src/ui/prompts.ts';
+import { FALL, makeProps } from '../src/arena/props.ts';
 import { LESSONS, Lessons } from '../src/game/lessons.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }], down = (a: string): Press[] => [{ a, up: false }], up = (a: string): Press[] => [{ a, up: true }];
@@ -119,6 +120,18 @@ describe('variety', () => {
   it('the long answer is rare: short ones in between', () => { const f = mk(2.2); const go = () => { f.m.reckoning = 1; f.m.revive(0, -1.8, Math.PI); f.king.x = 0; f.king.z = -4; f.step(DT, 0, 0, tap('attack')); for (let i = 0; i < 3; i++) f.step(DT, 0, 0, []); return f.m.clip?.name; }; const a = go(); run(f, 3); const b = go(); run(f, 3); const c = go(); expect([a, b, c]).toEqual(['reckon', 'riposteA', 'riposteB']); run(f, D.flourish); expect(go()).toBe('reckon'); });
   it('Last Rites moves round the target and ends beyond it, back turned', () => { const f = mk(4); f.wake = 100; const spots = new Set<string>(); for (let i = 0; i < 60 * 5; i++) { f.step(DT, 0, 0, i === 0 ? tap('ultimate') : []); if (f.m.events.includes('fx:rcut')) spots.add(f.m.x.toFixed(1) + ',' + f.m.z.toFixed(1)); if (f.m.events.includes('fx:rlast')) { expect(f.m.z).toBeLessThan(f.king.z - 2); expect(Math.cos(f.m.yaw)).toBeLessThan(-0.9); } } expect(spots.size).toBe(6); expect(Math.hypot(f.m.x, f.m.z)).toBeLessThan(21.5); });
   it('temper changes how long it rests', () => { const gap = (t: number) => { const f = mk(2.4, false); f.hits = 9; f.brain.temper = t; let n = 0; for (let i = 0; i < 60 * 60; i++) { f.hp = 100; f.flame = true; f.m.x = f.king.hx; f.m.z = f.king.hz + 2.4; f.step(DT, 0, 0, []); n += f.ev.filter(e => e.k === 'cue').length; } return n; }; const a = [0, 1, 2].map(gap); expect(a[1]).toBeGreaterThan(a[0]); expect(a[2]).toBeGreaterThan(a[1]); });
+});
+
+describe('the court breaks', () => {
+  const court = () => { const f = mk(2); f.furnish(makeProps()); return f; };
+  it('the blade chips a lamp pillar down in a few cuts, and then it is out of the way', () => { const f = court(), p = f.props[0]; f.king.x = -12; f.m.x = p.x - 2; f.m.z = p.z; f.m.yaw = Math.PI / 2; f.m.target = null; let hits = 0; for (let i = 0; i < 300 && !p.broken; i++) { f.step(DT, 0, 0, i % 12 === 0 ? tap('attack') : []); hits += f.ev.filter(e => e.k === 'prop').length; } expect(p.broken).toBe(true); expect(hits).toBeGreaterThan(1); expect(f.m.blockers).not.toContain(p); expect(f.m.blockers.length).toBe(15); });
+  it('the boss walks and swings straight through lamps, and is stopped by temple pillars', () => { const f = court(), p = f.props[0]; f.king.x = p.x - 0.4; f.king.z = p.z; f.step(DT, 0, 0, []); expect(p.broken).toBe(true); const q = f.props[8]; f.king.x = q.x * 0.97; f.king.z = q.z * 0.97; f.step(DT, 0, 0, []); expect(q.broken).toBe(false); expect(Math.hypot(f.king.x - q.x, f.king.z - q.z)).toBeGreaterThan(1.5); });
+  it('a pillar falls toward what cut it: a warned line that hurts whoever is under it, boss included', () => {
+    const f = court(), q = f.props[7], n = Math.hypot(q.x, q.z), at = (d: number) => [q.x / n * (n - d), q.z / n * (n - d)]; [f.king.x, f.king.z] = at(3); f.m.x = 0; f.m.z = 0; const b = f.bossHp; f.hitProp(q, 4, 0, 0, 'boss', 99); expect(f.hazards.length).toBe(1); const ev = run(f, FALL.time + 0.2); expect(ev.some(e => e.k === 'fell' && e.hit)).toBe(true); expect(b - f.bossHp).toBe(FALL.boss); expect(f.king.mode).toBe('reel'); expect(f.hp).toBe(D.hp);
+    const g = court(), r = g.props[7]; [g.m.x, g.m.z] = at(3); g.king.x = -15; g.hitProp(r, 4, 0, 0, 'boss', 99); const e2 = run(g, FALL.time + 0.2); expect(n2(e2)).toBe(1); function n2(e: FightEvent[]) { return e.filter(x => x.k === 'hurt').length; }
+  });
+  it('a slam that marks the floor beside stone breaks it', () => { const f = court(), p = f.props[1]; f.king.x = p.x - 3; f.king.z = p.z; f.m.x = p.x - 0.5; f.m.z = p.z - 1; f.invuln = 99; f.brain.seen.add('leap'); f.king.set('leap'); run(f, 2); expect(p.broken).toBe(true); });
+  it('stays broken through a death, and is whole again in a new fight', () => { const f = court(), p = f.props[0]; f.hitProp(p, 4, 0, 0, 'hero', 99); f.reset(); expect(p.broken).toBe(true); f.reset(true); expect(p.broken).toBe(false); expect(f.m.blockers.length).toBe(16); });
 });
 
 describe('training', () => {

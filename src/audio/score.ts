@@ -14,7 +14,7 @@ const MOOD: Record<Mood, M> = {
 };
 /** Recorded piece for each mood: level, how far its tone is closed (Hz), and the point it must have reached (s). While one plays, the synthesised layers rest. */
 const MUSIC: Record<Mood, [TrackName, number, number, number?] | null> = {
-  still: ['morning', 1.2, 2600], vigil: ['vigil', 2.0, 20000], lesson: ['king', 1.1, 1500], spar: ['king', 1.7, 9000], r1: ['king', 2.6, 20000, 15.2], crawl: ['crawl', 2.2, 20000], hang: ['hang', 2.4, 20000], scene: null, reveal: ['beneath', 2.5, 20000], r2: ['beneath', 2.5, 20000], eclipse: ['beneath', 2.9, 20000], finish: ['beneath', 1.4, 420], won: ['morning', 2.2, 20000], dead: null,
+  still: ['menu', 1.7, 20000], vigil: ['vigil', 2.0, 20000], lesson: ['king', 1.1, 1500], spar: ['king', 1.7, 9000], r1: ['king', 2.6, 20000, 15.2], crawl: ['crawl', 2.2, 20000], hang: ['hang', 2.4, 20000], scene: null, reveal: ['beneath', 2.5, 20000], r2: ['beneath', 2.5, 20000], eclipse: ['eclipse', 2.6, 20000], finish: ['eclipse', 1.5, 420], won: ['morning', 2.2, 20000], dead: null,
 };
 /** Round 1's styles, and the least any one piece plays before another style's may start (s). */
 const STYLES = /^(r1|crawl|hang)$/, HOLD = 16;

@@ -7,7 +7,7 @@ export const LAYERS = 8;
 let LOD = '';
 export const useLowLod = () => { LOD = '.lo'; };
 export async function loadGeo(name: string, lod = LOD): Promise<THREE.BufferGeometry> {
-  const buf = await (await fetch(`${BASE}${name}${lod}.bin`)).arrayBuffer(), dv = new DataView(buf);
+  const buf = await (await fetch(`${BASE}${name}${lod}.bin?v=${__V__}`)).arrayBuffer(), dv = new DataView(buf);
   const hl = dv.getUint32(0, true), h = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, hl))) as { nv: number; ni: number; big: boolean; lo: number[]; hi: number[] };
   const o = 4 + hl, pos = new Float32Array(h.nv * 3), nrm = new Int8Array(h.nv * 4), si = new Uint8Array(h.nv * 4), sw = new Uint8Array(h.nv * 4), info = new Uint8Array(h.nv * 4);
   const u8 = new Uint8Array(buf, o, h.nv * 24), i8 = new Int8Array(buf, o, h.nv * 24), u16 = new Uint16Array(buf, o, h.nv * 12);
@@ -27,12 +27,12 @@ export async function loadGeo(name: string, lod = LOD): Promise<THREE.BufferGeom
   return g;
 }
 
-export const loadJson = async (n: string) => (await fetch(`${BASE}${n}.json`)).json();
+export const loadJson = async (n: string) => (await fetch(`${BASE}${n}.json?v=${__V__}`)).json();
 export interface TexSet { col: THREE.DataArrayTexture; nrm: THREE.DataArrayTexture; avg: THREE.Vector3[] }
 export async function loadTextures(tier: Tier, aniso: number): Promise<TexSet> {
   const S = tier.tex, col = new Uint8Array(S * S * 4 * LAYERS), nrm = new Uint8Array(S * S * 4 * LAYERS), avg: THREE.Vector3[] = [];
   const cv = new OffscreenCanvas(S, S), cx = cv.getContext('2d', { willReadFrequently: true })!;
-  const read = async (n: string) => { const bm = await createImageBitmap(await (await fetch(BASE + 'tex/' + n)).blob(), { colorSpaceConversion: 'none' }); return bm; };
+  const read = async (n: string) => { const bm = await createImageBitmap(await (await fetch(`${BASE}tex/${n}?v=${__V__}`)).blob(), { colorSpaceConversion: 'none' }); return bm; };
   const all = await Promise.all(Array.from({ length: LAYERS }, (_, i) => Promise.all([read(`${i}_c${S}.webp`), read(`${i}_n${S}.webp`)])));
   all.forEach(([c, n], i) => {
     cx.drawImage(c, 0, 0); const d = cx.getImageData(0, 0, S, S).data; col.set(d, i * S * S * 4);

@@ -5,7 +5,7 @@
 # PYREWAKE
 
 **A dark boss-fight action game that runs in the browser, on desktop and on phones.**
-No game engine, no model files, no motion capture, no audio files. Everything is code.
+No game engine, no modelling tools, no motion capture. The bodies, the moves and the court are all code.
 
 </div>
 
@@ -32,7 +32,9 @@ The first time you play, a short training teaches every move: the King waits, an
 **One rule for reading danger:** a white star means dodge *or* guard, a red diamond means dodge, glowing ground means move, or jump as it goes off. Each differs in shape and sound as well as colour.
 
 **Round 1, the Hanged King:** fights on two feet, then on all fours, then hanging upside down from the tree, where its head swings at sword height.
-**Round 2, the One Beneath:** what was wearing it. Six arms, a burning court, an eclipse.
+**Round 2, the One Beneath:** what was wearing it. Six arms, a burning court, an eclipse, and for its last third a storm of embers.
+
+**The court breaks.** Lamp pillars shatter under your blade or its, and the boss walks straight through them. Temple pillars come down toward whatever cut their foot, on you or on the boss. The floor cracks, glows and cools, and keeps every scar until the next fight.
 
 ### One button, many answers
 
@@ -82,7 +84,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Motion | a small clip language over named pose channels, solved with two-bone IK, foot locking, inertialised blending, and simulated cloth and hair |
 | Combat | 60 Hz fixed step with no rendering imports, so whole fights run headless in tests |
 | Rendering | three.js (WebGL 2) with one layered surface shader, own HDR chain, height fog, GPU particles |
-| Sound | 144 designed sounds, each layered from CC0 recordings and synthesis (a snap, a punch, a sub tuned to the score's key, steel or something wet, a tail) and mastered for small speakers by `forge/sound/kitchen.py`; a synthesised set stands in if the pack is missing. Music is six CC0 recordings that follow the fight. Credits in `LICENSES.md` |
+| Sound | 163 designed sounds, each layered from CC0 recordings and synthesis (a snap, a punch, a sub tuned to the score's key, steel or something wet, a tail) and mastered for small speakers by `forge/sound/kitchen.py`; a synthesised set stands in if the pack is missing. Music is eight CC0 recordings that follow the fight. Credits in `LICENSES.md` |
 | Checks | unit tests, bots that play hundreds of headless fights, per-tier performance budgets, scripted screenshots |
 
 ```
@@ -113,6 +115,7 @@ src/ui/ src/input/ src/arena/ src/core/
 | `npm run scenes` | films the intro, the turn, the ending and Last Rites, frame by frame |
 | `npm run analyse` | plays hundreds of headless fights as different players: which moves, spells and music really happen |
 | `npm run pad` | plays the whole game, menus included, on a controller |
+| `npm run ruin` | breaks the court piece by piece and captures it |
 | `npm run moments` | drives the game to each key moment and captures it |
 | `python forge/sound/kitchen.py` | recook the sound pack (needs the CC0 sources in `assets_src/sfx`) |
 | `npm run forge [names]` | rebake models (`textures` needs the CC0 sources in `assets_src/`) |

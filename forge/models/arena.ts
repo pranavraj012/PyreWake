@@ -11,7 +11,7 @@ const erode = (a: number, seed: number) => (x: number, y: number, z: number) =>
   a * (0.9 * fbm(x * 1.7 + seed, y * 1.7, z * 1.7, 3) + 0.55 * Math.max(0, fbm(x * 5 + seed, y * 5, z * 5, 3) - 0.08) * 3 + 0.12 * noise(x * 24, y * 24, z * 24));
 
 /** Carved temple pillar, 6.4 m: square base, sixteen-sided shaft, bands, bracket capital. `broken` snaps it. */
-export async function pillar(seed: number, broken: number): Promise<Mesh> {
+function pillarField(seed: number, broken: number): Field {
   const f = new Field(0.015);
   f.put(box([0, 0.16, 0], [0.78, 0.16, 0.78], 0.04)).put(box([0, 0.42, 0], [0.66, 0.12, 0.66], 0.05)).put(cyl([0, 0.62, 0], 0.64, 0.1, 0.06, 16));
   f.put(box([0, 1.2, 0], [0.5, 0.52, 0.5], 0.03));
@@ -28,7 +28,11 @@ export async function pillar(seed: number, broken: number): Promise<Mesh> {
   f.put(box([0, 6.1, 0], [0.85, 0.2, 0.85], 0.04));
   if (broken) f.put(any((x, y, z) => (y - broken - 0.55 * x - 0.3 * z - 0.5 * fbm(x * 2.2 + seed, y, z * 2.2, 3) - 0.25 * ridged(x * 3, 1, z * 3 + seed, 2)) * 0.6), { op: 'int', k: 0.01 });
   f.displace(erode(0.034, seed * 7.3), 0.07);
-  const b = broken ? Math.min(6.35, broken + 1.3) : 6.35;
+  return f;
+}
+const tall = (broken: number) => broken ? Math.min(6.35, broken + 1.3) : 6.35;
+export async function pillar(seed: number, broken: number): Promise<Mesh> {
+  const b = tall(broken), f = pillarField(seed, broken);
   const q = meshField(f, { voxel: 0.034, mat: 16, bounds: [[-1.45, -0.05, -1.45], [1.45, b, 1.45]] });
   bakeAO(q.mesh, [q.sample], 0.6); return decimate(q.mesh, broken ? 3000 : 4600);
 }
@@ -136,5 +140,40 @@ export async function pyre(): Promise<Mesh> {
   const a = meshField(f, { voxel: 0.034, mat: 19 }), b = meshField(ash, { voxel: 0.07, mat: 21 }), c = meshField(bn, { voxel: 0.018, mat: 20 }), s = [a.sample, b.sample, c.sample];
   for (const q of [a, b, c]) bakeAO(q.mesh, s, 0.4);
   return merge([await decimate(a.mesh, 2400), await decimate(b.mesh, 400), await decimate(c.mesh, 700)]);
+}
+
+
+/** A lamp pillar, 3.3 m: stepped base, faceted shaft cut with seated figures and lamp niches, a stone bowl for the flame. */
+function steleField(): Field {
+  const f = new Field(0.015);
+  f.put(box([0, 0.12, 0], [0.5, 0.12, 0.5], 0.04)).put(box([0, 0.32, 0], [0.4, 0.1, 0.4], 0.04)).put(cyl([0, 0.5, 0], 0.4, 0.09, 0.05, 8));
+  f.put(cyl([0, 1.55, 0], 0.3, 1.1, 0.02, 8));
+  for (const y of [0.72, 1.28, 1.84, 2.4]) f.put(cyl([0, y, 0], 0.35, 0.045, 0.035, 8));
+  for (let k = 0; k < 3; k++) for (let s = 0; s < 8; s++) { const a = s / 8 * Math.PI * 2 + Math.PI / 8, y = 1.0 + k * 0.56, c = Math.cos(a), n = Math.sin(a); f.put(ell([c * 0.31, y, n * 0.31], [0.07, 0.15, 0.07]), { op: 'sub', k: 0.02 }); f.put(ell([c * 0.275, y - 0.05, n * 0.275], [0.04, 0.085, 0.04]), { k: 0.02 }).put(ball([c * 0.28, y + 0.06, n * 0.28], 0.032), { k: 0.015 }); }
+  f.put(cyl([0, 2.62, 0], 0.42, 0.07, 0.06, 8)).put(ell([0, 2.82, 0], [0.46, 0.17, 0.46]), { k: 0.04 }).put(cyl([0, 3.02, 0], 0.5, 0.1, 0.06, 16), { k: 0.05 });
+  f.put(ell([0, 3.2, 0], [0.4, 0.2, 0.4]), { op: 'sub', k: 0.04 });
+  f.displace(erode(0.026, 31), 0.05); return f;
+}
+export async function stele(): Promise<Mesh> { const q = meshField(steleField(), { voxel: 0.026, mat: 16, bounds: [[-0.75, -0.05, -0.75], [0.75, 3.35, 0.75]] }); bakeAO(q.mesh, [q.sample], 0.45); return decimate(q.mesh, 2600); }
+
+/** The same stone, already in pieces: cells grown from a few seeds, with rough breaks between. One mesh; each piece rides its own bone, pivoting at its centre. */
+async function shatter(name: string, f: Field, w: number, top: number, seeds: V3[], tris: number): Promise<Mesh> {
+  const parts: Mesh[] = [], info: { c: V3; h: V3 }[] = [];
+  for (let k = 0; k < seeds.length; k++) {
+    const s = seeds[k], g = new Field(0.01); g.put(any((x, y, z) => f.eval(x, y, z)));
+    for (let j = 0; j < seeds.length; j++) { if (j === k) continue; const o = seeds[j], n: V3 = [o[0] - s[0], o[1] - s[1], o[2] - s[2]], l = Math.hypot(...n), m: V3 = [(o[0] + s[0]) / 2, (o[1] + s[1]) / 2, (o[2] + s[2]) / 2], u: V3 = [n[0] / l, n[1] / l, n[2] / l], sg = k < j ? 1 : -1; g.put(any((x, y, z) => ((x - m[0]) * u[0] + (y - m[1]) * u[1] + (z - m[2]) * u[2] + sg * (0.16 * fbm(x * 2.6 + 3, y * 2.6, z * 2.6 + 7, 3) + 0.05 * ridged(x * 7, y * 7, z * 7, 2) - 0.03)) * 0.7 + 0.006), { op: 'int', k: 0.005 }); }
+    const q = meshField(g, { voxel: 0.045, mat: 16, bounds: [[-w, -0.05, -w], [w, top, w]] }); bakeAO(q.mesh, [q.sample], 0.3); const m = await decimate(q.mesh, tris);
+    const lo: V3 = [9, 9, 9], hi: V3 = [-9, -9, -9]; for (let i = 0; i < m.pos.length; i++) { lo[i % 3] = Math.min(lo[i % 3], m.pos[i]); hi[i % 3] = Math.max(hi[i % 3], m.pos[i]); }
+    info.push({ c: [0, 1, 2].map(i => +((lo[i] + hi[i]) / 2).toFixed(3)) as V3, h: [0, 1, 2].map(i => +((hi[i] - lo[i]) / 2).toFixed(3)) as V3 });
+    for (let i = 0; i < m.si.length; i++) { m.si[i] = i % 4 ? 0 : k; m.sw[i] = i % 4 ? 0 : 1; } parts.push(m);
+  }
+  fs.writeFileSync(`public/baked/${name}.json`, JSON.stringify(info)); return merge(parts);
+}
+export const steleBits = () => shatter('steleBits', steleField(), 0.75, 3.35, [[0, 0.2, 0], [0.12, 0.75, 0.05], [-0.1, 1.2, -0.12], [0.1, 1.6, 0.1], [-0.08, 2.0, 0.1], [0.12, 2.35, -0.1], [-0.25, 2.95, 0.1], [0.28, 2.95, -0.08]], 190);
+export const pillarBits = (seed: number, broken: number) => shatter(`pillar${seed - 1}Bits`, pillarField(seed, broken), 1.45, tall(broken), (broken ? [[0, 0.3, 0], [0.2, 1.1, 0.15], [-0.2, 1.45, -0.15], [0.12, 2.2, 0.1], [-0.1, 2.75, -0.1], ...(broken > 2 ? [[0.1, 3.5, 0.1]] : [])] : [[0, 0.3, 0], [0.22, 1.05, 0.18], [-0.22, 1.45, -0.18], [0.1, 2.1, 0.12], [-0.1, 2.8, -0.1], [0.1, 3.5, 0.08], [-0.08, 4.2, 0.08], [0, 4.9, -0.05], [0.55, 5.85, 0.3], [-0.55, 5.85, -0.3]]) as V3[], 230);
+/** A slab edge levered up out of the floor. */
+export async function shard(seed: number): Promise<Mesh> {
+  const f = new Field(0.01), r = rng(seed + 400); f.put(box([0, 0, 0], [0.42, 0.075, 0.3], 0.015)); for (let i = 0; i < 5; i++) { const a = r() * 6.28, o = 0.2 + r() * 0.16; f.put(any((x, y, z) => x * Math.cos(a) + z * Math.sin(a) + y * (r() * 0 + 0.3) - o), { op: 'int', k: 0.01 }); }
+  f.displace(erode(0.03, seed * 2.3), 0.05); return bake(f, 0.026, 16, 70, 0.12);
 }
 void lerp3; void mul;

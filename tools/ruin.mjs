@@ -1,0 +1,23 @@
+// node tools/ruin.mjs [--phone] : breaks the court piece by piece and captures it into shots_out/ruin_*.jpg
+import { chromium } from 'playwright-core';
+import { createServer } from 'vite';
+import fs from 'node:fs';
+const phone = process.argv.includes('--phone'), only = process.argv.slice(2).find(a => !a.startsWith('--'))?.split(','), tag = phone ? 'phone_' : ''; fs.mkdirSync('shots_out', { recursive: true });
+const srv = await createServer({ server: { port: 5193 }, logLevel: 'error' }); await srv.listen();
+const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--force-high-performance-gpu'] });
+const errs = [], ctx = await b.newContext(phone ? { viewport: { width: 844, height: 390 }, deviceScaleFactor: 1.5, hasTouch: true, isMobile: true } : { viewport: { width: 1600, height: 900 } }), p = await ctx.newPage();
+p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text().slice(0, 600)));
+await p.goto(`http://localhost:5193/?tier=${phone ? 'phone' : 'high'}${phone ? '&touch' : ''}&nointro`); await p.waitForFunction(() => document.body.classList.contains('ready') && window.__f && window.__frames > 5, null, { timeout: 60000 }); await p.waitForTimeout(600);
+await p.evaluate(() => { window.__hit = (...a) => { const n = __f.ev.length; __f.hitProp(...a); __f.ev.splice(n).forEach(e => __f.raise(e)); }; });
+const shot = async n => { await p.screenshot({ path: `shots_out/${tag}ruin_${n}.jpg`, type: 'jpeg', quality: 86 }); console.log(n, await p.evaluate(() => `${__f.phase} moving ${__court.ruin.moving} ${document.getElementById('fps').textContent}`)); };
+const go = async (n, f) => { if (only && !only.includes(n)) return; try { await f(); } catch (e) { errs.push(n + ': ' + e.message.split('\n')[0]); } };
+// the hero stands at (x, z) with the boss beyond, so the lock-on camera frames it
+const stage = (x, z, bx, bz) => p.evaluate(([x, z, bx, bz]) => { __f.passive = true; __f.hp = 100; __f.invuln = 999; __f.hazards.length = 0; __king.set('idle'); __king.x = bx; __king.z = bz; __king.yaw = Math.atan2(x - bx, z - bz); __m.revive(x, z, Math.atan2(bx - x, bz - z)); }, [x, z, bx, bz]);
+await go('whole', async () => { await stage(0, 4, 0, -3); await p.waitForTimeout(1500); await shot('whole'); });
+await go('lamp', async () => { await stage(6.5, 0, 12.5, 2.5); await p.waitForTimeout(1200); await shot('lamp0'); await p.evaluate(() => __hit(__f.props[0], 3, __m.x, __m.z, 'hero', 99)); for (const t of [150, 250, 400, 1600]) { await p.waitForTimeout(t); await shot('lamp' + t); } });
+await go('cut', async () => { await stage(3.2, 8.83, 9, 12.5); await p.evaluate(() => { const q = __f.props[1]; __m.revive(q.x - 1.2, q.z - 1.6, Math.atan2(1.2, 1.6)); }); await p.waitForTimeout(700); for (let i = 0; i < 4; i++) { await p.keyboard.press('j'); await p.waitForTimeout(200); await shot('cut' + i); await p.waitForTimeout(150); } });
+await go('pillar', async () => { const q = await p.evaluate(() => { const q = __f.props.find(p => p.kind === 'pillar' && p.shape === 0 && p.z < -8); return { id: q.id, x: q.x, z: q.z }; }); const n = Math.hypot(q.x, q.z), at = d => [q.x / n * (n - d), q.z / n * (n - d)]; await stage(...at(9), ...at(3)); await p.waitForTimeout(1300); await shot('pillar0'); await p.evaluate(id => __hit(__f.props[id], 4, 0, 0, 'boss', 99), q.id); for (const t of [350, 500, 330, 200, 400, 2000]) { await p.waitForTimeout(t); await shot('pillar' + t); } });
+await go('scars', async () => { await stage(0, 4, 0, -2); await p.evaluate(() => { const r = __court.ruin; r.scar(0, 2.5, 1, 1.9, 0, 0, 1); r.slabs(2.5, 1, 1.4, 7); r.scar(1, -3, 3, 0.4, 2.8, 7, 1); r.scar(2, -2, 0.5, 1.5, 0, 0, 1); r.scar(0, -0.5, 1.5, 2.2, 0, 0, 0.1); r.slabs(-0.5, 1.5, 1.7, 8); }); await p.waitForTimeout(500); await shot('scars'); });
+await go('tear', async () => { await stage(0, -4, 0, -11); await p.waitForTimeout(1000); await shot('tear0'); await p.evaluate(() => { __court.tear(0, -10, 9, 10); __court.breach(__m.x, __m.z, 22, 14); }); for (const t of [500, 500, 1500]) { await p.waitForTimeout(t); await shot('tear' + t); } });
+await go('all', async () => { await stage(0, 4, 0, -3); await p.evaluate(() => { for (const q of __f.props) __hit(q, 4, 0, 0, 'boss', 99); }); await p.waitForTimeout(1500); await shot('all0'); await p.waitForTimeout(5000); await shot('all1'); await p.evaluate(() => __f.reset(true)); await p.waitForTimeout(900); await shot('restored'); });
+console.log(errs.length ? 'ERRORS ' + [...new Set(errs)].join(' | ') : 'no errors'); await b.close(); await srv.close(); process.exit(errs.length ? 1 : 0);

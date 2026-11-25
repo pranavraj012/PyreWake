@@ -73,12 +73,28 @@ export class Puffs {
     const g = new THREE.InstancedBufferGeometry(), n = this.n; g.instanceCount = n;
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0]), 3)); g.setIndex([0, 1, 2, 0, 2, 3]);
     this.a = new THREE.InstancedBufferAttribute(new Float32Array(n * 4).fill(-99), 4); this.b = new THREE.InstancedBufferAttribute(new Float32Array(n * 4), 4); g.setAttribute('aP', this.a); g.setAttribute('aV', this.b);
-    const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uT: FOG.uFogP },
+    const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uT: FOG.uFogP, uTint: DUST },
       vertexShader: `attribute vec4 aP, aV; uniform vec4 uT; varying vec2 u; varying float k, s; void main(){ float t = uT.w - aP.w; k = t / aV.w; u = position.xy + .5; s = fract(aP.x * 7.7 + aP.z * 3.1) * 40.; if (t < 0. || k > 1.) { gl_Position = vec4(2.); return; } float e = 1. - exp(-3.2 * t); vec3 p = aP.xyz + aV.xyz * e * .6; float z = .45 + e * 1.5; vec4 mv = viewMatrix * vec4(p, 1.); mv.xy += position.xy * z; gl_Position = projectionMatrix * mv; }`,
-      fragmentShader: `varying vec2 u; varying float k, s; float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5); } float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y); } void main(){ float d = n(u * 3.4 + s) * .6 + n(u * 8. - s) * .4; float a = smoothstep(.5, .1, length(u - .5) + (d - .5) * .4) * pow(1. - k, 1.5) * .34; gl_FragColor = vec4(vec3(.125, .128, .135) * (.6 + .7 * d), a); }` });
+      fragmentShader: `uniform vec3 uTint; varying vec2 u; varying float k, s; float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5); } float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y); } void main(){ float d = n(u * 3.4 + s) * .6 + n(u * 8. - s) * .4; float a = smoothstep(.5, .1, length(u - .5) + (d - .5) * .4) * pow(1. - k, 1.5) * .34; gl_FragColor = vec4(uTint * .72 * (.6 + .7 * d), a); }` });
     this.mesh = new THREE.Mesh(g, m); this.mesh.frustumCulled = false; this.mesh.renderOrder = 6;
   }
   emit(p: THREE.Vector3, count: number, speed: number, life: number, t: number) { for (let c = 0; c < count; c++) { const an = c / count * 6.283 + Math.random(); this.a.setXYZW(this.i, p.x, 0.16, p.z, t); this.b.setXYZW(this.i, Math.cos(an) * speed, 0.35 + Math.random() * 0.5, Math.sin(an) * speed, life * (0.7 + Math.random() * 0.5)); this.i = (this.i + 1) % this.n; } this.a.needsUpdate = this.b.needsUpdate = true; }
+}
+
+/** The colour of anything the ground throws up. */
+export const DUST = { value: new THREE.Vector3(0.17, 0.175, 0.19) };
+/** Broken stone in the air: big, slow, lit by the sky. Birth times may lie in the future. */
+export class Dust {
+  mesh: THREE.Mesh; tint = DUST; private i = 0; private n: number; private a: THREE.InstancedBufferAttribute; private b: THREE.InstancedBufferAttribute; private c: THREE.InstancedBufferAttribute;
+  constructor(n: number) {
+    this.n = n; const g = new THREE.InstancedBufferGeometry(); g.instanceCount = n; g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0]), 3)); g.setIndex([0, 1, 2, 0, 2, 3]);
+    const at = (f: number) => new THREE.InstancedBufferAttribute(new Float32Array(n * 4).fill(f), 4); this.a = at(-99); this.b = at(1); this.c = at(1); g.setAttribute('aP', this.a); g.setAttribute('aV', this.b); g.setAttribute('aS', this.c);
+    const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uT: FOG.uFogP, uTint: this.tint },
+      vertexShader: `attribute vec4 aP, aV, aS; uniform vec4 uT; varying vec2 u; varying float k, s, nr; void main(){ float t = uT.w - aP.w; k = t / aV.w; s = aS.y; u = position.xy + .5; if (t < 0. || k > 1.) { gl_Position = vec4(2.); return; } float e = 1. - exp(-2.2 * t); vec3 p = aP.xyz + aV.xyz * e * .9 + vec3(.25 * t, .22 * t, .08 * t); float z = aS.x * (.5 + 1.6 * e + .25 * t); vec4 mv = viewMatrix * vec4(p, 1.); float c = cos(s + t * .25), n = sin(s + t * .25); mv.xy += vec2(position.x * c - position.y * n, position.x * n + position.y * c) * z; nr = smoothstep(.5, 2.4, -mv.z); gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `varying vec2 u; varying float k, s, nr; uniform vec3 uTint; float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5); } float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y); } void main(){ float d = n(u * 3. + s) * .55 + n(u * 7.3 - s) * .3 + n(u * 15. + s) * .15; float a = smoothstep(.5, .08, length(u - .5) + (d - .5) * .5) * pow(1. - k, 1.35) * smoothstep(0., .06, k) * .42 * nr; gl_FragColor = vec4(uTint * (.55 + .75 * d + .25 * u.y), a); }` });
+    this.mesh = new THREE.Mesh(g, m); this.mesh.frustumCulled = false; this.mesh.renderOrder = 6;
+  }
+  emit(p: THREE.Vector3, count: number, speed: number, size: number, life: number, t: number) { for (let c = 0; c < count; c++) { const an = c / count * 6.283 + Math.random() * 1.5; this.a.setXYZW(this.i, p.x + (Math.random() - 0.5) * 0.4, p.y + Math.random() * 0.3, p.z + (Math.random() - 0.5) * 0.4, t); this.b.setXYZW(this.i, Math.cos(an) * speed * (0.4 + Math.random()), speed * (0.2 + Math.random() * 0.5), Math.sin(an) * speed * (0.4 + Math.random()), life * (0.7 + Math.random() * 0.6)); this.c.setXYZW(this.i, size * (0.7 + Math.random() * 0.6), Math.random() * 40, 0, 0); this.i = (this.i + 1) % this.n; } this.a.needsUpdate = this.b.needsUpdate = this.c.needsUpdate = true; }
 }
 
 /** Frozen burning copies of a skinned mesh. */

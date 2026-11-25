@@ -20,6 +20,13 @@ const JOBS: Record<string, () => Promise<Mesh>> = {
   block2: async () => (await import('./models/arena.ts')).block(3),
   rubble0: async () => (await import('./models/arena.ts')).rubble(1),
   rubble1: async () => (await import('./models/arena.ts')).rubble(2),
+  stele: async () => (await import('./models/arena.ts')).stele(),
+  steleBits: async () => (await import('./models/arena.ts')).steleBits(),
+  pillar0Bits: async () => (await import('./models/arena.ts')).pillarBits(1, 0),
+  pillar1Bits: async () => (await import('./models/arena.ts')).pillarBits(2, 3.4),
+  pillar2Bits: async () => (await import('./models/arena.ts')).pillarBits(3, 1.5),
+  shard0: async () => (await import('./models/arena.ts')).shard(1),
+  shard1: async () => (await import('./models/arena.ts')).shard(2),
   shrine: async () => (await import('./models/arena.ts')).shrine(),
   banyan: async () => (await import('./models/arena.ts')).banyan(),
   roots0: async () => (await import('./models/arena.ts')).rootClump(1),
@@ -35,7 +42,7 @@ if (process.argv[2] === '--one') {
   const n = process.argv[3], t = Date.now(), m = await JOBS[n](), s = packMesh(m, `${OUT}/${n}.bin`);
   packMesh(await decimate(m, Math.round(m.idx.length / 3 * (n === 'player' || n === 'king' || n === 'beneath' ? 0.29 : n.startsWith('block') ? 0.36 : 0.45))), `${OUT}/${n}.lo.bin`);
   // afterimages and shadow stand-ins
-  const xs = n === 'player' || n === 'king' || n === 'beneath' ? 4500 : n.startsWith('pillar') ? 260 : 0; if (xs) packMesh(await decimate(m, xs), `${OUT}/${n}.xs.bin`);
+  const xs = n === 'player' || n === 'king' || n === 'beneath' ? 4500 : n.startsWith('pillar') && !n.endsWith('Bits') ? 260 : n === 'stele' ? 160 : 0; if (xs) packMesh(await decimate(m, xs), `${OUT}/${n}.xs.bin`);
   console.log(`${n.padEnd(9)} ${String(s.tris).padStart(6)} tris  ${String(s.kb).padStart(5)} KB  ${((Date.now() - t) / 1000).toFixed(1)}s`);
 } else if (process.argv[2] === 'textures') {
   await (await import('./textures.ts')).bakeTextures('assets_src', OUT + '/tex');
