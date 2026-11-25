@@ -43,7 +43,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .lit .fire u { background: linear-gradient(90deg, #c9560f, #ffb04d); box-shadow: 0 0 10px #ff8a2e; }
 .low .hp { border-color: #c2412d; animation: low 1s infinite; } @keyframes low { 50% { box-shadow: 0 0 10px #c2412d; } }
 .jolt { animation: jolt .3s; } @keyframes jolt { 20% { transform: translate(-5px, 2px); } 50% { transform: translate(4px, -2px); } 80% { transform: translateX(-2px); } }
-.boss { position: absolute; left: 50%; top: var(--t); width: min(46vw, 620px); transform: translateX(-50%); }
+.boss { position: absolute; left: 0; right: 0; margin: 0 auto; top: var(--t); width: min(46vw, 620px); }
 .boss .name { text-align: center; font: 400 15px/1 "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; letter-spacing: .12em; color: #ddd2bf; text-shadow: 0 1px 6px #000; margin-bottom: 6px; }
 .boss .bar { height: 10px; } .boss u { background: linear-gradient(#c9bda6, #8b7d69 55%, #655847); } .boss .bar b { background: #cf5b33; }
 .ab { position: absolute; right: 26px; bottom: 24px; display: flex; gap: 16px; } .touch .ab { display: none; }
@@ -74,3 +74,14 @@ kbd { font: 600 12px/1 "Segoe UI", system-ui, sans-serif; color: #efe6d6; backgr
 .cine #hud { opacity: 1; } .cine #hud > :not(.banner) { opacity: 0 !important; } .banner { transition: opacity .6s; } .banner.title { color: #ffb88c; text-shadow: 0 0 30px #c2320a, 0 2px 14px #000; } .banner.flame { color: #ffca8c; text-shadow: 0 0 24px #ff6a1e; }
 .prompt.ground { color: #ffb27a; } .prompt.ground kbd { border-color: #ff8a45; }
 .win { position: absolute; inset: 0; display: none; place-content: center; gap: 18px; justify-items: center; background: #050404c4; pointer-events: auto; } .won .win { display: grid; } .won #touch { display: none; } .win h2 { margin: 0; font: 400 44px/1 "Palatino Linotype", Georgia, serif; letter-spacing: .16em; color: #ffd7a6; } .win td { padding: 4px 16px; font-size: 17px; } .win td:first-child { text-align: right; color: #a99f92; } .win button { font: 500 16px system-ui; color: #efe6d6; background: #1d1714; border: 1px solid #a8997f88; border-radius: 4px; padding: 11px 22px; cursor: pointer; } .win button:hover, .win button:focus-visible { border-color: #ffb468; outline: none; }
+
+/* --- title screen --- */
+#menu { position: absolute; inset: 0; z-index: 6; display: none; align-items: center; justify-content: space-between; gap: 4vw; padding: 0 max(7vw, env(safe-area-inset-right)) 0 max(7vw, env(safe-area-inset-left)); background: linear-gradient(90deg, #050404e0, #05040499 34%, #0000 62%); }
+.menu #menu { display: flex; } .menu #hud, .menu #touch, .menu #fps { display: none; }
+#menu h1 { margin: 0 0 clamp(14px, 5vh, 46px); font: 400 clamp(38px, 8.2vw, 112px)/1 "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; letter-spacing: .06em; color: #f0dcc0; text-shadow: 0 0 46px #ff5a1466, 0 2px 14px #000; }
+#menu nav { display: flex; flex-direction: column; align-items: flex-start; gap: clamp(0px, .6vh, 6px); }
+#menu nav button { font: 400 clamp(17px, 2.1vw, 25px)/1.2 "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; letter-spacing: .04em; color: #b9ad9c; background: none; border: 0; border-left: 2px solid #0000; padding: clamp(6px, 1.2vh, 11px) 26px clamp(6px, 1.2vh, 11px) 14px; min-height: 44px; cursor: pointer; text-align: left; text-shadow: 0 1px 6px #000; transition: color .15s, border-color .15s, padding .15s; touch-action: manipulation; }
+#menu nav button:hover, #menu nav button:focus-visible { color: #ffdcae; border-color: #ff8a2e; padding-left: 20px; outline: none; } #menu nav button[data-b=play] { color: #f5e6cf; font-size: clamp(21px, 2.7vw, 33px); }
+#menu .controls { background: #070504d9; border: 1px solid #a8997f44; padding: 14px 18px; } #menu .controls[hidden] { display: none; } #menu td { padding: 5px 10px; } #menu td:first-child { text-align: right; } #menu svg { width: 22px; height: 22px; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.paused.cine #hud > .pause { opacity: 1 !important; } @media (max-height: 480px) { #menu td { padding: 1px 8px; font-size: 13px; } #menu .controls { padding: 6px 10px; } #menu h1 { margin-bottom: 8px; } .win { gap: 8px; } .win h2 { font-size: 30px; } .pause button { padding: 9px 12px; margin: 0 3px; font-size: 14px; } }
+@media (prefers-reduced-motion: reduce) { .jolt { animation: none; } #menu nav button { transition: none; } }

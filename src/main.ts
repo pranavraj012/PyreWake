@@ -17,6 +17,7 @@ import { KHANDA } from './weapons/khanda.ts';
 import { Fight } from './combat/fight.ts';
 import { Prompts } from './ui/prompts.ts';
 import { Hud } from './ui/hud.ts';
+import { Menu } from './ui/menu.ts';
 import { sound } from './audio/sound.ts';
 import { Turn, actionCam } from './game/cinema.ts';
 import { ECLIPSE } from './render/sky.ts';
@@ -25,7 +26,7 @@ import { PlayerView } from './player/view.ts';
 import { KING_CLIPS } from './boss/clips.ts';
 import { BENEATH_MODES, KING_MODES } from './boss/king.ts';
 import { KingView } from './boss/kingView.ts';
-import { FollowCam, INTRO_LEN, introCam } from './game/camera.ts';
+import { FollowCam, INTRO_LEN, introCam, menuCam } from './game/camera.ts';
 import './ui/style.css';
 
 const Q = new URLSearchParams(location.search), SHOT = Q.get('shot'), BENCH = Q.get('bench');
@@ -84,10 +85,15 @@ async function boot() {
   const turn = new Turn({ f: fight, pv, k1: king, k2: beneath, fx, hud, dis: kDis }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, wonT = -1;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
   const omen = (k: number) => { if (Math.abs(k - omenK) < 0.002 && k !== 0) return; omenK = k; ECLIPSE.value = k; moon.color.lerpColors(M0, M1, k); moon.intensity = 2.5 - 1.3 * k; post.shaft.value.set(0.5 - 0.24 * k, 0.66 - 0.6 * k, 0.9 - 0.87 * k); FOG.uFogCol.value.lerpColors(F0, F1, k); FOG.uFogMoon.value.lerpColors(G0, G1, k); hemi.color.setRGB(0.56 + 0.04 * k, 0.65 - 0.25 * k, 0.8 - 0.3 * k, THREE.LinearSRGBColorSpace); hemi.intensity = 0.3 + 0.1 * k; kick.intensity = 0.55 + 0.6 * k; kick.color.setRGB(0.86, 0.7 - 0.16 * k, 0.6 - 0.28 * k); court.omen(k); };
-  document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && fight.phase !== 'won' && intro >= INTRO_LEN && !hud.paused && !m.dead) hud.setPaused(true); });
+  document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && !menu.open && !turn.active && fight.phase !== 'won' && intro >= INTRO_LEN && !hud.paused && !m.dead) hud.setPaused(true); });
   hud.onRestart = () => { wonT = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
-  let t = 0, frames = 0, intro = SHOT || BENCH || Q.has('nointro') ? INTRO_LEN : 0; m.z = intro ? 5.2 : 15.5;
-  const bars = (on: boolean) => document.body.classList.toggle('cine', on); bars(!intro);
+  const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0, intro = direct ? INTRO_LEN : 0; m.z = intro ? 5.2 : 15.5;
+  const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
+  const menu = new Menu(app, () => hud.controls()), still = fight.passive;
+  /** Back to the very start: the court at night, the hero at the gate. */
+  const toMenu = () => { hud.setPaused(false); wonT = turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro = 0; follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
+  hud.onMenu = toMenu;
+  menu.onPlay = () => { intro = 0; m.revive(0, 15.3, Math.PI); pv.reset(); king.sim.x = 0; king.sim.z = -4; king.sim.yaw = 0; king.sim.set('idle'); king.settle(); bars(true); fight.time = 0; input.drain(); if (matchMedia('(pointer: fine)').matches && !document.body.classList.contains('touch')) Promise.resolve(canvas.requestPointerLock()).catch(() => { }); };
 
   if (SHOT?.startsWith('hang')) { king.sim.set('hang'); king.sim.x = 0; king.sim.z = -3.2; }
 
@@ -100,13 +106,15 @@ async function boot() {
   const bill = () => { const o: [number, string][] = []; scene.traverseVisible(x => { const q = x as THREE.InstancedMesh; if (!q.isMesh) return; const g = q.geometry, n = (g.index?.count ?? g.attributes.position.count) / 3 * (q.isInstancedMesh ? q.count : (g as THREE.InstancedBufferGeometry).instanceCount < 1e6 ? (g as THREE.InstancedBufferGeometry).instanceCount ?? 1 : 1); o.push([n * (q.castShadow ? 2 : 1), `${Math.round(n)}${q.castShadow ? ' x2 (shadow)' : ''}  ${q.type}${q.isInstancedMesh ? ' x' + q.count : ''}`]); }); return o.sort((x, y) => y[0] - x[0]).slice(0, 14).map(x => x[1]); };
   const step = (dt: number) => {
     input.poll(); let ev = input.drain(); let mx = 0, mz = 0;
+    if (menu.open) { if (input.lastDevice === 'pad' && ev.some(e => !e.up && e.a === 'attack')) menu.play(); ev = []; }
     if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && fight.phase !== 'won') hud.setPaused(!hud.paused);
     if (hud.paused) return;
     t += dt; FOG.uFogP.value.w = SHARED.uTime.value = t;
-    if (intro < INTRO_LEN) {
+    if (menu.open) { /* the court waits */ }
+    else if (intro < INTRO_LEN) {
       intro += dt; mz = intro < 5.6 ? -0.4 : 0;
       if (intro > 0.4 && ev.some(e => !e.up)) intro = INTRO_LEN;
-      if (intro >= INTRO_LEN) { bars(false); follow.yaw = 0.12; }
+      if (intro >= INTRO_LEN) { bars(false); follow.yaw = 0.12; fight.passive = still; fight.time = 0; }
       ev = [];
     } else { const s = Math.sin(follow.yaw), c = Math.cos(follow.yaw), mv = input.move; mx = mv.x * c - mv.y * s; mz = -mv.x * s - mv.y * c; }
     if (turn.active && ev.some(e => !e.up)) turn.skip();
@@ -126,16 +134,18 @@ async function boot() {
   const { mountBench } = BENCH ? await import('./bench.ts') : { mountBench: null };
   const bench = mountBench?.({ scene, cam, m, pv, king: BENCH === 'beneath' ? beneath : king, clips: { ...KHANDA.clips, ...BODY_CLIPS }, kingClips: KING_CLIPS, modes: BENCH === 'beneath' ? BENEATH_MODES : KING_MODES, which: BENCH!, step, setTime: (v: number) => { t = FOG.uFogP.value.w = SHARED.uTime.value = v; } });
   hud.warm(true); for (let i = 0; i < 4; i++) await new Promise(r => setTimeout(r, 40)); hud.warm(false);
+  if (!direct) { m.revive(0, 12.2, Math.PI); pv.reset(); fight.passive = true; bars(false); menu.show(); }
   document.body.classList.add('ready'); if (SHOT || BENCH) document.body.classList.add('bare');
   const fps = document.getElementById('fps')!; let acc = 0, n = 0;
   const draw = (_: number, ms: number) => {
     if (SHOT && SHOTS[SHOT]) { const [p, l, f] = SHOTS[SHOT]; cam.position.set(p[0], p[1], p[2]); cam.lookAt(l[0], l[1], l[2]); cam.fov = f * (cam.aspect > 1.9 ? 0.92 : 1); cam.updateProjectionMatrix(); }
     else if (bench) bench.camera();
+    else if (menu.open) menuCam(cam, t, m.x, m.z);
     else if (turn.active) turn.camera(cam, t, baseFov);
     else if (intro >= INTRO_LEN && !fight.m.dead && actionCam(cam, fight, dir.heroT, baseFov)) { /* composed shot */ }
     else if (intro < INTRO_LEN) introCam(cam, intro, m.x, m.z, baseFov);
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: king.sim.hx, z: king.sim.hz, solid: !king.sim.hanging && king.sim.y < 0.5, h: king.sim.y * 0.6 + (king.sim.hanging ? 1.7 : king.sim.crawling ? 1.2 : /kneel|fall|crash/.test(king.sim.mode) ? 1.5 : king.sim.form === 2 ? 1.9 : 2.2) }, input.takeLook(), t, baseFov);
-    if (!SHOT && !BENCH) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
+    if (!SHOT && !BENCH && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
     sky.position.copy(cam.position); cam.updateMatrixWorld();
     focus.set(m.x, 0, m.z); court.update(t, focus); sound.listen(cam.position.x * 0.3 + m.x * 0.7, cam.position.z * 0.3 + m.z * 0.7, follow.yaw);
     const c0 = performance.now(); renderer.info.reset(); post.render(scene, cam, moon, t); const cpu = performance.now() - c0;

@@ -1,0 +1,29 @@
+// node tools/menu.mjs : title screen, full screen, pause, back to menu, and the boss bar staying put while it is struck. Fails on any breach.
+import { chromium } from 'playwright-core';
+import { createServer } from 'vite';
+const srv = await createServer({ server: { port: 5187 }, logLevel: 'error' }); await srv.listen();
+const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--force-high-performance-gpu'] });
+let bad = 0; const ok = (c, m) => { if (!c) bad++; console.log(c ? 'ok  ' : 'FAIL', m); };
+for (const phone of [false, true]) {
+  const tag = phone ? 'phone' : 'desktop', ctx = await b.newContext(phone ? { viewport: { width: 844, height: 390 }, deviceScaleFactor: 1.5, hasTouch: true, isMobile: true } : { viewport: { width: 1600, height: 900 } }), p = await ctx.newPage(), errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text().slice(0, 200)));
+  const press = s => phone ? p.tap(s) : p.click(s), st = () => p.evaluate(() => ({ cls: document.body.className, z: __m.z, time: __f.time, king: __king.mode, fs: !!document.fullscreenElement, passive: __f.passive, cam: __camPos() }));
+  await p.goto(`http://localhost:5187/?tier=${phone ? 'phone' : 'high'}${phone ? '&touch' : ''}`); await p.waitForFunction(() => document.body.classList.contains('ready') && window.__frames > 5); await p.waitForTimeout(2500); let s = await st();
+  ok(s.cls.includes('menu') && !s.cls.includes('cine') && Math.abs(s.z - 12.2) < 0.3, `${tag}: menu is up and the intro has not started`); ok(s.king === 'idle', `${tag}: the boss waits`);
+  await p.screenshot({ path: `shots_out/${tag}_menu.jpg`, type: 'jpeg', quality: 85 });
+  await press('[data-b=controls]'); await p.waitForTimeout(200); await p.screenshot({ path: `shots_out/${tag}_menu_controls.jpg`, type: 'jpeg', quality: 85 }); ok(await p.isVisible('#menu .controls'), `${tag}: controls open`); await press('[data-b=controls]');
+  await press('#menu [data-b=full]'); await p.waitForTimeout(700); s = await st(); ok(s.fs, `${tag}: full screen on`); ok((await p.textContent('#menu [data-b=full]')) === 'Leave full screen', `${tag}: full screen label follows`); await press('#menu [data-b=full]'); await p.waitForTimeout(600); ok(!(await st()).fs, `${tag}: full screen off`);
+  if (!phone) { await p.evaluate(() => document.querySelector('[data-b=play]').focus()); await p.keyboard.press('ArrowDown'); ok(await p.evaluate(() => document.activeElement.dataset.b === 'full'), 'desktop: arrow keys move'); await p.keyboard.press('ArrowUp'); await p.keyboard.press('Space'); } else await press('[data-b=play]');
+  await p.waitForTimeout(900); s = await st(); ok(!s.cls.includes('menu') && s.cls.includes('cine') && s.z < 15.5, `${tag}: Play starts the intro`);
+  await p.waitForTimeout(7200); s = await st(); ok(!s.cls.includes('cine') && !s.passive, `${tag}: intro ends in the fight`);
+  // the bar, while being hit hard
+  const bar = await p.evaluate(() => new Promise(res => { const w = innerWidth / 2, c = []; let n = 0; __f.passive = true; const f = () => { if (n % 24 === 0) { __king.set('idle'); __king.x = 0; __king.z = -3; __f.bossHp = __f.maxHp; __m.revive(0, -1.2, Math.PI); __m.begin(['light5', 'heavy', 'thrust'][(n / 24) % 3]); } const r = document.querySelector('.boss').getBoundingClientRect(); c.push(r.left + r.width / 2 - w); if (++n < 200) requestAnimationFrame(f); else res({ max: Math.max(...c.map(Math.abs)), end: c.at(-1), hits: __f.hits }); }; f(); }));
+  ok(bar.max < 8 && bar.hits > 2, `${tag}: boss bar stays centred while struck (worst ${bar.max.toFixed(1)} px over ${bar.hits} hits)`);
+  if (phone) await press('.tb-pause'); else { await p.keyboard.press('Escape'); await p.waitForTimeout(200); if (!(await st()).cls.includes('paused')) await p.keyboard.press('Escape'); } await p.waitForTimeout(300); ok((await st()).cls.includes('paused'), `${tag}: pause opens`); await p.screenshot({ path: `shots_out/${tag}_pause.jpg`, type: 'jpeg', quality: 85 });
+  const fit = await p.evaluate(() => [...document.querySelectorAll('.pause button')].every(b => { const r = b.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; })); ok(fit, `${tag}: every pause button is on screen`);
+  await press('.pause [data-b=menu]'); await p.waitForTimeout(900); s = await st(); ok(s.cls.includes('menu') && !s.cls.includes('paused') && Math.abs(s.z - 12.2) < 0.3, `${tag}: back to the menu`);
+  await press('[data-b=play]'); await p.waitForTimeout(1000); ok((await st()).cls.includes('cine'), `${tag}: Play again replays the intro`);
+  // from round 2 and from victory
+  await p.waitForTimeout(600); await p.keyboard.press('j'); await p.waitForTimeout(400); await p.evaluate(() => { __f.passive = true; __f.phase = 'r2'; __f.beginRound2(); }); await p.waitForTimeout(400); await p.evaluate(() => { __f.bossHp = 1; __king.x = __m.x; __king.z = __m.z - 1.8; __m.yaw = Math.PI; __m.begin('light1'); }); await p.waitForFunction(() => __f.phase === 'finish', null, { timeout: 5000 }); await p.waitForTimeout(1800); await p.evaluate(() => { __m.revive(__king.x, __king.z + 1.8, Math.PI); __m.begin('execute'); }); await p.waitForFunction(() => document.body.classList.contains('won'), null, { timeout: 25000 }); await p.screenshot({ path: `shots_out/${tag}_won.jpg`, type: 'jpeg', quality: 85 }); await press('.win [data-b=menu]'); await p.waitForTimeout(700); s = await p.evaluate(() => ({ cls: document.body.className, round: __f.round, form: __king.form, hits: __f.hits })); ok(s.cls.includes('menu') && !s.cls.includes('won') && s.round === 1 && s.form === 1, `${tag}: victory returns to a fresh menu`);
+  ok(errs.length === 0, `${tag}: no errors ${errs.slice(0, 2).join(' | ')}`); await ctx.close();
+}
+await b.close(); await srv.close(); process.exit(bad ? 1 : 0);

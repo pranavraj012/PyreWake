@@ -63,6 +63,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Last Rites (when ready) | R | both sticks | Rites |
 | Heal | F | D-pad up | Heal |
 | Pause | Esc | Start | pause icon |
+| Full screen | menu, or Alt + Enter | menu | menu |
 
 ## How it's made
 
@@ -99,6 +100,7 @@ src/ui/ src/input/ src/arena/ src/core/
 | `npm run fight` | scripted fight that captures every beat (`-- --phone`) |
 | `npm run shots`, `npm run sheets` | stills, motion contact sheets |
 | `npm run sfx` | renders every sound, prints levels, draws spectrograms |
+| `npm run menu` | checks the title screen, full screen, pause and boss bar |
 | `npm run moments` | drives the game to each key moment and captures it |
 | `npm run forge [names]` | rebake models (`textures` needs the CC0 sources in `assets_src/`) |
 

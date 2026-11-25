@@ -16,7 +16,7 @@ export class Input {
   private padPrev = new Set<Action>();
 
   constructor(el: HTMLElement) {
-    addEventListener('keydown', e => { if (e.repeat) return; this.lastDevice = 'keys'; this.keys.add(e.code); const a = KEYS[e.code]; if (a) { e.preventDefault(); this.press('k' + e.code, a); } });
+    addEventListener('keydown', e => { if (e.repeat || ((e.target as HTMLElement | null)?.tagName === 'BUTTON' && (e.code === 'Space' || e.code === 'Enter'))) return; this.lastDevice = 'keys'; this.keys.add(e.code); const a = KEYS[e.code]; if (a) { e.preventDefault(); this.press('k' + e.code, a); } });
     addEventListener('keyup', e => { this.keys.delete(e.code); this.release('k' + e.code); });
     addEventListener('blur', () => { this.keys.clear(); for (const k of [...this.src.keys()]) this.release(k); this.stick.x = this.stick.y = 0; });
     el.addEventListener('contextmenu', e => e.preventDefault());

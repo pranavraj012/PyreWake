@@ -9,7 +9,7 @@ const ctx = await b.newContext(phone ? { viewport: { width: 844, height: 390 }, 
 const p = await ctx.newPage(), errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
 const shot = async n => { await p.screenshot({ path: `shots_out/${tag}play_${n}.jpg`, type: 'jpeg', quality: 86 }); console.log(n, JSON.stringify(await p.evaluate(() => ({ clip: window.__m.clip?.name, speed: +window.__m.speed.toFixed(1), king: window.__king.mode, fps: document.getElementById('fps').textContent })))); };
 const until = (f, a) => p.waitForFunction(f, a, { timeout: 15000, polling: 16 });
-await p.goto(`http://localhost:5194/?tier=${phone ? 'phone' : 'high'}${phone ? '&touch' : ''}`); await until(() => document.body.classList.contains('ready'));
+await p.goto(`http://localhost:5194/?tier=${phone ? 'phone' : 'high'}${phone ? '&touch' : ''}`); await until(() => document.body.classList.contains('ready')); await p.waitForTimeout(900); await shot('menu'); await p.click('[data-b=play]');
 await p.waitForTimeout(1500); await shot('intro1'); await p.waitForTimeout(2300); await shot('intro2'); await p.waitForTimeout(2400); await shot('intro3'); await p.waitForTimeout(1600);
 const cdp = await ctx.newCDPSession(p);
 if (!phone) {

@@ -17,6 +17,7 @@
     "fight": "node tools/fight.mjs",
     "sheets": "node tools/sheets.mjs",
     "sfx": "node tools/sfx.mjs",
+    "menu": "node tools/menu.mjs",
     "moments": "node tools/m4.mjs"
   },
   "dependencies": {

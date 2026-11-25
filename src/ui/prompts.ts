@@ -26,6 +26,8 @@ const P: Record<string, Prompt> = {
 
 export class Prompts {
   current: Prompt | null = null; done = new Set<string>(); private t = 0; private moved = 0; private cueT = 0; private kind: 'white' | 'red' | 'ground' = 'white'; private white = 0; private combos = 0;
+  /** A new player at the title screen: teach everything again. */
+  reset() { this.current = null; this.done.clear(); this.t = this.moved = this.white = this.combos = 0; this.cueT = -1; }
   private want(id: string) { return !this.done.has(id); }
   private show(id: string) { if (!this.want(id)) return; const cur = this.current; if (cur && cur.id !== id && ORDER.indexOf(cur.id) <= ORDER.indexOf(id)) return; if (cur?.id !== id) { this.current = P[id]; this.t = 0; } }
   private finish(id: string) { this.done.add(id); if (this.current?.id === id) this.current = null; }
