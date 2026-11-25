@@ -91,7 +91,7 @@ def('flick', { dur: 1.0, free: 0.0, blend: 0.14, fx: [{ t: 0.27, kind: 'flick' }
 addFinishers(def); addArts(def); addChains(def);
 const COMBO = ['light1', 'light2', 'light3', 'light4', 'light5'];
 export const KHANDA: Weapon = {
-  id: 'khanda', name: 'Khanda', geo: 'khanda', blade: [0.42, 1.0], reach: 1.95, arc: 75, damage: 10, trail: [1.5, 0.5, 0.12],
+  id: 'khanda', name: 'Khanda', geo: 'khanda', blade: [0.42, 1.0], reach: 1.95, arc: 75, damage: 13, trail: [1.5, 0.5, 0.12],
   rest: REST, ready: READY, guard: GUARD, clips: C,
   chains: [COMBO, ['b1', 'b2', 'alt3', 'alt4', 'alt5'], ['c1', 'c2', 'c3', 'c4', 'c5']], ripostes: ['riposteA', 'riposteB'], air: { cut: 'airCut', plunge: 'plunge', hit: 'plungeHit' }, from: { sprint: 'comet', dodgeF: 'lowTurn', dodgeB: 'flare', dodgeL: 'passR', dodgeR: 'passL', guard: 'palm', reckon: 'reckon', execute: 'execute', finale: 'finale' },
   combo: COMBO, finishers: ['risingCut', 'cleave', 'thrust', 'groundSlam'], charge: 'charge', heavy: 'heavy',

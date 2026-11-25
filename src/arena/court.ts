@@ -119,17 +119,18 @@ export async function buildCourt(tex: TexSet, tier: Tier) {
   for (let i = 0; i < 6; i++) { const a = (i + 0.5) / 6 * Math.PI * 2 + 0.28, x = Math.cos(a) * 19.8, z = Math.sin(a) * 19.8; py.push(M(x, -0.05, z, r() * 6)); fires.push(new THREE.Vector3(x, 0.45, z)); }
   inst(G.pyre, wood, py, !ph);
   fires.forEach((f, i) => FOG.uGlowP.value[i].set(f.x, f.y + 0.9, f.z, 0.0075));
-  group.add(makeFires(fires), makeSmoke(fires), makeEmbers(fires, tier), makeAsh(tier));
+  const flames = makeFires(fires), cinders = makeEmbers(fires, tier); let flameK = 1; group.add(flames, makeSmoke(fires), cinders, makeAsh(tier));
   const lights = fires.slice(0, tier.lights).map(() => { const l = new THREE.PointLight(0xff9448, 0, 18, 1.8); group.add(l); return l; });
 
   // round 2: the banyan burns
   const tp = lp.filter((_, i) => i % Math.max(1, Math.round(lp.length / (ph ? 12 : 26))) === 0), burn = makeFires(tp.map(p => p.clone().setY(p.y - 0.6)), ph ? 2 : 4, 1.5), burnE = makeEmbers(tp, tier); burn.visible = burnE.visible = false; group.add(burn, burnE);
   group.updateMatrixWorld(true); group.traverse(o => { if (!(o as THREE.PointLight).isPointLight) o.matrixAutoUpdate = false; });
   return {
-    group, fires, /** 0-1: round 2's burning court. */ omen(k: number) { rift.value = k * 0.6; burn.visible = burnE.visible = k > 0.35; (burn.material as THREE.ShaderMaterial).uniforms.uGain.value = Math.max(0, (k - 0.35) / 0.65) * 0.5; },
+    group, fires, /** 0-1: how high the pyres burn. */ flames(k: number) { flameK = k; (flames.material as THREE.ShaderMaterial).uniforms.uGain.value = k; cinders.visible = k > 0.15; fires.forEach((f, i) => { FOG.uGlowP.value[i].w = 0.0075 * k; }); },
+    /** 0-1: round 2's burning court. */ omen(k: number) { rift.value = k * 0.6; burn.visible = burnE.visible = k > 0.35; (burn.material as THREE.ShaderMaterial).uniforms.uGain.value = Math.max(0, (k - 0.35) / 0.65) * 0.5; },
     update(t: number, focus: THREE.Vector3) {
       const near = [...fires].sort((a, b) => a.distanceToSquared(focus) - b.distanceToSquared(focus));
-      lights.forEach((l, i) => { const f = near[i]; l.position.set(f.x, f.y + 1.25, f.z); l.intensity = 62 * (0.85 + 0.12 * Math.sin(t * 9 + f.x) + 0.08 * Math.sin(t * 23 + f.z)); });
+      lights.forEach((l, i) => { const f = near[i]; l.position.set(f.x, f.y + 1.25, f.z); l.intensity = 62 * flameK * (0.85 + 0.12 * Math.sin(t * 9 + f.x) + 0.08 * Math.sin(t * 23 + f.z)); });
     },
   };
 }

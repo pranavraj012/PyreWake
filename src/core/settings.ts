@@ -1,6 +1,6 @@
 // What the player has chosen. Kept on this device only.
-export interface Settings { /** 0 measured, 1 fierce, 2 relentless. */ temper: 0 | 1 | 2; /** 0-1. */ music: number; sfx: number; shake: number; /** Best winning time in seconds, per temper. */ best: [number, number, number] }
-const BASE: Settings = { temper: 1, music: 0.8, sfx: 0.8, shake: 1, best: [0, 0, 0] };
+export interface Settings { /** 0 measured, 1 fierce, 2 relentless. */ temper: 0 | 1 | 2; /** 0-1. */ music: number; sfx: number; shake: number; /** Best winning time in seconds, per temper. */ best: [number, number, number]; /** Training done. */ learned: boolean; /** Remapped controls; anything missing is the default. */ binds?: { keys?: Partial<Record<string, string[]>>; pad?: Partial<Record<string, string[]>> } }
+const BASE: Settings = { temper: 1, music: 0.8, sfx: 0.8, shake: 1, best: [0, 0, 0], learned: false };
 const load = (): Settings => { try { return { ...BASE, ...JSON.parse(localStorage.getItem('pyrewake') ?? '{}') }; } catch { return { ...BASE }; } };
 export const settings: Settings = load();
 const subs: (() => void)[] = [];

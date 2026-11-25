@@ -1,23 +1,25 @@
 // The mixer: buses, court reverb, positions, ducking, and a low-pass that closes with slow motion.
 import { onSettings, settings } from '../core/settings.ts';
 import { Score } from './score.ts';
+import { Tracks } from './tracks.ts';
 
 type Bus = 'sfx' | 'voice' | 'amb' | 'music';
 export interface Play { x?: number; z?: number; gain?: number; rate?: number; delay?: number; wet?: number; bus?: Bus }
 class Sound {
   ctx: AudioContext | null = null; bufs = new Map<string, AudioBuffer>(); private variants = new Map<string, number>(); private last = new Map<string, number>(); private pending: { n: string; x: Float32Array; sr: number }[] = []; private ir: Float32Array[] | null = null;
   private master!: GainNode; private lp!: BiquadFilterNode; private rev!: GainNode; bus!: Record<Bus, GainNode>; private duckG!: GainNode; private loops = new Map<string, { src: AudioBufferSourceNode; g: GainNode }>();
-  muted = false; loaded = false; score: Score | null = null; private ear = { x: 0, z: 0, yaw: 0 }; private started = false; private recent: number[] = [];
+  /** Recorded music. */ tracks: Tracks | null = null; muted = false; loaded = false; score: Score | null = null; private ear = { x: 0, z: 0, yaw: 0 }; private started = false; private recent: number[] = [];
   /** Begin synthesis at once; nothing is heard until a tap. */
-  load() { if (this.started || typeof Worker === 'undefined') return; this.started = true; this.unlock(); /* opened now, silent until a tap resumes it: opening a device mid-fight stalls */ try { const w = new Worker(new URL('./bank.worker.ts', import.meta.url), { type: 'module' }); w.onmessage = e => { const d = e.data; if (d.ir) { this.ir = d.ir; this.reverb(); } else if (d.n) { this.pending.push(d); this.flush(); } else if (d.done) { this.loaded = true; w.terminate(); } }; w.onerror = () => { this.loaded = true; }; w.postMessage(0); } catch { this.loaded = true; } }
+  load() { if (this.started || typeof Worker === 'undefined') return; this.started = true; this.unlock(); void this.tracks?.load(); /* opened now, silent until a tap resumes it: opening a device mid-fight stalls */ try { const w = new Worker(new URL('./bank.worker.ts', import.meta.url), { type: 'module' }); w.onmessage = e => { const d = e.data; if (d.ir) { this.ir = d.ir; this.reverb(); } else if (d.n) { this.pending.push(d); this.flush(); } else if (d.done) { this.loaded = true; w.terminate(); } }; w.onerror = () => { this.loaded = true; }; w.postMessage(0); } catch { this.loaded = true; } }
   unlock() {
-    if (this.ctx) { if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => { }); return; }
+    if (this.ctx) { if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => { }); this.tracks?.prime(); return; }
     try {
       const c = this.ctx = new AudioContext(), g = (v: number, to: AudioNode) => { const n = c.createGain(); n.gain.value = v; n.connect(to); return n; };
       const clip = c.createWaveShaper(), cv = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; cv[i] = Math.tanh(x * 1.25) / Math.tanh(1.25); } clip.curve = cv; clip.connect(c.destination);
       const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.18; comp.connect(clip);
       this.lp = c.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 20000; this.lp.connect(comp); this.master = g(this.muted ? 0 : 0.9, this.lp);
       this.duckG = g(1, this.master); this.bus = { sfx: g(0.9, this.master), voice: g(0.74, this.master), amb: g(0.32, this.duckG), music: g(0.32, this.duckG) };
+      this.tracks = new Tracks(c, this.bus.music); document.addEventListener('visibilitychange', () => this.tracks?.hush(document.hidden));
       onSettings(() => this.volumes());
       this.rev = g(0.2, this.master); this.reverb(); this.flush();
     } catch { this.ctx = null; }

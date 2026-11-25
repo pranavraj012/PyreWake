@@ -19,9 +19,10 @@ import { Prompts } from './ui/prompts.ts';
 import { Hud } from './ui/hud.ts';
 import { Menu } from './ui/menu.ts';
 import { sound } from './audio/sound.ts';
-import { onSettings, settings } from './core/settings.ts';
+import { onSettings, saveSettings, settings } from './core/settings.ts';
 import { Turn, actionCam } from './game/cinema.ts';
-import { Ending, Intro } from './game/scenes.ts';
+import { Ending, Intro, Prologue } from './game/scenes.ts';
+import { Lessons } from './game/lessons.ts';
 import { DAWN, ECLIPSE } from './render/sky.ts';
 import { Director } from './game/director.ts';
 import { PlayerView } from './player/view.ts';
@@ -84,20 +85,26 @@ async function boot() {
   const fight = new Fight(m, king.sim), prompts = new Prompts(), hud = new Hud(app, input); fight.passive = !!(SHOT || BENCH || Q.has('still'));
   const follow = new FollowCam(); follow.blockers = PILLARS;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath] }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
-  const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => ending.start(); onSettings(() => { fight.brain.temper = settings.temper; }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0;
+  const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => ending.start(); onSettings(() => { fight.brain.temper = settings.temper; }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
   const omen = (k: number) => { if (Math.abs(k - omenK) < 0.002 && k !== 0) return; omenK = k; ECLIPSE.value = k; moon.color.lerpColors(M0, M1, k); moon.intensity = 2.5 - 1.3 * k; post.shaft.value.set(0.5 - 0.24 * k, 0.66 - 0.6 * k, 0.9 - 0.87 * k); FOG.uFogCol.value.lerpColors(F0, F1, k); FOG.uFogMoon.value.lerpColors(G0, G1, k); hemi.color.setRGB(0.56 + 0.04 * k, 0.65 - 0.25 * k, 0.8 - 0.3 * k, THREE.LinearSRGBColorSpace); hemi.intensity = 0.3 + 0.1 * k; kick.intensity = 0.55 + 0.6 * k; kick.color.setRGB(0.86, 0.7 - 0.16 * k, 0.6 - 0.28 * k); court.omen(k); dawn(dawnK, true); };
   /** First light, over whatever the sky is doing. */
   const dawn = (k: number, force = false) => { if (!force && Math.abs(k - dawnK) < 0.002) return; dawnK = k; const o = omenK; kick.intensity = 0.55 + 0.6 * o + 1.5 * k; kick.color.setRGB(0.86 + 0.1 * k, 0.7 - 0.16 * o, 0.6 - 0.28 * o - 0.1 * k); hemi.intensity = 0.3 + 0.1 * o + 0.3 * k; post.exposure.value = 1.75 + 0.25 * k; DAWN.value = k; };
-  document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && !menu.open && !turn.active && fight.phase !== 'won' && !intro.active && !ending.active && !hud.paused && !m.dead) hud.setPaused(true); });
-  hud.onRestart = () => { ending.stop(); dawn(0); turnWait = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
+  document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && !menu.open && !turn.active && fight.phase !== 'won' && !intro.active && !story.active && !ending.active && !hud.paused && !m.dead) hud.setPaused(true); });
+  hud.onRestart = () => { if (lessons.active) { train(); return; } ending.stop(); dawn(0); turnWait = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
   const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
   const menu = new Menu(app, () => hud.controls()), still = fight.passive;
   /** Back to the very start: the court at night, the hero at the gate. */
-  const toMenu = () => { hud.setPaused(false); ending.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.kneel(); king.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
+  const toMenu = () => { hud.setPaused(false); if (lessons.active) { lessons.active = false; lessons.frozen = null; } hud.lesson(null); hud.verse(''); ending.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.kneel(); king.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
   hud.onMenu = toMenu;
-  menu.onPlay = () => { intro.start(); bars(true); fight.time = 0; input.drain(); if (matchMedia('(pointer: fine)').matches && !document.body.classList.contains('touch')) Promise.resolve(canvas.requestPointerLock()).catch(() => { }); };
+  const grab = () => { input.drain(); if (matchMedia('(pointer: fine)').matches && !document.body.classList.contains('touch')) Promise.resolve(canvas.requestPointerLock()).catch(() => { }); };
+  /** Round 1, for real. */
+  const begin = () => { bars(false); hud.lesson(null); fight.reset(true); fight.passive = still; kDis.value = bDis.value = 0; follow.snap(m, king.sim); hud.refill(); sound.score?.set('spar'); };
+  const train = () => { bars(false); fight.passive = true; hud.callout(''); lessons.start(); follow.snap(m, king.sim); sound.score?.set('lesson'); };
+  lessons.onDone = skipped => { saveSettings({ learned: true }); if (!skipped) prompts.taught(); begin(); sound.play('kScreech', { gain: 0.9, wet: 0.6, bus: 'voice' }); hud.say(skipped ? 'It has seen your fire' : 'Your hands remember. It has seen your fire.', 2.6, 'place'); };
+  hud.onSkip = () => lessons.skip(); menu.onTrain = () => { train(); grab(); };
+  menu.onPlay = () => { story.start(); bars(true); fight.time = 0; grab(); };
 
   if (SHOT?.startsWith('hang')) { king.sim.set('hang'); king.sim.x = 0; king.sim.z = -3.2; }
 
@@ -111,23 +118,30 @@ async function boot() {
   const step = (dt: number) => {
     input.poll(); let ev = input.drain(); let mx = 0, mz = 0;
     if (menu.open) { if (input.lastDevice === 'pad' && ev.some(e => !e.up && (e.a === 'attack' || e.a === 'jump'))) menu.play(); ev = []; }
-    if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && !intro.active && fight.phase !== 'won') hud.setPaused(!hud.paused);
+    if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && !intro.active && !story.active && fight.phase !== 'won') hud.setPaused(!hud.paused);
     if (hud.paused) return;
     t += dt; FOG.uFogP.value.w = SHARED.uTime.value = t;
     if (menu.open) intro.kneel();
-    else if (intro.active) {
+    else if (story.active) {
+      if (story.t > 0.6 && ev.some(e => !e.up)) story.skip(); else story.step(dt, t);
+      court.flames(story.flame); omen(story.omen); dir.mono = story.mono; dir.inkWant = story.ink; dir.dark = story.dark;
+      if (!story.active) { court.flames(1); omen(0); dir.inkWant = dir.dark = 0; intro.start(); }
+      ev = [];
+    } else if (intro.active) {
       if (intro.t > 0.6 && ev.some(e => !e.up)) intro.skip(); else mz = intro.step(dt, t);
-      if (!intro.active) { bars(false); follow.snap(m, king.sim); fight.passive = still; fight.time = 0; }
+      if (!intro.active) { if (settings.learned) begin(); else train(); }
       ev = [];
     } else { const s = Math.sin(follow.yaw), c = Math.cos(follow.yaw), mv = input.move; mx = mv.x * c - mv.y * s; mz = -mv.x * s - mv.y * c; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
-    const sd = fight.step(dt, mx, mz, ev), kv = dir.kv;
+    if (lessons.active) ev = lessons.gate(ev as { a: string; up: boolean }[]) as typeof ev;
+    const held = lessons.active && !!lessons.frozen, sd = held ? 0 : fight.step(dt, mx, mz, ev), kv = dir.kv; if (held) fight.ev.length = 0;
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
+    lessons.step(dt, sd); hud.lesson(lessons.active ? lessons.card : null);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
-    turn.step(dt, t); ending.step(dt, t); dir.mono = turn.mono; if (turn.active) { omen(turn.omen); dawn(turn.dawn); } else if (ending.active) { omen(1 - ending.clear); dawn(ending.dawn); } else if (fight.round === 2 && omenK < 1) omen(1);
-    if (sound.score && (sound.score.mood === 'still' || sound.score.mood === 'reveal') && !menu.open && !intro.active && !turn.active && fight.round === 1) sound.score.set('spar'); if (sound.score && sound.score.mood === 'spar' && fight.hits > 2) sound.score.set('r1');
+    turn.step(dt, t); ending.step(dt, t); if (!story.active) dir.mono = Math.max(turn.mono, lessons.mono); if (turn.active) { omen(turn.omen); dawn(turn.dawn); } else if (ending.active) { omen(1 - ending.clear); dawn(ending.dawn); } else if (fight.round === 2 && omenK < 1) omen(1);
+    if (sound.score && /^(still|vigil|lesson)$/.test(sound.score.mood) && !menu.open && !intro.active && !story.active && !turn.active && !lessons.active && fight.round === 1) sound.score.set('spar'); if (sound.score && (story.active || intro.active)) sound.score.set('vigil'); if (sound.score && lessons.active) sound.score.set('lesson'); if (sound.score && sound.score.mood === 'spar' && fight.hits > 2) sound.score.set('r1');
     { const c = m.clip?.name, on = (c === 'rites' && m.t < 4.4) || c === 'finale'; if (on !== document.body.classList.contains('cut')) document.body.classList.toggle('cut', on); }
-    if (!menu.open && !intro.active) prompts.step(sd, fight);
+    if (!menu.open && !intro.active && !story.active && !lessons.active) prompts.step(sd, fight);
     dir.step(sd, dt, t);
   };
   renderer.compile(scene, cam); resize();
@@ -141,12 +155,13 @@ async function boot() {
   document.body.classList.toggle('fps', Q.has('fps')); document.body.classList.add('ready'); if (SHOT || BENCH) document.body.classList.add('bare');
   const fps = document.getElementById('fps')!; let acc = 0, n = 0;
   const draw = (_: number, ms: number) => {
-    if (intro.active || turn.active || ending.active || menu.open) follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); // the follow camera isn't there to settle it
+    if (story.active || intro.active || turn.active || ending.active || menu.open) follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); // the follow camera isn't there to settle it
     if (SHOT && SHOTS[SHOT]) { const [p, l, f] = SHOTS[SHOT]; cam.position.set(p[0], p[1], p[2]); cam.lookAt(l[0], l[1], l[2]); cam.fov = f * (cam.aspect > 1.9 ? 0.92 : 1); cam.updateProjectionMatrix(); }
     else if (bench) bench.camera();
     else if (menu.open) menuCam(cam, t, m.x, m.z);
     else if (turn.active) turn.camera(cam, t);
     else if (ending.active) ending.camera(cam, t);
+    else if (story.active) story.camera(cam, t);
     else if (intro.active) intro.camera(cam, t, baseFov);
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, baseFov)) { /* composed shot */ follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: king.sim.hx, z: king.sim.hz, solid: !king.sim.hanging && king.sim.y < 0.5, h: king.sim.y * 0.6 + (king.sim.hanging ? 1.7 : king.sim.crawling ? 1.2 : /kneel|fall|crash/.test(king.sim.mode) ? 1.5 : king.sim.form === 2 ? 1.9 : 2.2) }, input.takeLook(), t, baseFov);
@@ -157,7 +172,7 @@ async function boot() {
     acc += ms; n++; frames++;
     if (acc > 500) { fps.textContent = `${Math.round(1000 * n / acc)} fps  ${tier.name}  x${dyn.scale.toFixed(2)}  ${renderer.info.render.calls} draws  ${(renderer.info.render.triangles / 1000) | 0}k tris`; acc = n = 0; }
     if (!SHOT && !BENCH && frames > 60 && dyn.update(ms)) resize();
-    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __king: king.sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __ending: ending, __sound: sound, __dir: dir, __camPos: () => cam.position.toArray(), __bill: bill });
+    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __king: king.sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __story: story, __lessons: lessons, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __camPos: () => cam.position.toArray(), __bill: bill });
   };
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }

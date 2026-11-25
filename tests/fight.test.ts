@@ -9,6 +9,7 @@ import { Motor, type Press } from '../src/player/motor.ts';
 import { BODY_CLIPS } from '../src/player/clips.ts';
 import { KHANDA } from '../src/weapons/khanda.ts';
 import { Prompts } from '../src/ui/prompts.ts';
+import { LESSONS, Lessons } from '../src/game/lessons.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }], down = (a: string): Press[] => [{ a, up: false }], up = (a: string): Press[] => [{ a, up: true }];
 /** Player 2 m in front of the King, both facing each other. */
@@ -120,6 +121,28 @@ describe('variety', () => {
   it('temper changes how long it rests', () => { const gap = (t: number) => { const f = mk(2.4, false); f.hits = 9; f.brain.temper = t; let n = 0; for (let i = 0; i < 60 * 60; i++) { f.hp = 100; f.flame = true; f.m.x = f.king.hx; f.m.z = f.king.hz + 2.4; f.step(DT, 0, 0, []); n += f.ev.filter(e => e.k === 'cue').length; } return n; }; const a = [0, 1, 2].map(gap); expect(a[1]).toBeGreaterThan(a[0]); expect(a[2]).toBeGreaterThan(a[1]); });
 });
 
+describe('training', () => {
+  /** Does what the card says, `late` seconds after it is asked; `clumsy` presses wrong things while the world waits. */
+  const pupil = (o: { late?: number; clumsy?: boolean; stubborn?: boolean } = {}) => {
+    const f = new Fight(new Motor()), L = new Lessons(f); let done: boolean | null = null; L.onDone = s => { done = s; }; L.start(); const seen: string[] = []; let heldAt = -1, down = '', upAt = -1, stuck = 0, last = '';
+    for (let i = 0; i < 60 * 240 && done === null; i++) {
+      const c = L.card, m = f.m; let p: Press[] = [], mz = 0, mx = 0; if (c && c.id !== seen.at(-1)) seen.push(c.id);
+      const key = c ? c.id + c.title + c.held : ''; stuck = key === last ? stuck + 1 : 0; last = key; if (stuck > 60 * 25) throw new Error('stuck on ' + key + ' king ' + f.king.mode + ' hero ' + m.clip?.name + ' frozen ' + L.frozen + ' d ' + m.targetDist.toFixed(2) + ' seen ' + seen.join());
+      if (upAt >= 0 && i >= upAt) { p.push({ a: down, up: true }); upAt = -1; }
+      if (L.frozen && !o.stubborn) { heldAt = heldAt < 0 ? i : heldAt; if (o.clumsy && i === heldAt + 2) p.push(...tap('heal'), ...tap('attack').filter(() => L.frozen !== 'attack')); if (i >= heldAt + (o.late ?? 0.3) * 60 && upAt < 0) { down = L.frozen; p.push({ a: down, up: false }); upAt = i + (c?.hold ? 40 : 4); heldAt = -1; } }
+      else if (c && !c.ok && !c.held && !L.frozen) { if (m.targetDist > 2.4 && /^(move|attack|heavy|rites|rush)$/.test(c.id)) { const a = Math.atan2(f.king.x - m.x, f.king.z - m.z); mx = Math.sin(a); mz = Math.cos(a); } else if (upAt < 0 && i % 10 === 0) { if (c.id === 'attack') p.push(...tap('attack')); else if (c.id === 'heavy' && m.state === 'free') { down = 'attack'; p.push({ a: 'attack', up: false }); upAt = i + 45; } else if (c.id === 'rush') p.push(...tap('skill1')); else if (c.id === 'heal') p.push(...tap('heal')); else if (c.title.startsWith('Once more') && isAttack(f.king.mode) && f.king.mt > f.king.strikes[0].t[0] - 0.24) p.push(...tap('dodge')); } }
+      p = L.gate(p); const sd = L.frozen ? 0 : f.step(DT, L.frozen ? 0 : mx, L.frozen ? 0 : mz, p); L.step(DT, sd);
+    }
+    return { done: done as boolean | null, seen, f, L };
+  };
+  it('a pupil who does as asked is taken through every lesson, unhurt, and comes out fresh', () => { const r = pupil(); expect(r.done).toBe(false); expect([...new Set(r.seen)]).toEqual([...LESSONS]); expect(r.f.deaths).toBe(0); expect(r.f.time).toBeLessThan(150); });
+  it('the world waits however long you take, and only for the right button', () => { const r = pupil({ late: 3, clumsy: true }); expect(r.done).toBe(false); expect([...new Set(r.seen)]).toEqual([...LESSONS]); });
+  it('it never moves on by itself', () => { const f = new Fight(new Motor()), L = new Lessons(f); L.start(); for (let i = 0; i < 60 * 30; i++) { L.step(DT, f.step(DT, 0, 0, [])); } expect(L.card?.id).toBe('move'); expect(L.active).toBe(true); });
+  it('can be skipped', () => { const f = new Fight(new Motor()), L = new Lessons(f); let s: boolean | null = null; L.onDone = x => { s = x; }; L.start(); for (let i = 0; i < 60; i++) L.step(DT, f.step(DT, 0, 0, [])); L.skip(); expect(s).toBe(true); expect(L.active).toBe(false); });
+});
+
+describe('outside events', () => { it('a reset from a button is seen by the next step', () => { const f = mk(); f.step(DT, 0, 0, []); f.reset(); f.step(DT, 0, 0, []); expect(f.ev.filter(e => e.k === 'reset').length).toBe(1); f.step(DT, 0, 0, []); expect(f.ev.filter(e => e.k === 'reset').length).toBe(0); }); });
+
 describe('weapon interface', () => {
   it('khanda conforms', () => {
     const W = KHANDA; expect(W.combo.length).toBe(5); expect(W.finishers.length).toBe(W.combo.length - 1); for (const c of [...W.combo, ...W.finishers, W.charge, W.heavy, 'flick', 'block', 'parry']) expect(W.clips[c], c).toBeDefined();
@@ -148,9 +171,10 @@ describe('bots', () => {
   /** One fight to the first death on either side. */
   const bout = (seed: number, o: { react: number; acc: number; guard?: boolean; skill?: boolean; defend?: boolean }) => {
     let s = seed * 7919 + 13; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-    const f = new Fight(new Motor(), new King(), new Brain(seed)); f.m.z = 5; let act = -1, what = '', lastAtk = 0, held = -1, flee = 0; const styles = new Set<string>(), modes = new Set<string>(); let r1 = 0;
+    const f = new Fight(new Motor(), new King(), new Brain(seed)); f.m.z = 5; let act = -1, what = '', lastAtk = 0, held = -1, flee = 0; const styles = new Set<string>(), modes = new Set<string>(), used: Record<string, number> = {}; let r1 = 0;
     for (let i = 0; i < 60 * 900; i++) {
       const m = f.m, k = f.king, d = m.targetDist, a = Math.atan2(k.hx - m.x, k.hz - m.z); let p: Press[] = [], go = d > 2.0 ? 1 : 0; styles.add(f.brain.style); modes.add(k.mode);
+      if (f.phase === 'r1') for (const [n, ok] of [['use:skill1', m.can.skill1], ['use:skill2', m.can.skill2], ['use:ultimate', m.can.ultimate]] as const) if (ok) used[n] ??= f.bossHp / f.maxHp;
       if (f.phase === 'scene') { r1 = f.time; f.beginRound2(); }
       for (const e of f.ev) if (e.k === 'cue' && o.defend !== false && rnd() < o.acc) { if (e.strike.kind === 'ground') { flee = i + Math.round((o.react + rnd() * 0.2) * 60); } else { const j = o.react + rnd() * 0.18; act = i + Math.round(Math.max(0.1, Math.min(e.lead - 0.06, Math.max(j, e.lead - 0.22 + (rnd() - 0.5) * 0.2))) * 60); what = o.guard && e.strike.kind === 'white' ? 'guard' : 'dodge'; } }
       const zone = f.hazards.find(h => h.shape !== 'ring' && !h.visual && Math.hypot(m.x - h.x, m.z - h.z) < (h.shape === 'circle' ? h.r + 0.4 : h.len)); let dir = a;
@@ -159,17 +183,17 @@ describe('bots', () => {
       if (act === i) { act = -1; if (what === 'guard') { p = down('guard'); held = i + 40; } else p = tap('dodge'); }
       else if (held === i) { p = up('guard'); held = -1; }
       else if (f.hp < 35 && f.heals > 0 && m.state === 'free' && !k.committed) p = tap('heal');
-      else if (o.skill && m.can.ultimate && d < 8) p = tap('ultimate'); else if (o.skill && m.can.skill2 && d > 5) p = tap('skill2');
+      else if (o.skill && m.can.ultimate && d < 8) p = tap('ultimate'); else if (o.skill && m.can.skill2 && (d > 5 || k.committed)) p = tap('skill2');
       else if (o.skill && f.fire >= D.rush.cost && d < 4 && k.committed) p = tap('skill1');
       else if (d < 2.6 && act < 0 && held < 0 && !fleeing && i - lastAtk > 9) { lastAtk = i; p = tap('attack'); }
       f.step(DT, Math.sin(dir) * go, Math.cos(dir) * go, p);
-      if (f.phase === 'won') return { win: true, t: f.time, r1, styles, modes }; if (m.dead) return { win: false, t: f.time, r1, styles, modes };
+      if (f.phase === 'won') return { win: true, t: f.time, r1, styles, modes, used }; if (m.dead) return { win: false, t: f.time, r1, styles, modes, used };
     }
-    return { win: false, t: 900, r1, styles, modes };
+    return { win: false, t: 900, r1, styles, modes, used };
   };
-  const rate = (o: Parameters<typeof bout>[1], N = 60) => { let w = 0, t = 0, half = 0, r1 = 0; const styles = new Set<string>(), modes = new Set<string>(); for (let i = 1; i <= N; i++) { const r = bout(i, o); if (r.win) { w++; t += r.t; } if (r.r1) { half++; r1 += r.r1; } r.styles.forEach(x => styles.add(x)); r.modes.forEach(x => modes.add(x)); } return { win: w / N, mins: +(t / Math.max(1, w) / 60).toFixed(2), half: half / N, r1mins: +(r1 / Math.max(1, half) / 60).toFixed(2), styles, modes }; };
-  const say = (n: string, r: ReturnType<typeof rate>) => console.log('BOT', n, 'win', r.win.toFixed(2), 'mins', r.mins, 'reach half', r.half.toFixed(2), 'r1 mins', r.r1mins);
-  it('a novice who dodges half the time and mashes usually wins first try', () => { const r = rate({ react: 0.45, acc: 0.5, skill: true }); say('novice', r); expect(r.win).toBeGreaterThanOrEqual(0.8); expect(r.half).toBeGreaterThan(0.9); for (const s of ['executioner', 'crawler', 'hanged', 'blades', 'eclipse']) expect(r.styles.has(s), s).toBe(true); for (const a of Object.keys(ATTACKS)) expect(r.modes.has(a), a).toBe(true); }, 60000);
-  it('dodge-only, guard-only and no-skill players can win', () => { const a = rate({ react: 0.3, acc: 0.65 }), b = rate({ react: 0.3, acc: 0.75, guard: true }); say('dodge', a); say('guard', b); expect(a.win).toBeGreaterThan(0.6); expect(b.win).toBeGreaterThan(0.6); }, 60000);
+  const rate = (o: Parameters<typeof bout>[1], N = 60) => { let w = 0, t = 0, half = 0, r1 = 0; const styles = new Set<string>(), modes = new Set<string>(); let all = 0, ult = 0, low = 1; for (let i = 1; i <= N; i++) { const r = bout(i, o); if (Object.keys(r.used).length === 3) { all++; ult += r.used['use:ultimate']; low = Math.min(low, ...Object.values(r.used)); } if (r.win) { w++; t += r.t; } if (r.r1) { half++; r1 += r.r1; } r.styles.forEach(x => styles.add(x)); r.modes.forEach(x => modes.add(x)); } return { win: w / N, mins: +(t / Math.max(1, w) / 60).toFixed(2), half: half / N, r1mins: +(r1 / Math.max(1, half) / 60).toFixed(2), styles, modes, all: all / N, ult: +(ult / Math.max(1, all)).toFixed(2), low: +low.toFixed(2) }; };
+  const say = (n: string, r: ReturnType<typeof rate>) => console.log('BOT', n, 'win', r.win.toFixed(2), 'mins', r.mins, 'reach half', r.half.toFixed(2), 'r1 mins', r.r1mins, 'all three spells ready in round 1', r.all.toFixed(2), 'Last Rites at', r.ult, 'latest', r.low);
+  it('a novice who dodges half the time and mashes usually wins first try', () => { const r = rate({ react: 0.45, acc: 0.5, skill: true }); say('novice', r); expect(r.win).toBeGreaterThanOrEqual(0.8); expect(r.half).toBeGreaterThan(0.9); expect(r.all, 'every spell is ready well before the King falls').toBe(1); expect(r.low).toBeGreaterThan(0.35); expect(r.mins).toBeLessThan(3); for (const s of ['executioner', 'crawler', 'hanged', 'blades', 'eclipse']) expect(r.styles.has(s), s).toBe(true); for (const a of Object.keys(ATTACKS)) expect(r.modes.has(a), a).toBe(true); }, 60000);
+  it('dodge-only, guard-only and no-skill players can win', () => { const a = rate({ react: 0.3, acc: 0.65 }), b = rate({ react: 0.3, acc: 0.75, guard: true }); say('dodge', a); say('guard', b); expect(a.low).toBeGreaterThan(0.4); expect(a.mins).toBeLessThan(5); expect(a.win).toBeGreaterThan(0.6); expect(b.win).toBeGreaterThan(0.6); }, 60000);
   it('someone who never defends loses', () => { const r = rate({ react: 0, acc: 0, defend: false }); say('never', r); expect(r.win).toBeLessThan(0.15); }, 60000);
 });

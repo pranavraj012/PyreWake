@@ -7,7 +7,7 @@ interface Option { seq: KingMode[]; w: number; near: number; far: number; /** On
 /** A string is several attacks with no rest between. After it there is always an opening. */
 const BOOK: Record<Style, Option[]> = {
   executioner: [
-    { seq: ['slam'], w: 2, near: 0, far: 4.2 }, { seq: ['sweep'], w: 2, near: 0, far: 4.4 }, { seq: ['drag'], w: 3, near: 2.2, far: 6.8 }, { seq: ['leap'], w: 1, near: 0, far: 5 }, { seq: ['leap'], w: 5, near: 5, far: 30 },
+    { seq: ['slam'], w: 2, near: 0, far: 4.2 }, { seq: ['sweep'], w: 2, near: 0, far: 4.4 }, { seq: ['drag'], w: 3, near: 0.8, far: 6.8 }, { seq: ['leap'], w: 1, near: 0, far: 5 }, { seq: ['leap'], w: 5, near: 5, far: 30 },
     { seq: ['drag', 'sweep'], w: 3, near: 2, far: 6.5, below: 0.92 }, { seq: ['sweep', 'slam'], w: 2, near: 0, far: 4.2, below: 0.92 }, { seq: ['grab'], w: 2, near: 0, far: 5, below: 0.9 }, { seq: ['slam', 'drag'], w: 2, near: 0, far: 4.5, below: 0.86 },
   ],
   crawler: [{ seq: ['pounce'], w: 3, near: 2.5, far: 30 }, { seq: ['rake'], w: 3, near: 0, far: 6.5 }, { seq: ['rake', 'pounce'], w: 2, near: 0, far: 6.5 }, { seq: ['rake', 'rake'], w: 1, near: 0, far: 6 }],

@@ -21,6 +21,44 @@ export class Lens {
 }
 class Cues { private done = new Set<string>(); /** Skipped: what was still to come never happens. */ off = false; at(now: number, t: number, id: string, f: () => void) { if (now >= t && !this.done.has(id)) { this.done.add(id); if (!this.off) f(); } } clear() { this.done.clear(); this.off = false; } }
 
+// ---------------------------------------------------------------- why
+export const STORY = [
+  'In this land the dead are burned before dark, or they do not stay dead.',
+  'The King feared the fire. He had himself hanged from the oldest tree, where no flame could reach him.',
+  'He never died. Night fell on the day he should have burned, and it has not lifted since.',
+  'You are the last keeper of the pyres. Burn the King, and let the morning in.',
+];
+const LINE = 5.1;
+export const STORY_LEN = LINE * STORY.length;
+export class Prologue {
+  t = STORY_LEN; /** To black, and how the world is drained. */ dark = 1; mono = 0; ink = 0; /** Height of the pyres. */ flame = 1; omen = 0; private c = new Cues(); private lens = new Lens(); private kit: SceneKit; private fires: THREE.Vector3[];
+  constructor(kit: SceneKit, fires: THREE.Vector3[]) { this.kit = kit; this.fires = fires; }
+  get active() { return this.t < STORY_LEN; }
+  start() { const { f, pv, k1 } = this.kit, k = f.king; this.t = 0; this.c.clear(); this.lens.cut = 0; this.dark = 1; this.flame = 1; this.omen = 0; k.x = 0; k.z = -4; k.yaw = 0; k.set('hang'); k.ht = 4; k.dir = 0; k1.settle(); f.m.revive(0, 15.3, Math.PI); pv.reset(); sound.score?.set('vigil'); }
+  skip() { if (this.active && this.t > 0.6) this.end(); }
+  private end() { this.t = STORY_LEN; this.dark = this.mono = this.ink = this.omen = 0; this.flame = 1; this.kit.hud.verse(''); }
+  step(dt: number, time: number) {
+    const { f, pv, hud, fx } = this.kit, m = f.m, k = f.king, c = this.c; this.t += dt; const t = this.t, i = Math.min(STORY.length - 1, Math.floor(t / LINE)), u = t - i * LINE;
+    STORY.forEach((line, n) => { c.at(t, n * LINE + 0.45, 'l' + n, () => hud.verse(line)); c.at(t, (n + 1) * LINE - 0.55, 'x' + n, () => hud.verse('')); });
+    this.dark = Math.max(0, 1 - u / 0.7, (u - (LINE - 0.45)) / 0.4); this.mono = 0.96; this.ink = 0.75;
+    if (i < 2 || k.mode === 'hang') { if (k.mode !== 'hang') k.set('hang'); k.th = Math.sin(t * 0.9) * 0.07; k.mt = 0; }
+    c.at(t, LINE + 0.8, 'creak', () => sound.play('creak', { gain: 0.6, wet: 0.8 })); c.at(t, LINE + 3, 'creak2', () => sound.play('creak', { gain: 0.5, wet: 0.8 }));
+    // the fires go out, and stay out, until a hand closes on one
+    this.flame = i < 2 ? 1 : i === 2 ? 1 - E(0.8, 3.4, u) : 0.06 + 0.94 * E(2.0, 3.0, u); this.omen = i === 2 ? 0.34 * E(0.4, 3.6, u) : 0;
+    c.at(t, LINE * 2 + 0.9, 'out', () => { sound.play('vanish', { gain: 0.5, rate: 0.6, wet: 0.9 }); sound.play('kBreath', { bus: 'voice', gain: 0.7, wet: 0.9, rate: 0.7 }); });
+    c.at(t, LINE * 3 + 0.05, 'hand', () => { m.begin('clench'); pv.ember = 0.3; sound.play('heart', { gain: 0.9 }); });
+    c.at(t, LINE * 3 + 1.4, 'catch', () => { pv.ember = 2; sound.play('fire', { gain: 0.8, wet: 0.5 }); sound.play('heart', { gain: 0.8 }); pv.boomAt.set(m.x, 1.3, m.z - 0.4); pv.boomK = 0.25; fx.sparks.emit(V(m.x - 0.1, 1.35, m.z - 0.45), V(0, 0.8, 0), 40, 1.4, 1.8, -1.4, time); });
+    if (t >= STORY_LEN) this.end();
+  }
+  camera(cam: THREE.PerspectiveCamera, time: number) {
+    const t = this.t, m = this.kit.f.m, L = this.lens, i = Math.min(3, Math.floor(t / LINE)), u = (t - i * LINE) / LINE, p = this.fires[4] ?? this.fires[0], r = Math.hypot(p.x, p.z), ox = p.x / r, oz = p.z / r;
+    if (i === 0) L.aim(cam, 1, V(p.x - ox * (4.6 - u * 0.9) + oz * 1.5, 0.7 + u * 0.2, p.z - oz * (4.6 - u * 0.9) - ox * 1.5), V(p.x, 1.35, p.z), 40, time);
+    else if (i === 1) L.aim(cam, 2, V(1.9 - u * 0.6, 0.6 + u * 0.3, 3.4 - u * 0.8), V(-0.1, 2.5 + u * 0.3, -4), 46, time, -0.03);
+    else if (i === 2) L.aim(cam, 3, V(5 - u * 2.2, 2.0 + u * 1.2, 12 - u * 1.2), V(-5, 7.6 + u * 0.6, -18), 54, time);
+    else L.aim(cam, 4, V(m.x - 0.75 + u * 0.2, 1.42 + u * 0.08, m.z - 1.35 + u * 0.25), V(m.x + 0.02, 1.36 + u * 0.16, m.z), 36 - u * 3, time);
+  }
+}
+
 // ---------------------------------------------------------------- the way in
 export const INTRO_LEN = 17.0;
 /** Where the King kneels until it is woken. */
@@ -46,7 +84,7 @@ export class Intro {
     c.at(t, 8.7, 'b1', () => sound.play('kBreath', { gain: 1.1, wet: 0.6, x: 0, z: -4, bus: 'voice', rate: 0.85 })); c.at(t, 9.9, 'tick', () => { sound.play('bone', { gain: 0.7, wet: 0.6 }); });
     c.at(t, 10.5, 'hb', () => sound.play('heart', { gain: 0.9 }));
     // it gets up the wrong way
-    c.at(t, 11.0, 'wake', () => { k.mt = k.prev = 4.55; sound.score?.set('reveal'); });
+    c.at(t, 11.0, 'wake', () => { k.mt = k.prev = 4.55; });
     c.at(t, 11.2, 'j1', () => { sound.play('crackBone', { gain: 0.9, wet: 0.5 }); sound.play('bone', { gain: 0.9 }); this.lens.trauma = 0.5; }); c.at(t, 11.72, 'j2', () => { sound.play('crackBone', { gain: 1, wet: 0.5 }); sound.play('thud', { gain: 0.5 }); this.lens.trauma = 0.6; });
     c.at(t, 12.3, 'j3', () => { sound.play('crackBone', { gain: 1, wet: 0.5 }); this.lens.trauma = 0.5; });
     c.at(t, 12.75, 'roar', () => { sound.play('kScreech', { gain: 1, wet: 0.6, bus: 'voice' }); sound.duck(0.4, 0.8); this.lens.trauma = 0.9; hud.say('The Hanged King', 2.0, 'title'); fx.puffs.emit(V(0, 0, -4), 18, 3, 1.6, time); fx.bursts.add('ground', V(0, 0.06, -4), 9, 0.9, time, 0, 0.7, 0.3, 0.1); });
@@ -92,7 +130,7 @@ export class Ending {
     c.at(t, 11.5, 'eye', () => { sound.play('heart', { gain: 0.6 }); });
     if (t > 11.6 && t < 14.2) pv.ember = Math.max(0.2, pv.ember - dt * 0.6);
     c.at(t, 14.2, 'rest', () => { m.begin('flick'); sound.play('whooshH', { gain: 0.5 }); });
-    c.at(t, 14.9, 'title', () => { hud.say('The Pyre Is Fed', 3.4, 'victory'); sound.play('bra', { gain: 0.5, bus: 'music', wet: 0.7 }); sound.play('cho', { gain: 0.6, bus: 'music', wet: 0.9 }); sound.play('sub', { gain: 0.5 }); });
+    c.at(t, 14.9, 'title', () => { hud.say('Morning, at Last', 3.6, 'victory', 'The dead lie still. The fire remembers their names.'); sound.play('bra', { gain: 0.5, bus: 'music', wet: 0.7 }); sound.play('cho', { gain: 0.6, bus: 'music', wet: 0.9 }); sound.play('sub', { gain: 0.5 }); });
     if (t >= END_LEN && !this.over) { this.over = true; this.clear = 1; this.dawn = 1; document.body.classList.remove('cine'); hud.won(f); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {

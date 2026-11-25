@@ -112,6 +112,8 @@ export class Motor {
   guardHit(from: number, parry: boolean) { this.yaw = from; this.moveYaw = from; this.buf = null; this.didFlick = false; this.begin(parry ? 'parry' : 'block'); }
   die() { this.dead = true; this.buf = null; this.hold = -1; this.guarding = false; this.begin('die'); }
   revive(x: number, z: number, yaw: number) { Object.assign(this, { x, z, yaw, vx: 0, vz: 0, speed: 0, dead: false, hold: -1, combo: 0, safe: 0, calm: 99, guarding: false, y: 0, vy: 0, sky: 0 }); this.didFlick = true; this.buf = null; this.end(); }
+  /** A button came up while the world was waiting. */
+  drop(a: string) { if (a === 'guard') { this.guardHeld = false; this.guardGap = 1; } if (a === 'attack') this.hold = -1; }
   /** Guard stops a blow in these states, including mid-flinch while the button is still down. */
   get guardUp() { return this.guarding || (this.guardHeld && this.state === 'clip' && (this.clip?.name === 'block' || this.clip?.name === 'parry')); }
 
@@ -171,7 +173,7 @@ export class Motor {
       else if (this.t >= c.dur) { if (c.name === 'finale') { this.yaw = wrap(this.yaw + Math.PI); this.moveYaw = this.yaw; this.events.push('about'); } this.end(); }
     }
     if (this.state === 'free') {
-      this.guarding = this.guardHeld; if (this.guarding) this.guardedT = 0;
+      this.guarding = this.guardHeld || this.guardT < D.parry; if (this.guarding) this.guardedT = 0; // a quick tap still parries
       if (this.buf?.a === 'dodge') { this.buf = null; this.dodge(mx, mz); }
       else if (this.buf?.a === 'jump') { this.buf = null; this.jump(mx, mz); }
       else if (this.buf?.a === 'skill1') { this.buf = null; this.rush(mx, mz); }

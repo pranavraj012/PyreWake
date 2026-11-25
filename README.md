@@ -25,6 +25,10 @@ You are the Pyrekeeper, a human who tends the cremation fires and has died once 
 | ![The hanging style](docs/media/cue.jpg) | ![Round 2](docs/media/round2.jpg) |
 | ![Second Flame](docs/media/flame.jpg) | ![Phone](docs/media/phone.jpg) |
 
+**Why you are here:** in this land the dead are burned before dark, or they do not stay dead. The King had himself hanged where no flame could reach him, and the night has not lifted since.
+
+The first time you play, a short training teaches every move: the King waits, and the world holds still until you press the right button. It can be skipped, and replayed from the menu.
+
 **One rule for reading danger:** a white star means dodge *or* guard, a red diamond means dodge, glowing ground means move, or jump as it goes off. Each differs in shape and sound as well as colour.
 
 **Round 1, the Hanged King:** fights on two feet, then on all fours, then hanging upside down from the tree, where its head swings at sword height.
@@ -78,7 +82,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Motion | a small clip language over named pose channels, solved with two-bone IK, foot locking, inertialised blending, and simulated cloth and hair |
 | Combat | 60 Hz fixed step with no rendering imports, so whole fights run headless in tests |
 | Rendering | three.js (WebGL 2) with one layered surface shader, own HDR chain, height fog, GPU particles |
-| Sound | 155 sounds synthesised sample by sample in a worker (modal metal, formant voices, debris, fire), a court reverb, and an adaptive score |
+| Sound | 155 sounds synthesised sample by sample in a worker (modal metal, formant voices, debris, fire) and a court reverb; music is six CC0 recordings that follow the fight (see `LICENSES.md`), with a synthesised score standing in until they load |
 | Checks | unit tests, bots that play hundreds of headless fights, per-tier performance budgets, scripted screenshots |
 
 ```

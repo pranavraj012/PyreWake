@@ -3,15 +3,13 @@ import { D } from '../combat/difficulty.ts';
 import type { Fight } from '../combat/fight.ts';
 import type { Action, Input } from '../input/input.ts';
 import { ICON } from '../input/touch.ts';
+import { label } from '../input/bindings.ts';
+import type { Card } from '../game/lessons.ts';
 import type { Prompts } from './prompts.ts';
 import { sound } from '../audio/sound.ts';
 import { saveSettings, settings, settingsPanel } from '../core/settings.ts';
 import { canFullscreen, isFullscreen, onFullscreen, setFullscreen } from '../core/fullscreen.ts';
 
-const KEY: Record<'keys' | 'pad', Partial<Record<Action | 'move', string>>> = {
-  keys: { move: 'W A S D', attack: 'Left click', dodge: 'Space', jump: 'C', guard: 'Right click', skill1: 'Q', skill2: 'E', ultimate: 'R', heal: 'F' },
-  pad: { move: 'Left stick', attack: 'X', dodge: 'B', jump: 'A', guard: 'LB', skill1: 'RB', skill2: 'RT', ultimate: 'L3 + R3', heal: 'D-pad up' },
-};
 const LINES: [Action | 'move', string][] = [['move', 'Move'], ['attack', 'Attack (hold: heavy)'], ['dodge', 'Dodge'], ['jump', 'Jump (Attack in the air)'], ['guard', 'Guard (hold)'], ['skill1', 'Cinder Rush'], ['skill2', 'Sunder Arc'], ['ultimate', 'Last Rites'], ['heal', 'Heal']];
 
 export class Hud {
@@ -25,20 +23,20 @@ export class Hud {
     this.root.innerHTML = `<div class="me"><div class="bar hp"><b></b><u></u></div><div class="bar fire"><u></u><s style="left:${D.rush.cost / D.fireMax * 100}%"></s><s style="left:${D.sunder.cost / D.fireMax * 100}%"></s></div><div class="aura"><i></i><i></i><i></i><i></i><em></em></div></div>
 <div class="boss"><div class="name">The Hanged King</div><div class="bar"><b></b><u></u></div></div>
 <div class="ab"><div class="sk ult" data-a="ultimate"><i></i><svg viewBox="0 0 24 24">${ICON.ultimate}</svg><kbd></kbd></div><div class="sk" data-a="skill2"><i></i><svg viewBox="0 0 24 24">${ICON.skill2}</svg><kbd></kbd></div><div class="sk" data-a="skill1"><i></i><svg viewBox="0 0 24 24">${ICON.skill1}</svg><kbd></kbd></div><div class="sk" data-a="heal"><svg viewBox="0 0 24 24">${ICON.heal}</svg><em></em><kbd></kbd></div></div>
-<div class="prompt"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div><div class="banner"></div><div class="call"></div>
-<div class="win"><h2>The Pyre Is Fed</h2><table></table><div><button data-b="again">Fight again</button> <button data-b="menu">Main menu</button></div></div>
-<div class="pause"><h2>Paused</h2><div class="cols"><table></table></div><div><button data-b="go">Resume</button><button data-b="re">Restart fight</button>${canFullscreen ? '<button data-b="fs">Full screen</button>' : ''}<button data-b="mu">Sound: on</button><button data-b="menu">Main menu</button></div></div>`;
+<div class="prompt"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div><div class="banner"></div><div class="verse"></div><div class="call"></div><div class="lesson"><div class="pips"></div><h3></h3><p></p></div><div class="press"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div>
+<div class="win"><h2>Morning, at Last</h2><table></table><div><button data-b="again">Fight again</button> <button data-b="menu">Main menu</button></div></div>
+<div class="pause"><h2>Paused</h2><div class="cols"><table></table></div><div><button data-b="go">Resume</button><button data-b="re">Restart fight</button><button data-b="sk">Skip training</button>${canFullscreen ? '<button data-b="fs">Full screen</button>' : ''}<button data-b="mu">Sound: on</button><button data-b="menu">Main menu</button></div></div>`;
     app.append(this.root); this.q('.pause .cols').append(settingsPanel());
     this.q<HTMLButtonElement>('.win [data-b=menu]').onclick = () => { document.body.classList.remove('won'); this.onMenu(); };
     const fs = this.root.querySelector('[data-b=fs]'); if (fs) onFullscreen(() => { fs.textContent = isFullscreen() ? 'Leave full screen' : 'Full screen'; });
     this.q<HTMLButtonElement>('.win button').onclick = () => { document.body.classList.remove('won'); this.onRestart(); };
-    for (const b of this.root.querySelectorAll<HTMLButtonElement>('.pause button[data-b]')) b.onclick = () => { const k = b.dataset.b; if (k === 'fs') { void setFullscreen(!isFullscreen()); return; } if (k === 'mu') { sound.setMuted(!sound.muted); b.textContent = 'Sound: ' + (sound.muted ? 'off' : 'on'); return; } this.setPaused(false); if (k === 're') this.onRestart(); if (k === 'menu') this.onMenu(); };
+    for (const b of this.root.querySelectorAll<HTMLButtonElement>('.pause button[data-b]')) b.onclick = () => { const k = b.dataset.b; if (k === 'fs') { void setFullscreen(!isFullscreen()); return; } if (k === 'mu') { sound.setMuted(!sound.muted); b.textContent = 'Sound: ' + (sound.muted ? 'off' : 'on'); return; } this.setPaused(false); if (k === 're') this.onRestart(); if (k === 'sk') this.onSkip(); if (k === 'menu') this.onMenu(); };
   }
   /** Paint every lit state once behind the loading screen: the browser compiles these effects on first sight, which costs a 70 ms stall mid-fight. */
   warm(on: boolean) {
     this.root.classList.toggle('lit', on); this.root.classList.toggle('low', on); document.body.classList.toggle('warming', on);
     for (const e of document.querySelectorAll<HTMLElement>('.sk, .tb')) { e.classList.toggle('ready', on); e.classList.toggle('hint', on); e.style.setProperty('--k', on ? '0.6' : '0'); }
-    const p = this.q('.prompt'); p.className = 'prompt' + (on ? ' on red' : ''); const b = this.q('.banner'); b.className = 'banner' + (on ? ' on' : ''); b.textContent = on ? 'The Pyre Is Fed' : ''; const c = this.q<HTMLElement>('.call'); c.textContent = on ? 'Broken Kindled Ablaze Pyre Wake Last Rites ready' : ''; c.classList.toggle('on', on);
+    const p = this.q('.prompt'); p.className = 'prompt' + (on ? ' on red' : ''); const b = this.q('.banner'); b.className = 'banner' + (on ? ' on' : ''); b.textContent = on ? 'Morning, at Last' : ''; const c = this.q<HTMLElement>('.call'); c.textContent = on ? 'Broken Kindled Ablaze Pyre Wake Last Rites ready' : ''; c.classList.toggle('on', on);
   }
   setPaused(p: boolean) {
     this.paused = p; document.body.classList.toggle('paused', p); if (p) document.exitPointerLock?.();
@@ -46,9 +44,21 @@ export class Hud {
   }
   /** Rows of the controls table for whatever is being used. */
   controls() {
-    const dev = this.input.lastDevice; return LINES.map(([a, t]) => `<tr><td>${dev === 'touch' ? `<svg viewBox="0 0 24 24">${ICON[a] ?? '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>'}</svg>` : `<kbd>${KEY[dev][a]}</kbd>`}</td><td>${t}</td></tr>`).join('');
+    const dev = this.input.lastDevice; return LINES.map(([a, t]) => `<tr><td>${dev === 'touch' ? `<svg viewBox="0 0 24 24">${ICON[a] ?? '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>'}</svg>` : `<kbd>${label(a, dev)}</kbd>`}</td><td>${t}</td></tr>`).join('');
   }
-  say(text: string, secs: number, cls = '') { const b = this.q('.banner'); b.textContent = text; b.className = 'banner on ' + cls; this.banner = secs; }
+  onSkip: () => void = () => { };
+  /** A line of the story. Empty clears it. */
+  verse(text: string) { const v = this.q('.verse'); if (text) v.textContent = text; v.classList.toggle('on', !!text); }
+  private shown = '';
+  /** The training card, or null. */
+  lesson(c: Card | null) {
+    const dev = this.input.lastDevice, key = c ? [c.id, c.title, c.text, c.action, c.held, c.ok, dev].join('|') : ''; if (key === this.shown) return; this.shown = key; document.body.classList.toggle('training', !!c); document.body.classList.toggle('held', !!c?.held);
+    const L = this.q('.lesson'), P = this.q('.press'); L.classList.toggle('on', !!c); for (const b of document.querySelectorAll('.tb.hint')) b.classList.remove('hint'); if (!c) { P.className = 'press'; return; }
+    L.classList.toggle('ok', c.ok); this.q('.lesson h3').textContent = c.title; this.q('.lesson p').textContent = c.text; this.q('.lesson .pips').innerHTML = Array.from({ length: c.of }, (_, i) => `<i class="${i < c.n || (i === c.n && c.ok) ? 'done' : i === c.n ? 'now' : ''}"></i>`).join('');
+    P.className = 'press' + (c.ok ? '' : ' on') + (c.held ? ' held' : '') + (dev === 'touch' ? ' touchy' : ''); const t = dev === 'touch', k = this.q('.press kbd'), v = this.q('.press svg'); k.style.display = t ? 'none' : ''; v.style.display = t && c.action !== 'move' ? '' : 'none';
+    if (t) { if (c.action !== 'move') { v.innerHTML = ICON[c.action] ?? ''; if (!c.ok) document.querySelector('.tb-' + c.action)?.classList.add('hint'); } } else k.textContent = label(c.action, dev); this.q('.press span').textContent = c.hold ? 'Hold' : !t ? '' : c.action === 'move' ? 'Drag on the left' : c.held ? 'Tap' : '';
+  }
+  say(text: string, secs: number, cls = '', under = '') { const b = this.q('.banner'); b.textContent = text; if (under) { const u = document.createElement('small'); u.textContent = under; b.append(u); } b.className = 'banner on ' + cls; this.banner = secs; }
   /** Big word at the side: aura steps, readiness. */
   callout(text: string) { const c = this.q('.call'); c.textContent = text; c.classList.remove('on'); void c.offsetWidth; if (text) c.classList.add('on'); }
   /** The boss's bar takes the blow too. */
@@ -70,14 +80,14 @@ export class Hud {
     for (const [a, r] of [['skill1', f.fire / D.rush.cost], ['skill2', f.fire / D.sunder.cost], ['ultimate', f.wake / 100]] as const) for (const e of document.querySelectorAll<HTMLElement>(`.sk[data-a="${a}"], .tb-${a}`)) { e.style.setProperty('--k', Math.min(1, r).toFixed(3)); e.classList.toggle('ready', r >= 1); }
     if (f.aura !== L.aura || f.round !== L.round || f.flame !== L.flame) { L.aura = f.aura; L.round = f.round; L.flame = f.flame; this.root.querySelectorAll('.aura i').forEach((e, i) => e.classList.toggle('on', i < f.aura)); this.q('.aura em').textContent = ['', 'Kindled', 'Ablaze', 'Pyre', 'Wake'][f.aura]; this.q('.boss .name').textContent = f.round === 2 ? 'The One Beneath' : 'The Hanged King'; this.q('.hp').classList.toggle('flame', f.flame); this.root.classList.toggle('two', f.round === 2); }
     if (f.heals !== L.heals) { L.heals = f.heals; this.q('.ab em').textContent = String(f.heals); const c = document.querySelector('.tb-heal i'); if (c) c.textContent = `Heal ${f.heals}`; for (const e of document.querySelectorAll('.sk[data-a="heal"], .tb-heal')) e.classList.toggle('empty', f.heals === 0); }
-    const dev = this.input.lastDevice; if (dev !== L.dev) { L.dev = dev; L.prompt = '?'; for (const a of ['skill1', 'skill2', 'ultimate', 'heal'] as const) this.q(`.sk[data-a="${a}"] kbd`).textContent = dev === 'touch' ? '' : KEY[dev][a]!; }
+    const dev = this.input.lastDevice; if (dev !== L.dev) { L.dev = dev; L.prompt = '?'; for (const a of ['skill1', 'skill2', 'ultimate', 'heal'] as const) this.q(`.sk[data-a="${a}"] kbd`).textContent = dev === 'touch' ? '' : label(a, dev); }
     const cur = p.current, id = cur?.id ?? '';
     if (id !== L.prompt) {
       L.prompt = id; const el = this.q('.prompt'); el.className = 'prompt' + (cur ? ' on ' + (cur.tone ?? '') : '');
       for (const b of document.querySelectorAll('.tb.hint')) b.classList.remove('hint');
       if (cur) {
         const kbd = this.q('.prompt kbd'), svg = this.q('.prompt svg'), t = dev === 'touch'; kbd.style.display = t ? 'none' : ''; svg.style.display = t && cur.action !== 'move' ? '' : 'none';
-        if (t) { svg.innerHTML = ICON[cur.action] ?? ''; document.querySelector('.tb-' + cur.action)?.classList.add('hint'); } else kbd.textContent = KEY[dev][cur.action] ?? '';
+        if (t) { svg.innerHTML = ICON[cur.action] ?? ''; document.querySelector('.tb-' + cur.action)?.classList.add('hint'); } else kbd.textContent = label(cur.action, dev);
         this.q('.prompt span').textContent = t && cur.action === 'move' ? 'Drag on the left side to move' : cur.text;
       }
     }

@@ -1,4 +1,4 @@
-// node tools/scenes.mjs [intro,turn,ending,rites,jump,break,media] [--phone] : films the set pieces into shots_out/sc_*.jpg
+// node tools/scenes.mjs [story,lessons,intro,turn,ending,rites,jump,break,media] [--phone] : films the set pieces into shots_out/sc_*.jpg
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 import sharp from 'sharp'; import fs from 'node:fs';
@@ -22,7 +22,22 @@ const clip = (n, times, cols) => sheet(n, times.map(t => t), new Function('t', `
 const set = (gap, extra = '') => p.evaluate(([gap, extra]) => { __f.passive = true; __king.x = 0; __king.z = -3; __king.yaw = 0; __king.set('idle'); __m.revive(0, -3 + gap, Math.PI); new Function(extra)(); }, [gap, extra]);
 await go('intro', async () => {
   await open('x'); await one('menu'); await p.evaluate(() => document.querySelector('[data-b=play]').click());
-  await sheet('intro', [0.4, 1.6, 2.6, 3.6, 4.4, 5.4, 6.2, 7.0, 7.8, 8.6, 9.6, 10.6, 11.2, 11.8, 12.4, 12.9, 13.5, 14.1, 14.6, 15.0, 15.6, 16.2, 16.8, 17], t => __intro.t >= t); await p.waitForTimeout(1200); await one('after_intro');
+  await until(() => __story.t > 1); await p.keyboard.press('j'); await until(() => __intro.active); await sheet('intro', [0.4, 1.6, 2.6, 3.6, 4.4, 5.4, 6.2, 7.0, 7.8, 8.6, 9.6, 10.6, 11.2, 11.8, 12.4, 12.9, 13.5, 14.1, 14.6, 15.0, 15.6, 16.2, 16.8, 17], t => __intro.t >= t); await p.waitForTimeout(1200); await one('after_intro');
+});
+await go('story', async () => {
+  await open('x'); await p.evaluate(() => document.querySelector('[data-b=play]').click());
+  await sheet('story', [0.5, 1.2, 2.6, 4.2, 4.9, 5.6, 6.6, 8.2, 9.8, 10.6, 11.4, 12.6, 13.8, 15.0, 15.7, 16.4, 17.2, 18.2, 19.4, 20.2], t => __story.t >= t);
+});
+await go('lessons', async () => {
+  await open('x'); await p.evaluate(() => document.querySelector('[data-b=train]').click()); await p.waitForTimeout(400);
+  // a pupil at the keyboard
+  await p.evaluate(() => { const K = { attack: 'KeyJ', dodge: 'Space', jump: 'KeyC', guard: 'KeyK', skill1: 'KeyQ', skill2: 'KeyE', ultimate: 'KeyR', heal: 'KeyF' }, key = (t, c) => dispatchEvent(new KeyboardEvent(t, { code: c })); let busy = 0, w = false, held = 0; window.__log = []; let last = '';
+    setInterval(() => { const L = __lessons, c = L.card, now = performance.now(); if (!L.active) { if (w) { key('keyup', 'KeyW'); w = false; } return; } const k = c ? c.id + ' ' + c.title : ''; if (k !== last) { last = k; __log.push(k); } const far = __m.targetDist > 2.5 && c && !c.held && /^(move|attack|heavy|rush|rites)$/.test(c.id); if (far !== w) { key(far ? 'keydown' : 'keyup', 'KeyW'); w = far; } if (!c || now < busy) return;
+      const press = (a, ms) => { key('keydown', K[a]); setTimeout(() => key('keyup', K[a]), ms); busy = now + ms + 120; };
+      if (L.frozen) { held ||= now; if (now - held > 700) { held = 0; press(L.frozen, c.hold ? 650 : 70); } } else { held = 0; if (c.ok) return; if (c.id === 'attack' && !far) press('attack', 60); else if (c.id === 'heavy' && !far && __m.state === 'free') press('attack', 700); else if (c.id === 'rush') press('skill1', 60); else if (c.id === 'heal') press('heal', 60); else if (c.title.startsWith('Once') && __king.strikes?.length && __king.mt > __king.strikes[0].t[0] - 0.22) press('dodge', 60); } }, 16); });
+  const shots = []; const snap = async n => { shots.push(n); await one('les_' + n); };
+  for (const [n, f] of [['move', () => __lessons.card?.id === 'move'], ['attack', () => __lessons.card?.id === 'attack' && __m.clip], ['dodge', () => __lessons.frozen === 'dodge' && __lessons.mono > 0.5], ['answer', () => __lessons.card?.title === 'Answer' && __lessons.mono > 0.5], ['guard', () => __lessons.frozen === 'guard' && __lessons.mono > 0.4], ['jump', () => __lessons.frozen === 'jump' && __lessons.mono > 0.4], ['air', () => __lessons.card?.title === 'In the air' && __lessons.mono > 0.4], ['sunder', () => __lessons.frozen === 'skill2' && __lessons.mono > 0.4], ['rites', () => __lessons.frozen === 'ultimate' && __lessons.mono > 0.4], ['begun', () => !__lessons.active]]) { await until(f, null, 60000); await snap(n); }
+  await p.waitForTimeout(900); await one('les_after'); console.log('lessons:', (await p.evaluate(() => __log)).join(' > ')); const ok = await p.evaluate(() => !__f.passive && __f.hp === 100 && __f.bossHp === __f.maxHp && JSON.parse(localStorage.pyrewake).learned); if (!ok) errs.push('training did not hand over to the fight');
 });
 await go('turn', async () => {
   await open('turn'); await p.evaluate(() => { __f.passive = true; __king.x = 0; __king.z = -3; __m.revive(0, -1.2, Math.PI); __m.begin('light1'); }); await until(() => __turn.t >= 0);

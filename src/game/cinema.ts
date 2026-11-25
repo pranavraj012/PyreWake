@@ -15,7 +15,7 @@ export class Turn {
   start() { this.t = 0; this.off = false; this.done.clear(); this.burst = false; this.omen = this.dawn = this.mono = 0; this.lens.cut = 0; const { m, king: k } = this.kit.f; this.A.k.set(k.x, 0, k.z); this.A.d.set(m.x - k.x, 0, m.z - k.z).normalize(); if (Math.hypot(m.x - k.x, m.z - k.z) < 3) { m.revive(k.x + this.A.d.x * 3, k.z + this.A.d.z * 3, Math.atan2(-this.A.d.x, -this.A.d.z)); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.play('kDeath', { x: k.x, z: k.z, bus: 'voice', gain: 1 }); sound.duck(0.15, 2); sound.score?.set('scene'); }
   private off = false; private at(t: number, id: string, f: () => void) { if (this.t >= t && !this.done.has(id)) { this.done.add(id); if (!this.off) f(); } }
   /** Straight to the end state. */
-  skip() { if (!this.active || this.t < 0.8) return; this.become(); this.kit.f.king.mt = this.kit.f.king.prev = 4.6; this.off = true; this.t = TURN_LEN; }
+  skip() { if (!this.active || this.t < 0.8) return; this.become(); this.kit.hud.verse(''); this.kit.f.king.mt = this.kit.f.king.prev = 4.6; this.off = true; this.t = TURN_LEN; }
   private become() {
     if (this.burst) return; this.burst = true; const { f, k1, k2 } = this.kit, { king: k, m } = f; k1.show(false); this.dis.value = 0; k.form = 2; k.armed = false; k.crawling = false; k.set('rise2'); k.x = 0; k.z = -3; k.y = 0; k.yaw = 0; k2.show(true); k2.settle(); if (Math.hypot(m.x, m.z - 4.6) > 0.8) m.revive(0, 4.6, Math.PI);
   }
@@ -26,7 +26,7 @@ export class Turn {
     // it looks, and sounds, exactly like the end
     this.dawn = 0.6 * E(2.8, 5, t) * (1 - E(7.1, 7.5, t));
     this.at(2.6, 'relocate', () => { k.x = 0; k.z = -3; k.yaw = 0; k.set('fall'); k.mt = k.prev = 2.6; m.revive(0, 1.6, 0); pv.reset(); k1.settle(); sound.score?.set('won'); });
-    this.at(3.3, 'title', () => { hud.say('The Rope Lets Go', 3.2, 'victory'); sound.play('cho', { gain: 0.5, bus: 'music', wet: 0.9 }); });
+    this.at(3.3, 'title', () => { hud.say('The Long Night Breaks', 3.3, 'victory', 'The King has fallen, and the sky goes grey.'); sound.play('cho', { gain: 0.5, bus: 'music', wet: 0.9 }); });
     f.sceneMove.z = t > 2.7 && t < 7.2 ? 0.4 : 0; f.sceneMove.x = 0;
     // behind him, out of his sight
     this.at(5.5, 'lift', () => { k.set('hang'); k.ht = 0; k.dir = 0; sound.play('creak', { x: 0, z: -3, gain: 0.35, wet: 0.8 }); });
@@ -41,6 +41,7 @@ export class Turn {
     this.at(15.5, 'burst', () => { this.become(); this.mono = 1; const c = V(0, 2, -3); for (let i = 0; i < 5; i++) fx.bursts.add('fire', c.clone().add(V((Math.random() - 0.5) * 1.6, Math.random() * 1.4 - 0.4, 0)), 3.4, 0.8, time + i * 0.04, i); fx.bursts.add('flare', c, 10, 0.4, time); fx.bursts.add('ground', V(0, 0.06, -3), 10, 0.8, time); fx.sparks.emit(c, V(0, 0.4, 0.3), 160, 7, 2.2, 1, time); fx.sparks.emit(c, V(0, 0.2, 0), 60, 3, 2.4, -2, time); fx.gore.emit(c, V(0, 0.3, 0.4), 90, 6, 2, 1.2, time); fx.puffs.emit(V(0, 0, -3), 16, 3.5, 1.8, time); pv.boomAt.set(0, 2, -3); pv.boomK = 1; L.trauma = 1; sound.play('boom', { gain: 1, x: 0, z: -3 }); sound.play('slam', { gain: 0.8, x: 0, z: -3, delay: 0.12 }); });
     // one pair of arms after another
     for (const [i, at] of [16.9, 17.35, 17.8].entries()) this.at(at, 'arm' + i, () => { sound.play('crackBone', { gain: 1, x: 0, z: -3, wet: 0.5, rate: 1 - i * 0.12 }); sound.play('taiko', { bus: 'music', gain: 0.9, wet: 0.4 }); L.trauma = Math.max(L.trauma, 0.55 + i * 0.1); fx.sparks.emit(V(0, 1.2, -3), V(0, 0.6, 0), 24, 3, 2.2, -1, time); });
+    this.at(15.9, 'verse', () => hud.verse('He was only what it wore.')); this.at(18.2, 'verseOff', () => hud.verse(''));
     this.at(16.5, 'br', () => sound.play('kBreath', { x: 0, z: -3, bus: 'voice', gain: 1.4, rate: 0.75 }));
     this.at(18.45, 'roar', () => { sound.play('bRoar', { bus: 'voice', gain: 1.05, x: 0, z: -3, wet: 0.6 }); sound.score?.set('reveal'); hud.say('The One Beneath', 3.8, 'title'); });
     this.at(18.6, 'shock', () => { fx.bursts.add('ground', V(0, 0.06, -3), 26, 1.2, time); for (let i = 0; i < 9; i++) { const a = Math.PI + (i - 0.5) / 8 * Math.PI; fx.bursts.add('pillar', V(Math.cos(a) * 4, 0, -3.4 + Math.sin(a) * 4), 2.8, 0.9, time + 0.05); } fx.sparks.emit(V(0, 1.5, -3), V(0, 0.5, 0), 140, 8, 2.4, -2.4, time); sound.play('fire', { gain: 1, wet: 0.5 }); m.moveYaw = m.yaw; m.begin('block'); });

@@ -58,7 +58,13 @@ export class Fight {
 
   /** Advances by real dt; returns the simulated time that passed (0 while frozen on a hit). */
   step(dt: number, mx: number, mz: number, presses: Press[]): number {
-    this.ev.length = 0; const m = this.m, k = this.king;
+    this.ev.length = 0; this.ev.push(...this.carry); this.carry.length = 0; this.inStep = true; try { return this.advance(dt, mx, mz, presses); } finally { this.inStep = false; }
+  }
+  private carry: FightEvent[] = []; private inStep = false;
+  /** Raised from outside (a button, a scene): kept for the next step so nobody misses it. */
+  private raise(e: FightEvent) { (this.inStep ? this.ev : this.carry).push(e); }
+  private advance(dt: number, mx: number, mz: number, presses: Press[]): number {
+    const m = this.m, k = this.king;
     if (this.phase === 'scene' || this.phase === 'won') { this.queue.length = 0; presses = []; mx = this.sceneMove.x; mz = this.sceneMove.z; }
     this.queue.push(...presses);
     if (this.stop > 0) { this.stop -= dt; m.events.length = 0; k.cues.length = 0; return 0; }
@@ -83,6 +89,8 @@ export class Fight {
     if (!k.helpless) this.hero = false;
     const frozen = m.clip?.name === 'rites' && m.t < 3.6; // the world holds its breath
     if (!this.passive && !m.dead && live && !frozen) { this.brain.step(dt, k, m.x, m.z, this.hits, this.bossHp / this.maxHp); if (this.brain.began) this.ev.push({ k: 'style', style: this.brain.began }); if (this.brain.style === 'eclipse' && this.bossHp / this.maxHp < 0.36 && this.wake < 100 && !this.granted) { this.granted = true; this.wake = 100; } }
+    // every fire is in your hands before the King falls
+    if (this.phase === 'r1' && !this.passive && !this.gifted && this.bossHp < this.maxHp * D.gift) { this.gifted = true; this.wake = 100; this.fire = Math.max(this.fire, D.sunder.cost); }
     if (this.phase === 'finish' && k.mode === 'kneel' && k.mt > 1.6) k.mt = k.prev = 1.6;
     if (this.phase === 'won' && k.mode === 'die2' && k.mt > 5.3) k.mt = k.prev = 5.3;
     if (!frozen) { k.pace = (this.round === 2 ? (this.brain.style === 'eclipse' ? 1.1 : 1.04) : 1) * D.temper[this.brain.temper].pace; k.step(dt, m.x, m.z); } else { k.cues.length = k.live.length = 0; k.ended = null; }
@@ -93,7 +101,7 @@ export class Fight {
     if (this.deadT >= 0 && (this.deadT += dt) > 3.0) this.reset();
     return dt;
   }
-  private granted = false;
+  private granted = false; private gifted = false;
   private playerHits() {
     const m = this.m, k = this.king, c = m.clip; if (m.state !== 'clip' || !c?.hit || (k.airborne && !(m.y > 0.5 && k.y > 0 && k.y < m.y + 2))) return;
     const W = c.hits ?? [c.hit];
@@ -182,11 +190,11 @@ export class Fight {
   /** The scene is over: round 2 begins whole, and is a checkpoint. */
   beginRound2() {
     const m = this.m, k = this.king; this.round = 2; this.phase = 'r2'; this.hp = D.hp; this.heals = D.heals; this.flame = true; this.bossHp = D.boss.hp2; this.hazards.length = 0; this.shots.length = 0; this.invuln = 1.2; this.slowT = this.stop = 0; this.reelCd = 2; this.sceneMove = { x: 0, z: 0 };
-    k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2') k.set('idle'); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.ev.push({ k: 'round2' });
+    k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2') k.set('idle'); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' });
   }
   reset(all = false) {
-    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = false; }
+    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; }
     this.phase = this.round === 2 ? 'r2' : 'r1'; this.hp = D.hp; this.fire = this.round === 2 ? 50 : 0; this.heals = D.heals; this.flame = true; this.bossHp = this.maxHp; this.deadT = -1; this.invuln = 1; this.boom = -1; this.slowT = this.stop = 0; this.spent.clear(); this.queue = []; this.hazards.length = 0; this.shots.length = 0; this.streak = 0; this.setAura(); if (this.round === 1) this.hits = 0;
-    m.revive(this.spawn.x, this.spawn.z, this.spawn.yaw); k.form = this.round; k.armed = this.round === 1; k.crawling = false; k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); this.brain.reset(this.round); this.sync(); this.ev.push({ k: 'reset' });
+    m.revive(this.spawn.x, this.spawn.z, this.spawn.yaw); k.form = this.round; k.armed = this.round === 1; k.crawling = false; k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); this.brain.reset(this.round); this.sync(); this.raise({ k: 'reset' });
   }
 }
