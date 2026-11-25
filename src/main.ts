@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { DynamicScale, pickTier } from './core/quality.ts';
 import { startLoop } from './core/loop.ts';
+import { onViewport, viewport } from './core/viewport.ts';
+import { regainFullscreen } from './core/fullscreen.ts';
 import { Input } from './input/input.ts';
 import { mountTouch } from './input/touch.ts';
 import { loadGeo, loadTextures, useLowLod } from './render/assets.ts';
@@ -56,11 +58,11 @@ const kick = new THREE.DirectionalLight(0xdcc8b8, 0.55); kick.position.set(9, 7,
 const post = new Post(renderer, tier); post.exposure.value = 1.75;
 const dyn = new DynamicScale(tier.minScale); let baseFov = 46;
 function resize() {
-  const dpr = Math.min(devicePixelRatio, tier.maxDpr) * dyn.scale, w = innerWidth, h = innerHeight;
+  const dpr = Math.min(devicePixelRatio, tier.maxDpr) * dyn.scale, { w, h } = viewport();
   renderer.setPixelRatio(1); renderer.setSize(Math.round(w * dpr), Math.round(h * dpr), false);
   post.resize(Math.round(w * dpr), Math.round(h * dpr)); cam.aspect = w / h; baseFov = w / h > 1.9 ? 42 : 46; cam.fov = baseFov; cam.updateProjectionMatrix();
 }
-addEventListener('resize', resize);
+onViewport(resize);
 const input = new Input(canvas);
 if (matchMedia('(pointer: coarse)').matches || Q.has('touch')) { document.body.classList.add('touch'); mountTouch(app, input); }
 else if (!SHOT && !BENCH) canvas.addEventListener('click', () => { if (!document.pointerLockElement) Promise.resolve(canvas.requestPointerLock()).catch(() => { }); });
@@ -93,18 +95,21 @@ async function boot() {
   document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && !menu.open && !turn.active && fight.phase !== 'won' && !intro.active && !story.active && !ending.active && !hud.paused && !m.dead) hud.setPaused(true); });
   hud.onRestart = () => { if (lessons.active) { train(); return; } ending.stop(); dawn(0); turnWait = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
+  const direct0 = !!(SHOT || BENCH);
   const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
   const menu = new Menu(app, () => hud.controls()), still = fight.passive;
   /** Back to the very start: the court at night, the hero at the gate. */
   const toMenu = () => { hud.setPaused(false); if (lessons.active) { lessons.active = false; lessons.frozen = null; } hud.lesson(null); hud.verse(''); ending.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.kneel(); king.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
-  hud.onMenu = toMenu;
+  hud.onMenu = toMenu; hud.onResume = regainFullscreen;
+  // put down mid-fight: wait
+  document.addEventListener('visibilitychange', () => { if (document.hidden && !menu.open && !turn.active && !intro.active && !story.active && !ending.active && fight.phase !== 'won' && !direct0) hud.setPaused(true); });
   const grab = () => { input.drain(); if (matchMedia('(pointer: fine)').matches && !document.body.classList.contains('touch')) Promise.resolve(canvas.requestPointerLock()).catch(() => { }); };
   /** Round 1, for real. */
   const begin = () => { bars(false); hud.lesson(null); fight.reset(true); fight.passive = still; kDis.value = bDis.value = 0; follow.snap(m, king.sim); hud.refill(); sound.score?.set('spar'); };
   const train = () => { bars(false); fight.passive = true; hud.callout(''); lessons.start(); follow.snap(m, king.sim); sound.score?.set('lesson'); };
   lessons.onDone = skipped => { saveSettings({ learned: true }); if (!skipped) prompts.taught(); begin(); sound.play('kScreech', { gain: 0.9, wet: 0.6, bus: 'voice' }); hud.say(skipped ? 'It has seen your fire' : 'Your hands remember. It has seen your fire.', 2.6, 'place'); };
   hud.onSkip = () => lessons.skip(); menu.onTrain = () => { train(); grab(); };
-  menu.onPlay = () => { story.start(); bars(true); fight.time = 0; grab(); };
+  menu.onPlay = () => { regainFullscreen(); story.start(); bars(true); fight.time = 0; grab(); };
 
   if (SHOT?.startsWith('hang')) { king.sim.set('hang'); king.sim.x = 0; king.sim.z = -3.2; }
 

@@ -16,7 +16,7 @@ export class Hud {
   private root: HTMLElement; private q = <T extends HTMLElement>(s: string) => this.root.querySelector<T>(s)!;
   private hpLag = 1; private bossLag = 1; private lagWait = 0; private bossWait = 0; private last = { aura: -1, round: 0, flame: false, hp: 1, boss: 1, prompt: '', dev: '', heals: -1 };
   paused = false; private fill = 1; private input: Input; private banner = 0;
-  onRestart: () => void = () => { }; onMenu: () => void = () => { };
+  onRestart: () => void = () => { }; onMenu: () => void = () => { }; onResume: () => void = () => { };
   constructor(app: HTMLElement, input: Input) {
     this.input = input;
     this.root = document.createElement('div'); this.root.id = 'hud';
@@ -25,12 +25,12 @@ export class Hud {
 <div class="ab"><div class="sk ult" data-a="ultimate"><i></i><svg viewBox="0 0 24 24">${ICON.ultimate}</svg><kbd></kbd></div><div class="sk" data-a="skill2"><i></i><svg viewBox="0 0 24 24">${ICON.skill2}</svg><kbd></kbd></div><div class="sk" data-a="skill1"><i></i><svg viewBox="0 0 24 24">${ICON.skill1}</svg><kbd></kbd></div><div class="sk" data-a="heal"><svg viewBox="0 0 24 24">${ICON.heal}</svg><em></em><kbd></kbd></div></div>
 <div class="prompt"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div><div class="banner"></div><div class="verse"></div><div class="call"></div><div class="lesson"><div class="pips"></div><h3></h3><p></p></div><div class="press"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div>
 <div class="win"><h2>Morning, at Last</h2><table></table><div><button data-b="again">Fight again</button> <button data-b="menu">Main menu</button></div></div>
-<div class="pause"><h2>Paused</h2><div class="cols"><table></table></div><div><button data-b="go">Resume</button><button data-b="re">Restart fight</button><button data-b="sk">Skip training</button>${canFullscreen ? '<button data-b="fs">Full screen</button>' : ''}<button data-b="mu">Sound: on</button><button data-b="menu">Main menu</button></div></div>`;
+<div class="pause"><h2>Paused</h2><div class="btns"><button data-b="go">Resume</button><button data-b="re">Restart fight</button><button data-b="sk">Skip training</button>${canFullscreen ? '<button data-b="fs">Full screen</button>' : ''}<button data-b="mu">Sound: on</button><button data-b="menu">Main menu</button></div><div class="cols"><table></table></div></div>`;
     app.append(this.root); this.q('.pause .cols').append(settingsPanel());
     this.q<HTMLButtonElement>('.win [data-b=menu]').onclick = () => { document.body.classList.remove('won'); this.onMenu(); };
     const fs = this.root.querySelector('[data-b=fs]'); if (fs) onFullscreen(() => { fs.textContent = isFullscreen() ? 'Leave full screen' : 'Full screen'; });
     this.q<HTMLButtonElement>('.win button').onclick = () => { document.body.classList.remove('won'); this.onRestart(); };
-    for (const b of this.root.querySelectorAll<HTMLButtonElement>('.pause button[data-b]')) b.onclick = () => { const k = b.dataset.b; if (k === 'fs') { void setFullscreen(!isFullscreen()); return; } if (k === 'mu') { sound.setMuted(!sound.muted); b.textContent = 'Sound: ' + (sound.muted ? 'off' : 'on'); return; } this.setPaused(false); if (k === 're') this.onRestart(); if (k === 'sk') this.onSkip(); if (k === 'menu') this.onMenu(); };
+    for (const b of this.root.querySelectorAll<HTMLButtonElement>('.pause button[data-b]')) b.onclick = () => { const k = b.dataset.b; if (k === 'fs') { void setFullscreen(!isFullscreen()); return; } if (k === 'mu') { sound.setMuted(!sound.muted); b.textContent = 'Sound: ' + (sound.muted ? 'off' : 'on'); return; } this.setPaused(false); this.onResume(); if (k === 're') this.onRestart(); if (k === 'sk') this.onSkip(); if (k === 'menu') this.onMenu(); };
   }
   /** Paint every lit state once behind the loading screen: the browser compiles these effects on first sight, which costs a 70 ms stall mid-fight. */
   warm(on: boolean) {

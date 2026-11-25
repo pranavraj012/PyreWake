@@ -42,7 +42,7 @@ export class Director {
     pv.boomAt.copy(n); pv.boomK = Math.max(pv.boomK, 0.03 + pw * 0.03); cam.hit(pw, v); this.hud.struck(pw);
     // each cut of a chain lands a little higher than the last; the closer drops
     const deep = Math.min(5, m.depth), up = pw > 1.7 ? 1 : 1 + 0.028 * deep; sound.play(pw > 1.7 ? 'fleshH' : 'flesh', { ...pos, gain: light ? 0.62 : 0.78 + pw * 0.06, rate: (pw > 2.4 ? 0.9 : up) * (e.head ? 1.08 : 1) }); if (e.kind === 'fire') sound.play('fire', { ...pos, gain: 0.7 }); if (pw > 2.6) { sound.play('doom', { gain: 0.5 }); sound.duck(0.5, 0.25); }
-    this.painT -= pw; if (e.reel || this.painT < 0) { this.painT = 2.5 + Math.random() * 3; this.say('kPain', 'bPain', e.reel ? 1 : 0.7); } this.buzz(8 + pw * 9);
+    this.painT -= pw; if (e.reel || this.painT < 0) { this.painT = 9 + Math.random() * 7; this.say('kPain', 'bPain', e.reel ? 0.85 : 0.55); } this.buzz(8 + pw * 9);
   }
   /** After the simulation and views have stepped. `dt` is simulated time, 0 while frozen on a hit. */
   step(dt: number, real: number, t: number) {
@@ -98,7 +98,7 @@ export class Director {
     }
     if (dt > 0) {
       for (const e of m.events) {
-        if (e === 'swing') { const pw = m.clip?.power ?? 1; sound.play(pw > 1.7 ? 'whooshH' : 'whoosh', { ...me, gain: 0.7 + 0.1 * pw, rate: 1 / Math.sqrt(Math.max(0.8, pw * 0.75)) }); sound.play('cloth', { ...me, gain: 0.7 }); if (pw > 1.4 || Math.random() < 0.3) sound.play('effort', { ...me, gain: pw > 1.7 ? 0.8 : 0.5 }); }
+        if (e === 'swing') { const pw = m.clip?.power ?? 1; sound.play(pw > 1.7 ? 'whooshH' : 'whoosh', { ...me, gain: 0.7 + 0.1 * pw, rate: 1 / Math.sqrt(Math.max(0.8, pw * 0.75)) }); sound.play('cloth', { ...me, gain: 0.7 }); }
         else if (e.startsWith('clip:dodge')) { sound.play('dodge', { ...me, gain: 0.9 }); sound.play('cloth', { ...me, gain: 1 }); }
         else if (e === 'fx:erupt' || e === 'fx:wave') sound.play('erupt', { ...me, gain: 1 });
         else if (e === 'fx:slam' || e === 'fx:crack') sound.play('slam', { ...me, gain: 0.75, rate: 1.15 });

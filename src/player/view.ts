@@ -14,8 +14,10 @@ import type { Weapon } from '../weapons/weapon.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-const WALKP = makePose({ hy: -0.035, hp: 1, sp: -4, np: 6, ra: -104, re: -60, rl: 0.95, ba: -150, be: -34, la: 34, le: -72, ll: 0.93, xl: 8, flz: 0.03, frz: 0.03, frw: -10, flw: 4 });
-const RUNP = makePose({ hy: -0.12, hp: 13, sp: 13, np: -20, ra: -112, re: -42, rl: 0.95, ba: -158, be: -16, la: 60, le: -50, ll: 0.8, xl: 12, flz: 0.06, frz: 0.06, frw: -4 });
+/** Unhurried and level: weight low, eyes ahead, the blade carried rather than swung. */
+const WALKP = makePose({ hy: -0.05, hp: 5, sp: 6, np: -8, ra: -96, re: -66, rl: 0.94, ba: -156, be: -30, la: 26, le: -74, ll: 0.9, xl: 10, flz: 0.02, frz: 0.02, frw: -7, flw: 7 });
+/** Driving forward off the ball of the foot, sword hand low behind, blade trailing along the line of travel. */
+const RUNP = makePose({ hy: -0.1, hp: 12, sp: 11, np: -18, ra: -128, re: -60, rl: 0.84, ba: -170, be: -12, la: 30, le: -46, ll: 0.66, xl: 14, flz: 0.04, frz: 0.04, frw: -3, flw: 3 });
 
 const FEET = CH.map(c => /^f[lr]/.test(c)), LOWER = CH.map(c => /^h/.test(c));
 
@@ -54,9 +56,9 @@ export class PlayerView {
     add('sp', br * 1.1 * (1 - mv)); add('hy', br * 0.004 * (1 - mv)); add('re', br * 0.8 * (1 - mv)); add('nw', Math.sin(this.time * 0.43) * 4 * (1 - mv) * calm); add('hx', Math.sin(this.time * 0.6) * 0.008 * (1 - mv));
     // walk: a rolling swagger. run: driving and level
     const w = mv * (1 - run), r = mv * run, c = Math.cos(ph), c2 = Math.cos(ph * 2), s1 = Math.sin(ph);
-    add('hy', -c2 * (0.016 * w) + Math.cos(ph * 2 + 1.1) * 0.032 * r); add('hx', s1 * 0.028 * w + s1 * 0.012 * r);
-    add('hw', c * (9 * w + 13 * r)); add('hr', -s1 * (4.5 * w + 3 * r)); add('sw', -c * (13 * w + 20 * r)); add('sr', s1 * (3.5 * w + 2 * r)); add('nw', c * (5 * w + 8 * r)); add('nr', -s1 * 2 * w);
-    add('la', -c * (26 * w + 46 * r)); add('le', (Math.abs(c) * 8) * w + c * 26 * r); add('ll', -0.1 * r * (0.5 + 0.5 * c)); add('ra', c * (6 * w + 8 * r)); add('re', c * 5 * r); add('be', Math.sin(ph * 2) * 1.5 * w - 5 * spr); add('sp', 5 * spr); add('hp', 5 * spr);
+    add('hy', -c2 * (0.011 * w) + Math.cos(ph * 2 + 1.1) * 0.036 * r); add('hx', s1 * 0.012 * w + s1 * 0.008 * r);
+    add('hw', c * (5 * w + 9 * r)); add('hr', -s1 * (1.6 * w + 2 * r)); add('sw', -c * (7 * w + 14 * r)); add('sr', s1 * (1.2 * w + 1.2 * r)); add('nw', c * (2.4 * w + 5.5 * r)); add('sp', -c2 * 0.8 * w);
+    add('la', -c * 8 * w); add('le', -c * 13 * w); add('la', -c * 30 * r); add('le', -c * 22 * r); add('ll', 0.06 * c * r); add('ra', c * (4 * w + 6 * r)); add('re', c * (2 * w + 5 * r)); add('be', Math.sin(ph * 2) * 1.0 * w - 4 * spr); add('sp', 5 * spr); add('hp', 5 * spr);
     add('hr', this.lean * mv); add('sr', this.lean * 0.6 * mv);
     // guard: the upper body belongs to the weapon, the hips keep walking
     this.guardK += ((m.guarding ? 1 : 0) - this.guardK) * Math.min(1, dt * (m.guarding ? 26 : 12)); const g = this.guardK;
@@ -86,9 +88,9 @@ export class PlayerView {
     const gaiting = !inClip && m.speed > 0.35 && m.y === 0;
     if (gaiting) {
       if (!this.wasGait) { this.gait.reset(this.footing.world); this.gait.phase = this.stepped ? 0.1 : 0.6; this.stepped = !this.stepped; }
-      const run = sst(2.2, 4.6, m.speed), k = Math.min(1, m.speed / 1.6), rest = [V(0.085, 0.09, 0.02 - 0.05 * run), V(-0.085, 0.09, 0.02 - 0.05 * run)].map(v => v.applyMatrix4(root));
-      const stride = (1.42 + (2.75 - 1.42) * run + Math.max(0, m.speed - 5.3) * 0.2) * (0.45 + 0.55 * k);
-      this.gait.update(dt, V(m.vx, 0, m.vz), stride, 0.62 - 0.35 * run, 0.07 + 0.2 * run, rest, 28 + 58 * run);
+      const run = sst(2.2, 4.6, m.speed), k = Math.min(1, m.speed / 1.6), fw = 0.11 - 0.025 * run, rest = [V(fw, 0.09, 0.0 - 0.06 * run), V(-fw, 0.09, 0.0 - 0.06 * run)].map(v => v.applyMatrix4(root));
+      const stride = (1.62 + (3.5 - 1.62) * run + Math.max(0, m.speed - 5.3) * 0.34) * (0.45 + 0.55 * k);
+      this.gait.update(dt, V(m.vx, 0, m.vz), stride, 0.61 - 0.35 * run, 0.06 + 0.2 * run, rest, 40 + 42 * run, 30 + 12 * run, 9 + 5 * run);
       const inv = root.clone().invert(); L.copy(this.gait.pos[0]).applyMatrix4(inv); R.copy(this.gait.pos[1]).applyMatrix4(inv);
       p[IX.flp] = this.gait.pitch[0]; p[IX.frp] = this.gait.pitch[1]; L.y += Math.max(0, Math.sin(p[IX.flp] * 0.01745)) * 0.15; R.y += Math.max(0, Math.sin(p[IX.frp] * 0.01745)) * 0.15;
       this.steps += this.gait.landed.length; if (run > 0.6) for (const i of this.gait.landed) this.fx.puffs.emit(this.gait.pos[i], 2, 0.5, 0.7, t);

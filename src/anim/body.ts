@@ -104,6 +104,7 @@ export class Footing {
   get world() { return this.w; }
 }
 
+const smooth = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
 /** World-locked gait for any number of limbs. Phase offsets decide walk, run or crawl. */
 export class Gait {
   phase = 0; plant: THREE.Vector3[]; lift: THREE.Vector3[]; pos: THREE.Vector3[]; stance: boolean[]; pitch: number[]; swing: number[]; landed: number[] = [];
@@ -111,7 +112,7 @@ export class Gait {
   constructor(offs: number[]) { this.offs = offs; const m = () => offs.map(() => V()); this.plant = m(); this.lift = m(); this.pos = m(); this.stance = offs.map(() => true); this.pitch = offs.map(() => 0); this.swing = offs.map(() => 0); }
   reset(at: THREE.Vector3[]) { at.forEach((a, i) => { this.plant[i].copy(a); this.lift[i].copy(a); this.pos[i].copy(a); }); }
   /** rest: limb home in world space; vel: world velocity. */
-  update(dt: number, vel: THREE.Vector3, stride: number, duty: number, height: number, rest: THREE.Vector3[], kick = 0) {
+  update(dt: number, vel: THREE.Vector3, stride: number, duty: number, height: number, rest: THREE.Vector3[], kick = 0, toe = 38, strike = 16) {
     const sp = Math.hypot(vel.x, vel.z), cyc = sp / Math.max(stride, 0.05); this.phase = (this.phase + dt * cyc) % 1; this.landed.length = 0;
     const T = 1 / Math.max(cyc, 0.2);
     this.offs.forEach((o, i) => {
@@ -120,13 +121,13 @@ export class Gait {
         if (!this.stance[i]) { this.plant[i].copy(this.pos[i]); this.plant[i].y = rest[i].y; this.landed.push(i); }
         // give up the plant if turning has stretched the limb too far
         const dx = rest[i].x - this.plant[i].x, dz = rest[i].z - this.plant[i].z, d = Math.hypot(dx, dz), mx = stride * duty * 0.62 + 0.14; if (d > mx) { this.plant[i].x += dx * (1 - mx / d); this.plant[i].z += dz * (1 - mx / d); }
-        this.pos[i].copy(this.plant[i]); const k = ph / duty; this.pitch[i] = k > 0.6 ? (k - 0.6) / 0.4 * 38 : k < 0.16 ? -(0.16 - k) / 0.16 * 16 : 0; this.swing[i] = 0;
+        this.pos[i].copy(this.plant[i]); const k = ph / duty; this.pitch[i] = k > 0.55 ? toe * smooth((k - 0.55) / 0.45) : k < 0.18 ? -strike * (1 - smooth(k / 0.18)) : 0; this.swing[i] = 0;
       } else {
         if (this.stance[i]) this.lift[i].copy(this.pos[i]);
         const s = (ph - duty) / (1 - duty), e = s * s * (3 - 2 * s), left = (1 - s) * (1 - duty) * T + duty * T * 0.5;
         const tx = rest[i].x + vel.x * left, tz = rest[i].z + vel.z * left;
         this.pos[i].set(this.lift[i].x + (tx - this.lift[i].x) * e, rest[i].y + Math.sin(Math.pow(s, 0.8) * Math.PI) * height, this.lift[i].z + (tz - this.lift[i].z) * e);
-        this.pitch[i] = s < 0.5 ? 38 + (kick - 38 + 30) * Math.sin(s * Math.PI) : 38 * (1 - s) * 2 * 0.6 - (s - 0.5) * 2 * 18; this.swing[i] = Math.sin(s * Math.PI);
+        this.pitch[i] = s < 0.36 ? toe + (kick - toe) * smooth(s / 0.36) : kick + (-strike - kick) * smooth((s - 0.36) / 0.64); this.swing[i] = Math.sin(s * Math.PI);
       }
       this.stance[i] = st;
     });

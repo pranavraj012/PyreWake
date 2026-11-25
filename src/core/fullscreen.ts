@@ -5,8 +5,12 @@ const d = document as Doc, el = document.documentElement as El;
 /** False on iPhone browsers, which have no full screen for pages: the button is hidden there. */
 export const canFullscreen = !!(d.fullscreenEnabled || d.webkitFullscreenEnabled);
 export const isFullscreen = () => !!(d.fullscreenElement ?? d.webkitFullscreenElement);
+let wanted = false;
+/** On a phone, leaving the browser drops full screen: take it back with the next tap that resumes play. */
+export function regainFullscreen() { if (wanted && !isFullscreen() && matchMedia('(pointer: coarse)').matches) void setFullscreen(true); }
 /** Must be called from a click, tap or key press. */
 export async function setFullscreen(on: boolean) {
+  wanted = on;
   try {
     if (on && !isFullscreen()) {
       if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' }); else el.webkitRequestFullscreen?.();

@@ -82,7 +82,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Motion | a small clip language over named pose channels, solved with two-bone IK, foot locking, inertialised blending, and simulated cloth and hair |
 | Combat | 60 Hz fixed step with no rendering imports, so whole fights run headless in tests |
 | Rendering | three.js (WebGL 2) with one layered surface shader, own HDR chain, height fog, GPU particles |
-| Sound | 148 designed sounds, each layered from CC0 recordings and synthesis (a snap, a punch, a sub tuned to the score's key, steel or something wet, a tail) and mastered for small speakers by `forge/sound/kitchen.py`; a synthesised set stands in if the pack is missing. Music is six CC0 recordings that follow the fight. Credits in `LICENSES.md` |
+| Sound | 144 designed sounds, each layered from CC0 recordings and synthesis (a snap, a punch, a sub tuned to the score's key, steel or something wet, a tail) and mastered for small speakers by `forge/sound/kitchen.py`; a synthesised set stands in if the pack is missing. Music is six CC0 recordings that follow the fight. Credits in `LICENSES.md` |
 | Checks | unit tests, bots that play hundreds of headless fights, per-tier performance budgets, scripted screenshots |
 
 ```
