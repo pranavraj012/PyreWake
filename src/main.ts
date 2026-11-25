@@ -81,7 +81,7 @@ async function boot() {
   const fight = new Fight(m, king.sim), prompts = new Prompts(), hud = new Hud(app, input); fight.passive = !!(SHOT || BENCH || Q.has('still'));
   const follow = new FollowCam(); follow.blockers = PILLARS;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath] }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
-  const turn = new Turn({ f: fight, pv, k1: king, k2: beneath, fx, hud, dis: kDis }); dir.onHalf = () => { turnWait = 0.9; }; let turnWait = -1, omenK = 0, wonT = -1;
+  const turn = new Turn({ f: fight, pv, k1: king, k2: beneath, fx, hud, dis: kDis }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, wonT = -1;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
   const omen = (k: number) => { if (Math.abs(k - omenK) < 0.002 && k !== 0) return; omenK = k; ECLIPSE.value = k; moon.color.lerpColors(M0, M1, k); moon.intensity = 2.5 - 1.3 * k; post.shaft.value.set(0.5 - 0.24 * k, 0.66 - 0.6 * k, 0.9 - 0.87 * k); FOG.uFogCol.value.lerpColors(F0, F1, k); FOG.uFogMoon.value.lerpColors(G0, G1, k); hemi.color.setRGB(0.56 + 0.04 * k, 0.65 - 0.25 * k, 0.8 - 0.3 * k, THREE.LinearSRGBColorSpace); hemi.intensity = 0.3 + 0.1 * k; kick.intensity = 0.55 + 0.6 * k; kick.color.setRGB(0.86, 0.7 - 0.16 * k, 0.6 - 0.28 * k); court.omen(k); };
   document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && fight.phase !== 'won' && intro >= INTRO_LEN && !hud.paused && !m.dead) hud.setPaused(true); });
