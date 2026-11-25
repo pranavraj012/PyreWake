@@ -60,7 +60,11 @@ export async function player(): Promise<Mesh> {
   }
   hood.put(ell([0, 1.665, 0.012], [0.086, 0.108, 0.116]), { op: 'sub', k: 0.016 });
   hood.put(ell([0, 1.64, 0.165], [0.07, 0.098, 0.1]), { op: 'sub', k: 0.03 });
-  hood.displace((x, y, z) => { const a = Math.atan2(x, z + 0.01); return -0.0055 * ridged(a * 2.2, y * 9 + Math.abs(a), 3, 2) + 0.004 + 0.002 * noise(x * 50, y * 50, z * 50); }, 0.009);
+  // stiff peaked brim over the eyes, a crown point that droops behind, a heavy cowl fold at each cheek
+  hood.put(ell([0, 1.745, 0.125], [0.078, 0.012, 0.1], [-0.38, 0, 0]), { k: 0.012 });
+  hood.put(cone([0, 1.775, -0.01], [0, 1.79, -0.2], 0.062, 0.01), { k: 0.05 });
+  for (const [, s] of SIDES) hood.put(cone([0.108 * s, 1.68, 0.04], [0.098 * s, 1.55, 0.07], 0.03, 0.04), { k: 0.04 });
+  hood.displace((x, y, z) => { const a = Math.atan2(x, z + 0.01); return -0.012 * ridged(a * 1.7, y * 6 + Math.abs(a) * 1.4, 3, 2) - 0.004 * ridged(a * 4, y * 14, 5, 2) + 0.008 + 0.002 * noise(x * 50, y * 50, z * 50); }, 0.014);
 
   // shoulder mantle
   const mantle = F(0.03, 0.0045, 5, 3600); mantle.bone = b.chest;
@@ -126,18 +130,18 @@ export async function player(): Promise<Mesh> {
     legs.bone = b['thigh.' + S];
     legs.put(cone(add(h, [0, -0.02, 0]), k, 0.093, 0.064)).put(belly(add(h, [0.01 * s, -0.04, 0.03]), add(k, [0, 0.06, 0.016]), 0.05, 0.072, 0.045, 0.45)).put(belly(add(h, [0, -0.06, -0.035]), add(k, [0, 0.05, -0.015]), 0.05, 0.066, 0.04, 0.45));
     legs.bone = b['shin.' + S];
-    legs.put(ell(add(k, [0, 0, 0.006]), [0.062, 0.07, 0.066])).put(cone(k, lerp3(k, f, 0.38), 0.066, 0.07));
+    legs.put(ell(add(k, [0, 0, 0.006]), [0.062, 0.07, 0.066])).put(cone(k, lerp3(k, f, 0.8), 0.066, 0.056), { k: 0.03 }).put(ell(lerp3(k, f, 0.8), [0.058, 0.04, 0.058]), { k: 0.03 });
   }
   legs.put(ell([0, 0.94, -0.01], [0.15, 0.1, 0.115]), { bone: b.hips });
-  legs.displace((x, y, z) => { const t = sstep(0.6, 0.42, y); return -0.009 * ridged(x * 7, y * (9 + t * 9) + x * 5, z * 7, 2) * (0.6 + t) + 0.007 + 0.0015 * noise(x * 50, y * 50, z * 50); }, 0.014);
+  legs.displace((x, y, z) => { const t = sstep(0.6, 0.42, y); return -0.012 * ridged(x * 7, y * (9 + t * 9) + x * 5, z * 7, 2) * (0.6 + t) + 0.008 + 0.0015 * noise(x * 50, y * 50, z * 50); }, 0.014);
 
   // ---- shin wraps
   const shins = F(0.02, 0.004, 2, 3200);
   const sb = SIDES.map(([, s]) => bands(mir(at('shin.L'), s), mir(at('foot.L'), s), 0.026, -0.0036, 0.35));
   for (const [S, s] of SIDES) {
     const k = mir(at('shin.L'), s), f = mir(at('foot.L'), s); shins.bone = b['shin.' + S];
-    shins.put(cone(lerp3(k, f, 0.3), lerp3(k, f, 0.95), 0.053, 0.042)).put(belly(lerp3(k, f, 0.14).map((v, i) => i === 2 ? v - 0.02 : v) as V3, lerp3(k, f, 0.75), 0.035, 0.056, 0.032, 0.35));
-    shins.put(any((x, y) => y - 0.395 - 0.01 * noise(x * 40, 1, 1)), { op: 'int', k: 0.006 });
+    shins.put(cone(lerp3(k, f, 0.34), lerp3(k, f, 0.84), 0.07, 0.061), { k: 0.01 });
+    shins.put(any((x, y) => y - 0.37 - 0.01 * noise(x * 40, 1, 1)), { op: 'int', k: 0.006 });
   }
   shins.displace((x, y, z) => sb[x > 0 ? 0 : 1](x, y, z), 0.008);
 
@@ -146,7 +150,7 @@ export async function player(): Promise<Mesh> {
   for (const [S, s] of SIDES) {
     const f = mir(at('foot.L'), s), t = mir(at('toe.L'), s);
     lea.bone = b['foot.' + S];
-    lea.put(cone(add(f, [0, 0.08, 0]), add(f, [0, -0.02, 0]), 0.05, 0.044), { k: 0.03 }).put(ell(add(f, [0, -0.045, -0.025]), [0.037, 0.045, 0.048]), { k: 0.03 }).put(cone(add(f, [0.003 * s, -0.028, 0.02]), add(t, [0, 0.018, 0]), 0.042, 0.034), { k: 0.04 });
+    lea.put(cone(add(f, [0, 0.11, 0]), add(f, [0, -0.02, 0]), 0.056, 0.044), { k: 0.03 }).put(ell(add(f, [0, -0.045, -0.025]), [0.037, 0.045, 0.048]), { k: 0.03 }).put(cone(add(f, [0.003 * s, -0.028, 0.02]), add(t, [0, 0.018, 0]), 0.042, 0.034), { k: 0.04 });
     for (let i = 0; i < 3; i++) lea.put(cone(add(f, [-0.04 * s, 0.05 - i * 0.034, 0.02 + i * 0.02]), add(f, [0.046 * s, 0.056 - i * 0.034, 0.022 + i * 0.02]), 0.012, 0.012), { k: 0.004 });
     lea.bone = b['toe.' + S];
     lea.put(ell(add(t, [-0.002 * s, 0.006, 0.03]), [0.042, 0.033, 0.062]), { k: 0.03 });
@@ -164,7 +168,17 @@ export async function player(): Promise<Mesh> {
   har.slice(1).forEach((p, i) => lea.put(cone(har[i], p, 0.0145, 0.0145), { bone: p[1] > 1.27 ? b.chest : p[1] > 1.13 ? b.spine2 : b.spine1, k: 0.008 }));
   harB.slice(1).forEach((p, i) => lea.put(cone(harB[i], p, 0.0145, 0.0145), { bone: p[1] > 1.27 ? b.chest : p[1] > 1.13 ? b.spine2 : b.spine1, k: 0.008 }));
   lea.put(box([0.12, 0.965, 0.09], [0.034, 0.042, 0.022], 0.012, [0.1, 0.6, 0.08]), { bone: b.hips }).put(box([0.165, 0.955, 0.0], [0.02, 0.05, 0.036], 0.012, [0, 0, 0.1]), { bone: b.hips }).put(box([-0.1, 0.975, -0.11], [0.05, 0.036, 0.026], 0.014, [0, 0.4, 0]), { bone: b.hips });
+  // satchel on the left hip with a strapped flap, and the pouch cord
+  lea.put(box([0.19, 0.935, 0.0], [0.04, 0.07, 0.07], 0.018, [0, 0.1, 0]), { bone: b.hips, k: 0.01 }).put(box([0.193, 0.985, 0.0], [0.044, 0.018, 0.075], 0.012, [0, 0.1, 0]), { bone: b.hips, k: 0.006 });
+  lea.put(box([0.232, 0.93, 0.03], [0.006, 0.045, 0.012], 0.003), { bone: b.hips });
   lea.displace((x, y, z) => 0.0018 * fbm(x * 45, y * 45, z * 45, 3), 0.003);
+  const cord = F(0.004, 0.0034, 11, 1500); cord.bone = b.hips;
+  for (const [x0, z0, y1, wob] of [[0.07, 0.128, 0.82, 0.01], [0.105, 0.112, 0.78, -0.012], [-0.12, 0.1, 0.84, 0.01]] as const) {
+    const cp = curve([[x0, 1.0, z0], [x0 + wob, 0.93, z0 + 0.016], [x0 + wob * 1.6, (1.0 + y1) / 2 - 0.02, z0 + 0.02], [x0 + wob * 0.6, y1, z0 + 0.014]], 14);
+    cp.slice(1).forEach((q, i) => cord.put(cone(cp[i], q, 0.0068, 0.0068), { k: 0.003 }));
+    cord.put(ball(cp[cp.length - 1], 0.015), { k: 0.004 }).put(ball(add(cp[cp.length - 1], [0, -0.025, 0]), 0.011), { k: 0.004 });
+  }
+  cord.displace((x, y, z) => 0.0012 * Math.sin((x * 3 + y * 5 + z * 3) * 140), 0.002);
 
   // ---- iron lamellar: right pauldron, right tasset, chest half-plate, knee
   const iron = F(0.003, 0.0034, 4, 7500);
@@ -208,7 +222,12 @@ export async function player(): Promise<Mesh> {
   for (let i = 0; i < baked.length; i++) { bakeAO(baked[i].mesh, samples, 0.16); out.push(await decimate(baked[i].mesh, parts[i][3])); }
 
   // ---- cloth sheets: tabard front/back and sash tails (simulated at runtime later)
-  for (const c of CLOTHS) out.push(sheet(c.at, { nu: c.nu, nv: c.nv, mat: c.mat, tatter: c.tatter, seed: c.seed, weights: (u, v) => clothWeights(c, b, u, v) }));
+  for (const c of CLOTHS) {
+    if (!c.hem) { out.push(sheet(c.at, { nu: c.nu, nv: c.nv, mat: c.mat, inner: c.inner, tatter: c.tatter, seed: c.seed, weights: (u, v) => clothWeights(c, b, u, v) })); continue; }
+    const v0 = 1 - c.hem[0];
+    out.push(sheet((u, v) => c.at(u, v * v0), { nu: c.nu, nv: Math.round(c.nv * v0), mat: c.mat, inner: c.inner, weights: (u, v) => clothWeights(c, b, u, v * v0) }));
+    out.push(sheet((u, v) => c.at(u, v0 + v * c.hem![0]), { nu: c.nu, nv: 7, mat: c.hem[1], inner: c.hem[1], tatter: c.tatter * 1.5, seed: c.seed, weights: (u, v) => clothWeights(c, b, u, v0 + v * c.hem![0]) }));
+  }
   out.push(sheet((u, v) => { const a = mix(0, Math.PI * 2, u); const k = 1.062 - v * 0.068 + Math.sin(a) * 0.012; return [Math.sin(a) * (0.158 + 0.006 * Math.sin(v * 22 + a * 2)), k, Math.cos(a) * (0.126 + 0.006 * Math.sin(v * 22 + a * 2))] as V3; }, { nu: 48, nv: 10, mat: 6, weights: () => [[b.hips, 1]] }));
   return merge(out);
 }
