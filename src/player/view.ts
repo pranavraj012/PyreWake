@@ -13,7 +13,7 @@ import type { Motor } from './motor.ts';
 import { Stride } from './stride.ts';
 import type { Weapon } from '../weapons/weapon.ts';
 
-const DEG = Math.PI / 180, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const mix = (a: number, b: number, t: number) => a + (b - a) * t, DEG = Math.PI / 180, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /** Unhurried and level: weight low, eyes ahead, the blade carried rather than swung. */
 const WALKP = makePose({ hy: -0.05, hp: 5, sp: 6, np: -8, ra: -96, re: -66, rl: 0.94, ba: -156, be: -30, la: 26, le: -74, ll: 0.9, xl: 10, flz: 0.02, frz: 0.02, frw: -7, flw: 7 });
@@ -67,8 +67,9 @@ export class PlayerView {
     const arm = (th: number, out_: number) => { const d = V(out_, -Math.cos(th * DEG), Math.sin(th * DEG)).normalize(); return [Math.atan2(d.x, d.z) / DEG, Math.asin(d.y) / DEG]; };
     // turning: the body banks into the turn and the outside arm swings wide for balance
     const bank = Math.max(-1, Math.min(1, this.lean / 12)) * mv, outL = Math.max(0, -bank) * 0.5, outR = Math.max(0, bank) * 0.4;
-    const thL = -c * (16 + 20 * run) - 6 * run, [laz, lel] = arm(thL, 0.2 + outL - 0.24 * run * Math.max(0, Math.sin(thL * DEG)));
-    set('la', laz, w); set('le', lel + (8 + 16 * run) * w + 30 * outL, w); set('ll', 0.88 - 0.3 * run, w); set('xl', 14 + 14 * run, w);
+    // the free hand runs a real path from the shoulder: up and in toward the chest going forward, elbow closing; down by the hip going back, elbow opening
+    const fwd = Math.max(0, -c), bwd = Math.max(0, c), hx = (0.05 - 0.13 * run * fwd + 0.04 * bwd) + outL * 0.25, hy = mix(-0.42, -0.2, run) * fwd + mix(-0.47, -0.42, run) * bwd + mix(-0.47, -0.36, run) * (1 - fwd - bwd), hz = (0.12 + 0.12 * run) * fwd - (0.14 + 0.08 * run) * bwd;
+    const hl = Math.hypot(hx, hy, hz); set('la', Math.atan2(hx, hz) / DEG, w); set('le', Math.asin(hy / hl) / DEG + 30 * outL, w); set('ll', Math.min(0.97, hl / this.body.armLen), w); set('xl', 16 + 12 * run, w);
     // the sword hand stays out by the hip and pumps a little against the free one; the blade hangs back and down, tip near the stone
     const thR = c * (8 + 8 * run) - 24 - 6 * run, [raz, rel] = arm(thR, -0.3 - outR);
     set('ra', raz, w); set('re', rel + 6 * run + 20 * outR, w); set('rl', 0.9 - 0.08 * run, w); set('xr', -8, w); set('ba', -164 + c * 4 * w, w); set('be', -30 + 6 * run + Math.sin(2 * T * ph) * 3 * w - 4 * spr, w);
