@@ -61,8 +61,8 @@ export async function player(): Promise<Mesh> {
   hood.put(ell([0, 1.665, 0.012], [0.086, 0.108, 0.116]), { op: 'sub', k: 0.016 });
   hood.put(ell([0, 1.64, 0.165], [0.07, 0.098, 0.1]), { op: 'sub', k: 0.03 });
   // stiff peaked brim over the eyes, a crown point that droops behind, a heavy cowl fold at each cheek
-  hood.put(ell([0, 1.745, 0.125], [0.078, 0.012, 0.1], [-0.38, 0, 0]), { k: 0.012 });
-  hood.put(cone([0, 1.775, -0.01], [0, 1.79, -0.2], 0.062, 0.01), { k: 0.05 });
+  hood.put(ell([0, 1.742, 0.098], [0.09, 0.022, 0.062], [-0.3, 0, 0]), { k: 0.035 });
+  hood.put(cone([0, 1.77, -0.02], [0, 1.74, -0.17], 0.06, 0.022), { k: 0.06 });
   for (const [, s] of SIDES) hood.put(cone([0.108 * s, 1.68, 0.04], [0.098 * s, 1.55, 0.07], 0.03, 0.04), { k: 0.04 });
   hood.displace((x, y, z) => { const a = Math.atan2(x, z + 0.01); return -0.012 * ridged(a * 1.7, y * 6 + Math.abs(a) * 1.4, 3, 2) - 0.004 * ridged(a * 4, y * 14, 5, 2) + 0.008 + 0.002 * noise(x * 50, y * 50, z * 50); }, 0.014);
 
