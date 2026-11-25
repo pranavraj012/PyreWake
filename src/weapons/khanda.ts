@@ -46,7 +46,7 @@ def('light3', { dur: 0.74, hit: [0.2, 0.31], chain: 0.36, free: 0.54, power: 1.2
   { t: 0.45, hy: -0.245, re: -42, be: -49 }, { t: 0.74, hy: -0.2, hp: 18, sp: 22, np: -24, re: -42, be: -44, lg: 1 } ] });
 
 // 4: leaping full spin
-def('light4', { dur: 0.86, hit: [0.24, 0.46], chain: 0.52, free: 0.66, power: 1.3, arc: 180, blend: 0.18, move: [[0, 0], [0.14, 0.05], [0.44, 1.25], [0.86, 1.3]], fx: [{ t: 0.46, kind: 'dust' }], keys: [
+def('light4', { dur: 0.86, hit: [0.24, 0.46], chain: 0.52, free: 0.66, power: 1.55, arc: 180, blend: 0.18, move: [[0, 0], [0.14, 0.05], [0.44, 1.25], [0.86, 1.3]], fx: [{ t: 0.46, kind: 'dust' }], keys: [
   { t: 0, tw: 0, air: 0, hy: -0.2, hp: 14, hw: -30, sp: 14, sw: -24, nw: 30, np: -12, ra: -60, re: -34, rl: 0.8, ba: -110, be: -22, la: 40, le: -20, ll: 0.6, lg: 0, flx: 0.06, flz: 0.26, flw: 0, frx: -0.1, frz: -0.24, frw: -48, fly: 0, fry: 0 },
   { t: 0.14, tw: -24, hy: -0.28, hw: -42, sw: -34, ra: -86, ba: -140, la: 60 },
   { t: 0.2, air: 1, tw: 20 }, { t: 0.31, tw: 180, hy: 0.1, hp: 10, hw: -10, sp: 10, sw: 18, sr: -8, nw: 10, ra: -66, re: -2, rl: 0.98, ba: -74, be: -2, la: 80, le: 8, ll: 0.85, flx: 0.02, fly: 0.2, flz: -0.16, flp: 40, frx: -0.02, fry: 0.3, frz: 0.12, frp: 30 },
@@ -55,7 +55,7 @@ def('light4', { dur: 0.86, hit: [0.24, 0.46], chain: 0.52, free: 0.66, power: 1.
   { t: 0.62, tw: 362, ba: 120 }, { t: 0.86, tw: 360, hy: -0.18, hw: 20, sw: 28, ba: 124, ra: 62 } ] });
 
 // 5: rising leap into a driving downward slam, then a long kneeling hold
-def('light5', { dur: 1.5, hit: [0.46, 0.58], chain: 0.95, free: 1.0, power: 2.2, reel: true, arc: 110, blend: 0.12, move: [[0, 0], [0.2, 0.1], [0.53, 1.7], [1.5, 1.7]], fx: [{ t: 0.53, kind: 'slam' }, { t: 1.12, kind: 'flare' }], keys: [
+def('light5', { dur: 1.5, hit: [0.46, 0.58], chain: 0.95, free: 1.0, power: 3.2, reel: true, arc: 110, blend: 0.12, move: [[0, 0], [0.2, 0.1], [0.53, 1.7], [1.5, 1.7]], fx: [{ t: 0.53, kind: 'slam' }, { t: 1.12, kind: 'flare' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.26, hp: 16, hw: 14, sp: 18, sw: 18, np: -18, nw: -14, ra: 44, re: -30, rl: 0.72, ba: 110, be: -20, la: 20, le: -40, ll: 0.6, lg: 0.8, flx: 0.08, fly: 0, flz: 0.2, frx: -0.1, fry: 0, frz: -0.26, frw: -40 },
   { t: 0.16, hy: -0.34, hp: 22, sp: 24, ra: 20, re: -44, ba: 60, be: -50, lg: 1 },
   { t: 0.22, air: 1 }, { t: 0.35, hy: 0.6, hp: -14, hw: -4, sp: -26, sw: 0, np: 10, nw: 0, ra: -18, re: 88, rl: 0.8, ba: 0, be: 158, flx: 0.02, fly: 0.5, flz: -0.2, flp: 55, frx: -0.04, fry: 0.66, frz: 0.16, frp: 40 },
@@ -70,7 +70,7 @@ def('light5', { dur: 1.5, hit: [0.46, 0.58], chain: 0.95, free: 1.0, power: 2.2,
 def('charge', { dur: 1.2, blend: 0.16, fx: [{ t: 0.3, kind: 'flare' }, { t: 0.75, kind: 'flare' }, { t: 1.15, kind: 'flare' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.14, hp: 10, hw: -60, sp: 10, sw: -22, np: -10, nw: 72, ra: -100, re: -34, rl: 0.86, ba: 178, be: -20, la: 34, le: -8, ll: 0.7, lg: 0, flx: 0.1, flz: 0.36, flw: -6, frx: -0.12, frz: -0.34, frw: -80 },
   { t: 1.2, hy: -0.24, hw: -68, sw: -30, nw: 84, ra: -112, re: -30, ba: 172, be: -14, le: 2 } ] });
-def('heavy', { dur: 1.25, hit: [0.1, 0.26], chain: 0.72, free: 0.8, power: 2.6, reel: true, arc: 100, blend: 0.07, move: [[0, 0], [0.06, 0.1], [0.22, 1.7], [0.34, 1.9], [1.25, 1.9]], fx: [{ t: 0.14, kind: 'crescent' }, { t: 0.24, kind: 'dust' }], keys: [
+def('heavy', { dur: 1.25, hit: [0.1, 0.26], chain: 0.72, free: 0.8, power: 3.2, reel: true, arc: 100, blend: 0.07, move: [[0, 0], [0.06, 0.1], [0.22, 1.7], [0.34, 1.9], [1.25, 1.9]], fx: [{ t: 0.14, kind: 'crescent' }, { t: 0.24, kind: 'dust' }], keys: [
   { t: 0, tw: 0, hy: -0.26, hp: 14, hw: -62, sp: 14, sw: -30, nw: 70, np: -10, ra: -108, re: -38, rl: 0.95, ba: -184, be: -22, la: 40, le: 0, ll: 0.7, lg: 0, flx: 0.1, flz: 0.3, flw: -6, frx: -0.12, frz: -0.34, frw: -76 },
   { t: 0.08, hw: -40, ra: -96, ba: -160 },
   { t: 0.17, tw: 10, hy: -0.16, hp: 4, hw: 20, sp: 0, sw: 22, nw: -6, ra: -6, re: 8, rl: 1, ba: -6, be: 10, la: 90, le: -20, ll: 0.9, frz: 0.42, frx: -0.02, frw: 18, flz: -0.3, flw: 30 },

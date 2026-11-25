@@ -126,3 +126,6 @@ kbd { font: 600 12px/1 "Segoe UI", system-ui, sans-serif; color: #efe6d6; backgr
 @media (max-height: 420px) { .touch .pause table { display: none; } .pause { gap: 10px; } .pause h2 { font-size: 17px; } }
 @media (max-height: 340px) { #menu { align-items: safe center; } #menu h1 { font-size: 30px; margin-bottom: 4px; } #menu nav { display: grid; grid-template-columns: auto auto; gap: 0 18px; } #menu nav button, #menu nav button[data-b=play] { min-height: 38px; font-size: 16px; padding-top: 4px; padding-bottom: 4px; } .win { gap: 4px; } .win h2 { font-size: 22px; } .win td { padding: 1px 12px; font-size: 14px; } .win button { padding: 7px 18px; } .pause { gap: 6px; } .settings { gap: 0; } }
 @media (max-height: 300px) { .tb { zoom: .8; } .tb-pause { right: calc(var(--r) + 190px); top: 34px; } }
+
+/* --- controller --- */
+.padmode .pause button:focus, .padmode .win button:focus { outline: 2px solid #ffdcae; outline-offset: 2px; } .padmode #menu nav button:focus { color: #ffdcae; border-color: #ff8a2e; padding-left: 20px; } .padmode input:focus { outline: 1px solid #ffb468; } .hush { display: none; margin: 14px 0 0; font-size: 14px; color: #b9ad9c; } .silent.padmode .hush { display: block; }

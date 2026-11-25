@@ -6,7 +6,7 @@ type Binds = Record<Action, string[]>;
 /** Keyboard codes, or Mouse0 / Mouse1 / Mouse2. The first one is the one shown. */
 export const DEFAULT_KEYS: Binds = { attack: ['Mouse0', 'KeyJ'], dodge: ['Space'], jump: ['KeyC'], guard: ['Mouse2', 'KeyK'], skill1: ['KeyQ'], skill2: ['KeyE'], ultimate: ['KeyR'], heal: ['KeyF'], pause: ['Escape'] };
 /** Standard gamepad button numbers; '10+11' is both at once. */
-export const DEFAULT_PAD: Binds = { attack: ['2'], dodge: ['1'], jump: ['0'], guard: ['4'], skill1: ['5'], skill2: ['7'], ultimate: ['10+11'], heal: ['12'], pause: ['9'] };
+export const DEFAULT_PAD: Binds = { attack: ['2'], dodge: ['1'], jump: ['0'], guard: ['4'], skill1: ['5'], skill2: ['7'], ultimate: ['6', '10+11'], heal: ['3', '12'], pause: ['9'] };
 export const keysFor = (a: Action) => settings.binds?.keys?.[a] ?? DEFAULT_KEYS[a];
 export const padFor = (a: Action) => settings.binds?.pad?.[a] ?? DEFAULT_PAD[a];
 const ACTS = Object.keys(DEFAULT_KEYS) as Action[];

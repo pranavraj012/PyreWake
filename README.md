@@ -69,8 +69,8 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Guard (tap at the last moment to parry) | right click or K | LB | Guard |
 | Cinder Rush | Q | RB | Rush |
 | Sunder Arc | E | RT | Sunder |
-| Last Rites (when ready) | R | both sticks | Rites |
-| Heal | F | D-pad up | Heal |
+| Last Rites (when ready) | R | LT, or both sticks | Rites |
+| Heal | F | Y, or D-pad up | Heal |
 | Pause | Esc | Start | pause icon |
 | Full screen | menu, or Alt + Enter | menu | menu |
 
@@ -111,6 +111,8 @@ src/ui/ src/input/ src/arena/ src/core/
 | `npm run sfx` | renders every sound, prints levels, draws spectrograms |
 | `npm run menu` | checks the title screen, full screen, pause and boss bar |
 | `npm run scenes` | films the intro, the turn, the ending and Last Rites, frame by frame |
+| `npm run analyse` | plays hundreds of headless fights as different players: which moves, spells and music really happen |
+| `npm run pad` | plays the whole game, menus included, on a controller |
 | `npm run moments` | drives the game to each key moment and captures it |
 | `python forge/sound/kitchen.py` | recook the sound pack (needs the CC0 sources in `assets_src/sfx`) |
 | `npm run forge [names]` | rebake models (`textures` needs the CC0 sources in `assets_src/`) |

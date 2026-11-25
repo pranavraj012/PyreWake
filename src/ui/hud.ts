@@ -40,7 +40,7 @@ export class Hud {
   }
   setPaused(p: boolean) {
     this.paused = p; document.body.classList.toggle('paused', p); if (p) document.exitPointerLock?.();
-    if (p) { this.q('.pause table').innerHTML = this.controls(); this.q('[data-b=mu]').textContent = 'Sound: ' + (sound.muted ? 'off' : 'on'); }
+    if (p) { this.q('.pause table').innerHTML = this.controls(); this.q('[data-b=mu]').textContent = 'Sound: ' + (sound.muted ? 'off' : 'on'); this.q<HTMLButtonElement>('[data-b=go]').focus({ preventScroll: true }); }
   }
   /** Rows of the controls table for whatever is being used. */
   controls() {

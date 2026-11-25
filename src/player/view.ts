@@ -24,8 +24,8 @@ const FEET = CH.map(c => /^f[lr]/.test(c)), LOWER = CH.map(c => /^h/.test(c));
 export class PlayerView {
   group = new THREE.Group(); rig = new Rig(HUMAN); body = new Body(this.rig, HUMAN_SPEC); footing = new Footing(); gait = new Gait([0, 0.5]); chains: Chains;
   /** What casts the body's shadow: the mesh itself, or a stand-in. */ shadow!: THREE.Object3D; mesh: THREE.SkinnedMesh; weapon: THREE.Mesh; blade: Ribbon; eye: Ribbon; ghosts: Ghosts; fx: Fx; arm: Weapon;
-  pose: Pose = new Float32Array(N); private src = new Float32Array(N); private tmp = new Float32Array(N); private inert = new Inertial(); private source = ''; private wasGait = false; private loco = 0;
-  private yawPrev = 0; private lean = 0; private drop = 0; ember = 0.35; /** 0-1, from the fire meter: the arms answer. */ fireK = 0; /** Aura step 0-4, eased. */ aura = { value: 0 }; auraStep = 0; /** Length of the fire beyond the steel (Last Rites; a lick of it at full aura). */ private long = 0; blaze = new Blaze(); private step2 = false; shake = 0; private ghostT = 0; steps = 0; private time = 0; private stepped = false;
+  pose: Pose = new Float32Array(N); private src = new Float32Array(N); private tmp = new Float32Array(N); private inert = new Inertial(); private source = ''; private wasGait = false;
+  private yawPrev = 0; private lean = 0; private drop = 0; ember = 0.35; /** 0-1, from the fire meter: the arms answer. */ fireK = 0; /** Aura step 0-4, eased. */ aura = { value: 0 }; auraStep = 0; /** Length of the fire beyond the steel (Last Rites; a lick of it at full aura). */ private long = 0; blaze = new Blaze(); shake = 0; private ghostT = 0; steps = 0; private time = 0; private stepped = false;
   /** Dissolve 0-1 and flash, shared with the body and weapon materials. */ dis = { value: 0 }; flash = { value: new THREE.Vector4(1, 0.3, 0.1, 0) }; flashAt = { value: new THREE.Vector4(0, 0, 0, 1) }; private guardK = 0; boomAt = V(); boomK = 0;
   glow: THREE.PointLight | null = null; tip = V(); private tipPrev = V(); base = V(); tipVel = V(1, 0, 0); tipSpeed = 0; eyeW = V();
 

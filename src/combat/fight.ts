@@ -37,7 +37,7 @@ export class Fight {
   private damage(dmg: number, power: number, reel: boolean, stop: number, kind: 'blade' | 'fire' = 'blade', by: 'sunder' | 'rites' | 'heavy' | null = null) {
     const k = this.king, m = this.m; if (this.bossHp <= 0 || (this.phase !== 'r1' && this.phase !== 'r2')) return;
     const head = k.hanging; if (head) dmg *= D.boss.headMul;
-    this.bossHp = Math.max(0, this.bossHp - dmg); this.hits++; this.streak++; this.best = Math.max(this.best, this.streak); this.stop = Math.max(this.stop, stop); this.setAura(); this.wake = Math.min(100, this.wake + dmg * D.wakeGain * (1 + 0.2 * this.aura));
+    this.bossHp = Math.max(0, this.bossHp - dmg); this.hits++; this.streak++; this.best = Math.max(this.best, this.streak); this.stop = Math.max(this.stop, stop); this.setAura(); this.wake = Math.min(100, this.wake + dmg * D.wakeGain * (1 + 0.2 * this.aura) * (kind === 'fire' ? D.spellWake : 1));
     // every blow moves it a little
     if (!k.committed && !k.hanging && k.y === 0) { const a = Math.atan2(k.x - m.x, k.z - m.z); k.x += Math.sin(a) * 0.05 * power; k.z += Math.cos(a) * 0.05 * power; }
     if (this.bossHp <= 0) {
@@ -109,8 +109,8 @@ export class Fight {
       const id = m.started + '/' + i; if (m.t < w[0] || m.t > w[1] + 0.02 || this.swung === id) return;
       const dx = k.hx - m.x, dz = k.hz - m.z, d = Math.hypot(dx, dz) - k.hr; if (d > (c.reach ?? m.weapon.reach)) return;
       let a = Math.atan2(dx, dz) - m.yaw; a -= Math.round(a / 6.2832) * 6.2832; if (Math.abs(a) * 57.3 > (c.arc ?? m.weapon.arc) && d > 0.2) return;
-      const last = i === W.length - 1, p = (c.power ?? 1) * (c.name === m.weapon.heavy ? 0.8 + 0.16 * m.charge : 1) * (last ? D.lastHit[c.name] ?? 1 : 1) * (c.name === m.weapon.air.hit && m.sky > 0 ? D.jump.bonus : 1);
-      this.swung = id; this.gainFire(D.gain.hit * Math.min(p, 2.4)); this.damage(m.weapon.damage * p, p, !!c.reel && last, p < 0.9 ? 0.028 : p < 1.2 ? 0.055 : p < 1.8 ? 0.075 : p < 3 ? 0.12 : 0.15, 'blade', c.name === m.weapon.heavy && m.charge >= 3 ? 'heavy' : null);
+      const last = i === W.length - 1, p = (c.power ?? 1) * (c.name === m.weapon.heavy ? 0.75 + 0.35 * m.charge : 1) * (last ? D.lastHit[c.name] ?? 1 : 1) * (c.name === m.weapon.air.hit && m.sky > 0 ? D.jump.bonus : 1);
+      this.swung = id; this.gainFire(D.gain.hit * Math.min(p, 2.4)); this.damage(m.weapon.damage * p, Math.min(p, 3.4), !!c.reel && last, p < 0.9 ? 0.028 : p < 1.2 ? 0.055 : p < 1.8 ? 0.075 : p < 3 ? 0.12 : 0.15, 'blade', c.name === m.weapon.heavy && m.charge >= 3 ? 'heavy' : null);
     });
   }
   private shoot(dmg: number, power: number, big: boolean) { const m = this.m, a = m.target && m.targetDist < 18 ? Math.atan2(m.target.x - m.x, m.target.z - m.z) : m.yaw, p: Shot = { id: ++this.ids, x: m.x + Math.sin(a) * 0.9, z: m.z + Math.cos(a) * 0.9, dx: Math.sin(a), dz: Math.cos(a), t: 0, life: big ? 1.1 : 0.75, speed: big ? 17 : 15, r: big ? 1.5 : 0.8, dmg, power, big, hit: false }; this.shots.push(p); this.ev.push({ k: 'shot', p }); }

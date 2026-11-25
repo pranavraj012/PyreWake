@@ -23,7 +23,7 @@ export class Director {
   f: Fight; pv: PlayerView; views: [KingView, KingView]; fx: Fx; cam: FollowCam; post: Post; hud: Hud; input: Input; camera: THREE.Camera; onHalf: () => void = () => { }; onWon: () => void = () => { }; /** Extra colour drain asked for by a scene. */ mono = 0; /** The same drain taken to ink, and to black. */ inkWant = 0; dark = 0; private auraSeen = 0;
   constructor(o: { f: Fight; pv: PlayerView; views: [KingView, KingView]; fx: Fx; cam: FollowCam; post: Post; hud: Hud; input: Input; camera: THREE.Camera }) { this.f = o.f; this.pv = o.pv; this.views = o.views; this.fx = o.fx; this.cam = o.cam; this.post = o.post; this.hud = o.hud; this.input = o.input; this.camera = o.camera; }
   get kv() { return this.views[this.f.king.form - 1]; }
-  private buzz(ms: number) { if (this.input.lastDevice === 'touch') try { navigator.vibrate?.(ms); } catch { /* not supported */ } }
+  private buzz(ms: number) { this.input.rumble(ms / 90, ms / 55, 60 + ms * 1.6); if (this.input.lastDevice === 'touch' && settings.rumble > 0) try { navigator.vibrate?.(ms); } catch { /* not supported */ } }
   /** Slash angle on screen, from the blade's motion. */
   private screenAngle(v: THREE.Vector3) { const r = V().setFromMatrixColumn(this.camera.matrixWorld, 0), u = V().setFromMatrixColumn(this.camera.matrixWorld, 1); return Math.atan2(v.dot(u), v.dot(r)); }
   /** From the boss, in its own voice. */

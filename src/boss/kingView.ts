@@ -15,7 +15,7 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number,
 
 export class KingView {
   group = new THREE.Group(); form: 1 | 2; rig: Rig; body: Body; wounds = { w: { value: Array.from({ length: 5 }, () => new THREE.Vector4()) }, n: { value: Array.from({ length: 5 }, () => new THREE.Vector3(0, 1, 0)) } }; private wi = 0; ember = { value: 0.8 }; shadow: THREE.Object3D | null = null; private echo: THREE.Quaternion[][] = []; private ei = 0; private visible = true; footing = new Footing(); gait2 = new Gait([0, 0.5]); gait4 = new Gait([0, 0.5, 0.52, 0.02]); chains: Chains; mesh: THREE.SkinnedMesh; cleaver: THREE.Mesh; rope: THREE.Mesh;
-  sim: King; pose: Pose = new Float32Array(N); private src = new Float32Array(N); private inert = new Inertial(); private last = ''; private gaitMode = ''; private crawlK = 0; hangK = 0; private head = { w: 0, p: 0, r: 0, tr: 0, next: 0 }; private vel = V(); private handW = [V(), V()]; private rootM = new THREE.Matrix4(); shake = 0; private pend = V(); private wasMode = ''; private hangAt = V();
+  sim: King; pose: Pose = new Float32Array(N); private src = new Float32Array(N); private inert = new Inertial(); private last = ''; private gaitMode = ''; private crawlK = 0; hangK = 0; private head = { w: 0, p: 0, r: 0, tr: 0, next: 0 }; private vel = V(); private handW = [V(), V()]; private rootM = new THREE.Matrix4(); shake = 0;
   private fx: Fx; flash = { value: new THREE.Vector4(1, 0.4, 0.1, 0) }; flashAt = { value: new THREE.Vector4(0, 0, 0, 1) };
   /** Additive hit reaction: spine pitch, spine yaw, head roll, hips back. */ private fl = [0, 0, 0, 0]; private fv = [0, 0, 0, 0]; private jit = 0;
 

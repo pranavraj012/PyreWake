@@ -20,6 +20,7 @@ import { Fight } from './combat/fight.ts';
 import { Prompts } from './ui/prompts.ts';
 import { Hud } from './ui/hud.ts';
 import { Menu } from './ui/menu.ts';
+import { padNav } from './ui/padnav.ts';
 import { sound } from './audio/sound.ts';
 import { onSettings, saveSettings, settings } from './core/settings.ts';
 import { Turn, actionCam } from './game/cinema.ts';
@@ -108,6 +109,7 @@ async function boot() {
   const begin = () => { bars(false); hud.lesson(null); fight.reset(true); fight.passive = still; kDis.value = bDis.value = 0; follow.snap(m, king.sim); hud.refill(); sound.score?.set('spar'); };
   const train = () => { bars(false); fight.passive = true; hud.callout(''); lessons.start(); follow.snap(m, king.sim); sound.score?.set('lesson'); };
   lessons.onDone = skipped => { saveSettings({ learned: true }); if (!skipped) prompts.taught(); begin(); sound.play('kScreech', { gain: 0.9, wet: 0.6, bus: 'voice' }); hud.say(skipped ? 'It has seen your fire' : 'Your hands remember. It has seen your fire.', 2.6, 'place'); };
+  addEventListener('gamepaddisconnected', () => { if (input.lastDevice === 'pad' && !menu.open && !turn.active && !intro.active && !story.active && !ending.active && fight.phase !== 'won') hud.setPaused(true); });
   hud.onSkip = () => lessons.skip(); menu.onTrain = () => { train(); grab(); };
   menu.onPlay = () => { regainFullscreen(); story.start(); bars(true); fight.time = 0; grab(); };
 
@@ -122,7 +124,7 @@ async function boot() {
   const bill = () => { const o: [number, string][] = []; scene.traverseVisible(x => { const q = x as THREE.InstancedMesh; if (!q.isMesh) return; const g = q.geometry, n = (g.index?.count ?? g.attributes.position.count) / 3 * (q.isInstancedMesh ? q.count : (g as THREE.InstancedBufferGeometry).instanceCount < 1e6 ? (g as THREE.InstancedBufferGeometry).instanceCount ?? 1 : 1); o.push([n * (q.castShadow ? 2 : 1), `${Math.round(n)}${q.castShadow ? ' x2 (shadow)' : ''}  ${q.type}${q.isInstancedMesh ? ' x' + q.count : ''}`]); }); return o.sort((x, y) => y[0] - x[0]).slice(0, 14).map(x => x[1]); };
   const step = (dt: number) => {
     input.poll(); let ev = input.drain(); let mx = 0, mz = 0;
-    if (menu.open) { if (input.lastDevice === 'pad' && ev.some(e => !e.up && (e.a === 'attack' || e.a === 'jump'))) menu.play(); ev = []; }
+    if (padNav(input)) ev = ev.filter(e => e.a === 'pause' && !menu.open);
     if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && !intro.active && !story.active && fight.phase !== 'won') hud.setPaused(!hud.paused);
     if (hud.paused) return;
     const pace = turn.active ? turn.rate : 1; t += dt * pace; FOG.uFogP.value.w = SHARED.uTime.value = t;

@@ -10,7 +10,7 @@ export const GUARD = makePose({
 
 export function addFinishers(def: (n: string, d: ClipDef) => void) {
 // after 1: rising cut. Blade drops behind the left hip, then tears upward and carries the body with it.
-def('risingCut', { dur: 1.05, hit: [0.2, 0.36], chain: 0.64, free: 0.7, power: 2.0, reel: true, blend: 0.14, move: [[0, 0], [0.16, 0.15], [0.34, 1.0], [1.05, 1.05]], fx: [{ t: 0.22, kind: 'flare' }, { t: 0.62, kind: 'dust' }], keys: [
+def('risingCut', { dur: 1.05, hit: [0.2, 0.36], chain: 0.64, free: 0.7, power: 3.0, reel: true, blend: 0.14, move: [[0, 0], [0.16, 0.15], [0.34, 1.0], [1.05, 1.05]], fx: [{ t: 0.22, kind: 'flare' }, { t: 0.62, kind: 'dust' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.2, hp: 14, hw: 34, sp: 18, sw: 28, np: -14, nw: -48, ra: 46, re: -36, rl: 0.7, ba: 138, be: -26, la: 20, le: -40, ll: 0.6, lg: 0.8, flx: 0.1, fly: 0, flz: 0.28, flw: 8, flp: 0, frx: -0.1, fry: 0, frz: -0.26, frw: -38, frp: 10 },
   { t: 0.16, hy: -0.34, hp: 18, sw: 36, sp: 24, ra: 56, re: -44, ba: 154, be: -34, lg: 1 },
   { t: 0.22, air: 0 }, { t: 0.25, hy: -0.08, hp: 2, hw: 6, sp: 2, sw: 6, nw: -6, ra: 6, re: -2, rl: 0.95, ba: 12, be: -8, air: 1 },
@@ -21,7 +21,7 @@ def('risingCut', { dur: 1.05, hit: [0.2, 0.36], chain: 0.64, free: 0.7, power: 2
   { t: 1.05, hy: -0.13, hp: 8, hw: -38, sp: 12, sw: 2, np: -14, nw: 34, ra: -58, re: -52, rl: 0.82, ba: -158, be: -24, la: 12, le: -38, ll: 0.62, frp: 0, frw: -62 } ] });
 
 // after 2: spinning cleave. Two low turns at full reach; hits everything around.
-def('cleave', { dur: 1.2, hit: [0.2, 0.38], hits: [[0.2, 0.38], [0.42, 0.6]], chain: 0.78, free: 0.84, power: 1.35, reel: true, arc: 180, reach: 2.3, blend: 0.14, move: [[0, 0], [0.16, 0.05], [0.6, 1.5], [1.2, 1.6]], fx: [{ t: 0.22, kind: 'dust' }, { t: 0.44, kind: 'crescent' }, { t: 0.62, kind: 'dust' }], keys: [
+def('cleave', { dur: 1.2, hit: [0.2, 0.38], hits: [[0.2, 0.38], [0.42, 0.6]], chain: 0.78, free: 0.84, power: 1.95, reel: true, arc: 180, reach: 2.3, blend: 0.14, move: [[0, 0], [0.16, 0.05], [0.6, 1.5], [1.2, 1.6]], fx: [{ t: 0.22, kind: 'dust' }, { t: 0.44, kind: 'crescent' }, { t: 0.62, kind: 'dust' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.24, hp: 14, hw: -36, sp: 14, sw: -26, np: -12, nw: 40, ra: -84, re: -30, rl: 0.86, ba: -134, be: -20, la: 46, le: -14, ll: 0.7, lg: 0, flx: 0.1, fly: 0, flz: 0.28, flw: 0, flp: 0, frx: -0.1, fry: 0, frz: -0.3, frw: -46, frp: 0 },
   { t: 0.15, tw: -28, hy: -0.34, hw: -46, sw: -34, ra: -96, ba: -150, la: 64 },
   { t: 0.19, air: 1 }, { t: 0.29, tw: 170, hy: -0.2, hp: 12, hw: -10, sp: 12, sw: 14, sr: -6, nw: 8, ra: -68, re: -10, rl: 0.99, ba: -76, be: -8, la: 84, le: 6, ll: 0.88, flx: 0.04, fly: 0.05, flz: 0.1, frx: -0.1, fry: 0.2, frz: -0.22, frp: 34 },
@@ -32,7 +32,7 @@ def('cleave', { dur: 1.2, hit: [0.2, 0.38], hits: [[0.2, 0.38], [0.42, 0.6]], ch
   { t: 0.92, tw: 722, ba: 126, ra: 68 }, { t: 1.2, tw: 720, hy: -0.16, hw: -16, sw: 4, nw: 14, sp: 10, ra: -40, re: -44, rl: 0.8, ba: -120, be: -24, la: 20, le: -36, ll: 0.65, flx: 0.09, flz: 0.26, frx: -0.1, frz: -0.27, frw: -60 } ] });
 
 // after 3: thrust. The blade is drawn back level, the free hand sights along it, then one long lunge held to the end.
-def('thrust', { dur: 1.2, hit: [0.3, 0.42], chain: 0.74, free: 0.8, power: 2.4, reel: true, arc: 40, reach: 2.7, blend: 0.16, move: [[0, 0], [0.24, -0.12], [0.36, 2.3], [0.5, 2.6], [1.2, 2.6]], fx: [{ t: 0.31, kind: 'thrust' }, { t: 0.36, kind: 'dust' }], keys: [
+def('thrust', { dur: 1.2, hit: [0.3, 0.42], chain: 0.74, free: 0.8, power: 3.5, reel: true, arc: 40, reach: 2.7, blend: 0.16, move: [[0, 0], [0.24, -0.12], [0.36, 2.3], [0.5, 2.6], [1.2, 2.6]], fx: [{ t: 0.31, kind: 'thrust' }, { t: 0.36, kind: 'dust' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.16, hp: 6, hw: -40, hr: 0, sp: 6, sw: -18, np: -6, nw: 52, ra: -116, re: -34, rl: 0.6, ba: -8, be: 2, bo: 0, la: 12, le: 6, ll: 0.9, lg: 0, xr: 26, flx: 0.06, flz: 0.26, flw: -4, frx: -0.1, frz: -0.26, frw: -64, frp: 0, flp: 0 },
   { t: 0.22, hy: -0.28, hp: 10, hw: -58, sw: -28, nw: 78, ra: -128, re: -26, rl: 0.66, ba: 0, be: 1, la: 4, le: 4, ll: 0.96 },
   { t: 0.29, hw: -30 }, { t: 0.355, hy: -0.36, hp: 22, hw: 44, sp: 18, sw: 24, np: -30, nw: -44, ra: -2, re: 6, rl: 1, ba: 0, be: 0, xr: 0, la: 128, le: -10, ll: 0.9, frx: -0.06, frz: 0.6, frw: -2, flz: -0.56, flw: 44, flp: 40 },
@@ -40,7 +40,7 @@ def('thrust', { dur: 1.2, hit: [0.3, 0.42], chain: 0.74, free: 0.8, power: 2.4, 
   { t: 1.2, hy: -0.16, hp: 8, hw: -30, sp: 12, sw: 2, np: -14, nw: 32, ra: -58, re: -50, rl: 0.82, ba: -150, be: -24, la: 12, le: -38, ll: 0.62, frx: -0.1, frz: -0.27, frw: -60, flz: 0.27, flw: -8, flp: 0 } ] });
 
 // after 4: ground slam. Blade reversed and driven into the stone; the floor answers with fire.
-def('groundSlam', { dur: 1.7, hit: [0.44, 0.6], chain: 1.06, free: 1.12, power: 2.9, reel: true, arc: 180, reach: 2.9, blend: 0.14, move: [[0, 0], [0.18, 0.1], [0.44, 1.2], [1.7, 1.2]], fx: [{ t: 0.2, kind: 'flare' }, { t: 0.45, kind: 'erupt' }, { t: 1.0, kind: 'flare' }], keys: [
+def('groundSlam', { dur: 1.7, hit: [0.44, 0.6], chain: 1.06, free: 1.12, power: 4.6, reel: true, arc: 180, reach: 2.9, blend: 0.14, move: [[0, 0], [0.18, 0.1], [0.44, 1.2], [1.7, 1.2]], fx: [{ t: 0.2, kind: 'flare' }, { t: 0.45, kind: 'erupt' }, { t: 1.0, kind: 'flare' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.28, hp: 16, hw: 8, sp: 16, sw: 14, np: -16, nw: -10, ra: 24, re: -10, rl: 0.6, ba: 60, be: -20, la: 20, le: -20, ll: 0.6, lg: 0.6, flx: 0.1, fly: 0, flz: 0.2, flw: 6, flp: 0, frx: -0.1, fry: 0, frz: -0.24, frw: -30, frp: 0 },
   { t: 0.16, hy: -0.36, hp: 20, sp: 22, sw: 2, ra: 6, re: -6, ba: 18, be: -50, lg: 1 },
   { t: 0.2, air: 1 }, { t: 0.31, hy: 0.42, hp: -16, hw: 0, sp: -24, sw: 0, np: -8, nw: 0, ra: -6, re: 58, rl: 0.8, ba: 4, be: -70, flx: 0.06, fly: 0.46, flz: -0.14, flp: 60, frx: -0.08, fry: 0.6, frz: -0.06, frp: 60 },

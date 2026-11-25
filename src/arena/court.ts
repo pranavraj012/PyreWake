@@ -126,7 +126,7 @@ export async function buildCourt(tex: TexSet, tier: Tier) {
   const tp = lp.filter((_, i) => i % Math.max(1, Math.round(lp.length / (ph ? 12 : 26))) === 0), burn = makeFires(tp.map(p => p.clone().setY(p.y - 0.6)), ph ? 2 : 4, 1.5), burnE = makeEmbers(tp, tier); burn.visible = burnE.visible = false; group.add(burn, burnE);
   group.updateMatrixWorld(true); group.traverse(o => { if (!(o as THREE.PointLight).isPointLight) o.matrixAutoUpdate = false; });
   return {
-    group, fires, /** 0-1: how high the pyres burn. */ flames(k: number) { flameK = k; (flames.material as THREE.ShaderMaterial).uniforms.uGain.value = k; cinders.visible = k > 0.15; fires.forEach((f, i) => { FOG.uGlowP.value[i].w = 0.0075 * k; }); },
+    group, fires, /** 0-1: how high the pyres burn. */ flames(k: number) { flameK = k; (flames.material as THREE.ShaderMaterial).uniforms.uGain.value = k; cinders.visible = k > 0.15; fires.forEach((_, i) => { FOG.uGlowP.value[i].w = 0.0075 * k; }); },
     /** 0-1: round 2's burning court. */ omen(k: number) { rift.value = k * 0.6; burn.visible = burnE.visible = k > 0.35; (burn.material as THREE.ShaderMaterial).uniforms.uGain.value = Math.max(0, (k - 0.35) / 0.65) * 0.5; },
     update(t: number, focus: THREE.Vector3) {
       const near = [...fires].sort((a, b) => a.distanceToSquared(focus) - b.distanceToSquared(focus));

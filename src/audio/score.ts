@@ -16,18 +16,25 @@ const MOOD: Record<Mood, M> = {
 const MUSIC: Record<Mood, [TrackName, number, number, number?] | null> = {
   still: ['morning', 1.2, 2600], vigil: ['vigil', 2.0, 20000], lesson: ['king', 1.1, 1500], spar: ['king', 1.7, 9000], r1: ['king', 2.6, 20000, 15.2], crawl: ['crawl', 2.2, 20000], hang: ['hang', 2.4, 20000], scene: null, reveal: ['beneath', 2.5, 20000], r2: ['beneath', 2.5, 20000], eclipse: ['beneath', 2.9, 20000], finish: ['beneath', 1.4, 420], won: ['morning', 2.2, 20000], dead: null,
 };
+/** Round 1's styles, and the least any one piece plays before another style's may start (s). */
+const STYLES = /^(r1|crawl|hang)$/, HOLD = 16;
 const REST: M = { bpm: 90, drum: 0, hi: 0, str: 0, bra: 0, cho: 0, trem: 0, anvil: 0, drone: 0, lead: 0 };
 // sixteen steps a bar; two bars of question, two of answer
 const DRUM = ['x..x..x...x.x...', 'x..x..x.x...x.xx', 'x.x...x..x.x..x.', 'x..x.xx...x.xxxx'], HI = ['..o.o..o..o.o.oo', 'o..o..o.o.o..o.o', '..oo..o...oo.o.o', 'o.o.ooo.o.o.oooo'], OST = [[0, 12, 1, 0, 3, 0, 1, 0, 0, 12, 1, 0, 5, 3, 1, 0], [0, 12, 0, 1, 3, 1, 0, -2, 0, 8, 7, 5, 3, 1, 0, 1]];
 const ROOT = [0, 0, 1, -2, 0, 0, -4, 1], SCALE = [0, 1, 3, 5, 7, 8, 10, 12, 13, 15];
 
 export class Score {
-  mood: Mood = 'still'; aura = 0; private s: S; private cur: M = { ...MOOD.still }; private step = 0; private next = 0; private leadAt = 7; private rnd = 5; private heard = '';
+  mood: Mood = 'still'; aura = 0; private s: S; private cur: M = { ...MOOD.still }; private step = 0; private next = 0; private leadAt = 7; private rnd = 5; private heard = ''; private since = -99; private next_: Mood | null = null;
   constructor(s: S) { this.s = s; this.next = s.ctx!.currentTime + 0.1; }
-  set(m: Mood) { if (m === this.mood) return; const big = MOOD[m].drum - MOOD[this.mood].drum; this.mood = m; if (big > 0.2 && !this.s.tracks?.playing) { this.s.play('sub', { bus: 'music', gain: 0.8, wet: 0.5 }); } }
+  /** The King changes its mind faster than a piece of music can bear: within round 1 a piece holds for a while before the next may take over. */
+  set(m: Mood) {
+    if (m === this.mood) { this.next_ = null; return; } const now = this.s.ctx?.currentTime ?? 0; if (STYLES.test(m) && STYLES.test(this.mood) && now - this.since < HOLD) { this.next_ = m; return; }
+    if (MUSIC[m]?.[0] !== MUSIC[this.mood]?.[0]) this.since = now; this.next_ = null; this.turn(m);
+  }
+  private turn(m: Mood) { const big = MOOD[m].drum - MOOD[this.mood].drum; this.mood = m; if (big > 0.2 && !this.s.tracks?.playing) { this.s.play('sub', { bus: 'music', gain: 0.8, wet: 0.5 }); } }
   private R() { this.rnd = (this.rnd * 1664525 + 1013904223) >>> 0; return this.rnd / 4294967296; }
   update(dt: number) {
-    const c = this.s.ctx; if (!c || c.state !== 'running') return; const mu = MUSIC[this.mood], tr = this.s.tracks, on = !!(mu && tr?.has(mu[0])), g = mu ? mu[1] * (1 + (mu[0] === 'morning' || mu[0] === 'vigil' ? 0 : 0.04 * this.aura)) : 0, key = on ? `${mu![0]} ${g} ${mu![2]}` : '';
+    const c = this.s.ctx; if (!c || c.state !== 'running') return; if (this.next_ && c.currentTime - this.since >= HOLD) { const m = this.next_; this.next_ = null; this.set(m); } const mu = MUSIC[this.mood], tr = this.s.tracks, on = !!(mu && tr?.has(mu[0])), g = mu ? mu[1] * (1 + (mu[0] === 'morning' || mu[0] === 'vigil' ? 0 : 0.04 * this.aura)) : 0, key = on ? `${mu![0]} ${g} ${mu![2]}` : '';
     if (key !== this.heard) { this.heard = key; tr?.set(on ? mu![0] : null, g, mu?.[2], this.mood === 'dead' || this.mood === 'scene' ? 0.7 : 1.8, mu?.[3]); } tr?.update();
     const T = on ? REST : MOOD[this.mood], k = 1 - Math.exp(-dt * (this.mood === 'scene' || this.mood === 'dead' ? 3 : 0.9)); for (const q in T) this.cur[q as keyof M] += (T[q as keyof M] - this.cur[q as keyof M]) * (q === 'bpm' ? 1 : k);
     this.s.bed('drone', 0.5 * this.cur.drone, 'music', 1, 0.8); const now = c.currentTime; if (this.next < now - 0.5) this.next = now + 0.05;

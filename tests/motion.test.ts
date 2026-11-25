@@ -9,7 +9,7 @@ import { PlayerView } from '../src/player/view.ts';
 import { KingView } from '../src/boss/kingView.ts';
 import { Puffs, Sparks } from '../src/render/fx.ts';
 
-const COMBO = KHANDA.combo, FX = () => ({ sparks: new Sparks(50, 1), gore: new Sparks(50, 1, true), puffs: new Puffs(), bursts: new Bursts() });
+const FX = () => ({ sparks: new Sparks(50, 1), gore: new Sparks(50, 1, true), puffs: new Puffs(), bursts: new Bursts() });
 const DT = 1 / 60, geo = () => { const g = new THREE.BoxGeometry(); const n = g.attributes.position.count; g.setAttribute('skinIndex', new THREE.BufferAttribute(new Uint8Array(n * 4), 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(new Float32Array(n * 4).fill(0.25), 4)); return g; };
 const mat = new THREE.MeshBasicMaterial(), depth = { skin: mat, still: mat };
 const make = () => { const scene = new THREE.Scene(), fx = FX(); const m = new Motor(); m.arena = 1e6; return { m, v: new PlayerView(scene, geo(), geo(), geo(), mat, mat, depth, fx, 1, KHANDA) }; };
