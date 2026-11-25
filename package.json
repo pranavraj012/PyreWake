@@ -1,0 +1,34 @@
+{
+  "name": "pyrewake",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:lan": "vite --host",
+    "forge": "node forge/index.ts",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "shots": "node tools/shots.mjs",
+    "perf": "node tools/perf.mjs",
+    "soak": "node tools/soak.mjs",
+    "fight": "node tools/fight.mjs",
+    "sheets": "node tools/sheets.mjs",
+    "sfx": "node tools/sfx.mjs"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@types/three": "0.187.0",
+    "meshoptimizer": "1.3.0",
+    "playwright-core": "1.65.1",
+    "sharp": "0.35.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
+  }
+}

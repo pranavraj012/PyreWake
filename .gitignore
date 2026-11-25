@@ -1,0 +1,8 @@
+node_modules
+dist
+assets_src
+shots_out
+docs/ROADMAP.md
+*.local
+.env*
+.claude/
