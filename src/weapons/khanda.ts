@@ -19,7 +19,14 @@ export const READY = makePose({
 });
 
 const C: Record<string, Clip> = {};
-const def = (n: string, d: Parameters<typeof clip>[1]) => { C[n] = clip(n, d); };
+// The free arm: elbow bent, hand drawn in toward the body. Hand-authored clips and two-hand grips opt out.
+const KEEP = new Set(['finale', 'execute', 'rites', 'reckon', 'plunge', 'plungeHit', 'sunder', 'charge', 'flick', 'thrust', 'palm']);
+const loose = (d: Parameters<typeof clip>[1]): Parameters<typeof clip>[1] => ({ ...d, keys: d.keys.map(k => {
+  if ((k.lg ?? 0) > 0.4) return k; const o = { ...k };
+  if (o.la !== undefined && o.la > 36) { o.la = 20 + (o.la - 36) * 0.45; if (o.le !== undefined) o.le -= 14; }
+  if (o.ll !== undefined && o.ll > 0.65) o.ll = 0.36 + (o.ll - 0.65) * 0.8;
+  return o; }) });
+const def = (n: string, d: Parameters<typeof clip>[1]) => { C[n] = clip(n, KEEP.has(n) ? d : loose(d)); };
 
 // 1: rising cut, low right to high left
 def('light1', { dur: 0.66, hit: [0.13, 0.25], chain: 0.3, free: 0.46, power: 1, blend: 0.135, move: [[0, 0], [0.1, 0.05], [0.22, 0.75], [0.3, 0.85], [0.66, 0.85]], keys: [
@@ -55,15 +62,16 @@ def('light4', { dur: 0.86, hit: [0.24, 0.46], chain: 0.52, free: 0.66, power: 1.
   { t: 0.62, tw: 362, ba: 120 }, { t: 0.86, tw: 360, hy: -0.18, hw: 20, sw: 28, ba: 124, ra: 62 } ] });
 
 // 5: rising leap into a driving downward slam, then a long kneeling hold
-def('light5', { dur: 1.5, hit: [0.46, 0.58], chain: 0.95, free: 1.0, power: 3.2, reel: true, arc: 110, blend: 0.12, move: [[0, 0], [0.2, 0.1], [0.53, 1.7], [1.5, 1.7]], fx: [{ t: 0.53, kind: 'slam' }, { t: 1.12, kind: 'flare' }], keys: [
+def('light5', { dur: 1.5, hit: [0.46, 0.58], chain: 0.95, free: 1.0, power: 3.2, reel: true, arc: 110, blend: 0.12, move: [[0, 0], [0.2, 0.1], [0.53, 1.7], [1.5, 1.7]], fx: [{ t: 0.53, kind: 'slam' }, { t: 0.99, kind: 'flare' }], keys: [
   { t: 0, air: 0, tw: 0, hy: -0.26, hp: 16, hw: 14, sp: 18, sw: 18, np: -18, nw: -14, ra: 44, re: -30, rl: 0.72, ba: 110, be: -20, la: 20, le: -40, ll: 0.6, lg: 0.8, flx: 0.08, fly: 0, flz: 0.2, frx: -0.1, fry: 0, frz: -0.26, frw: -40 },
   { t: 0.16, hy: -0.34, hp: 22, sp: 24, ra: 20, re: -44, ba: 60, be: -50, lg: 1 },
   { t: 0.22, air: 1 }, { t: 0.35, hy: 0.6, hp: -14, hw: -4, sp: -26, sw: 0, np: 10, nw: 0, ra: -18, re: 88, rl: 0.8, ba: 0, be: 158, flx: 0.02, fly: 0.5, flz: -0.2, flp: 55, frx: -0.04, fry: 0.66, frz: 0.16, frp: 40 },
   { t: 0.4, hy: 0.52, sp: -12, re: 74, be: 124 }, { t: 0.47, hy: 0.06, sp: 6, re: 30, be: 60 },
   { t: 0.53, air: 1, hy: -0.4, hp: 26, sp: 34, np: -34, ra: -8, re: -34, rl: 0.94, be: -38, fly: 0, fry: 0, flp: 0, frp: 46, flz: 0.34, frz: -0.34 },
   { t: 0.55, air: 0 }, { t: 0.61, hy: -0.47, hp: 28, sp: 38, np: -38, re: -44, be: -46, frp: 58, flx: 0.1, flz: 0.32, frx: -0.1, frz: -0.36 },
-  { t: 0.95, hy: -0.46, hp: 26, sp: 34, np: -30, nw: 0, re: -43, be: -45, lg: 1, ba: 0 },
-  { t: 1.14, hy: -0.2, hp: 8, hw: -24, sp: 4, np: -4, nw: 22, ra: -50, re: -52, rl: 0.88, ba: -50, be: -42, lg: 0, la: 20, le: -62, ll: 0.8, frp: 6, flz: 0.16, frz: -0.2 },
+  { t: 0.78, hy: -0.46, hp: 26, sp: 34, np: -30, nw: 0, re: -43, be: -45, lg: 1, ba: 0 },
+  { t: 0.9, hy: -0.3, hp: 14, hw: 10, sp: 12, np: -12, nw: -10, ra: 8, re: 24, rl: 0.9, ba: 40, be: -10, lg: 0.4, la: 30, le: -30, ll: 0.46, frp: 20 },
+  { t: 0.99, hy: -0.18, hp: 6, hw: 26, sp: 0, sw: 22, nw: -20, ra: 60, re: 6, rl: 0.98, ba: 96, be: 4, lg: 0, la: 40, le: -34, ll: 0.44, frp: 6, flz: 0.2, frz: -0.22 }, { t: 1.2, hw: 22, sw: 18, ra: 56, ba: 100 },
   { t: 1.5, hy: -0.05, hp: -2, hw: -32, sp: -3, sw: 6, ra: -62, re: -66, rl: 0.93, ba: -128, be: -33, frw: -58, frp: 0, la: 18, le: -70 } ] });
 
 // heavy: hold to charge, release a one-handed crescent and hold it, side-on to the enemy
@@ -72,12 +80,12 @@ def('charge', { dur: 1.2, blend: 0.16, fx: [{ t: 0.3, kind: 'flare' }, { t: 0.75
   { t: 1.2, hy: -0.24, hw: -68, sw: -30, nw: 84, ra: -112, re: -30, ba: 172, be: -14, le: 2 } ] });
 def('heavy', { dur: 1.25, hit: [0.1, 0.26], chain: 0.72, free: 0.8, power: 3.2, reel: true, arc: 100, blend: 0.07, move: [[0, 0], [0.06, 0.1], [0.22, 1.7], [0.34, 1.9], [1.25, 1.9]], fx: [{ t: 0.14, kind: 'crescent' }, { t: 0.24, kind: 'dust' }], keys: [
   { t: 0, tw: 0, hy: -0.26, hp: 14, hw: -62, sp: 14, sw: -30, nw: 70, np: -10, ra: -108, re: -38, rl: 0.95, ba: -184, be: -22, la: 40, le: 0, ll: 0.7, lg: 0, flx: 0.1, flz: 0.3, flw: -6, frx: -0.12, frz: -0.34, frw: -76 },
-  { t: 0.08, hw: -40, ra: -96, ba: -160 },
-  { t: 0.17, tw: 10, hy: -0.16, hp: 4, hw: 20, sp: 0, sw: 22, nw: -6, ra: -6, re: 8, rl: 1, ba: -6, be: 10, la: 90, le: -20, ll: 0.9, frz: 0.42, frx: -0.02, frw: 18, flz: -0.3, flw: 30 },
+  { t: 0.08, hw: -40, ra: -96, ba: -160, lg: 0.4 },
+  { t: 0.17, lg: 0.9, tw: 10, hy: -0.16, hp: 4, hw: 20, sp: 0, sw: 22, nw: -6, ra: -6, re: 8, rl: 1, ba: -6, be: 10, la: 90, le: -20, ll: 0.9, frz: 0.42, frx: -0.02, frw: 18, flz: -0.3, flw: 30 },
   { t: 0.27, tw: 34, hy: -0.06, hp: -6, hw: 44, sp: -14, sw: 40, sr: 6, nw: -20, ra: 60, re: 64, rl: 0.95, ba: 92, be: 66, la: 120, le: -36, ll: 0.9, flp: 30 },
   { t: 0.4, tw: 42, hw: 36, sw: 30, ra: 66, re: 68, ba: 104, be: 72, nw: 10 },
   { t: 0.74, tw: 42, hw: 34, sw: 28, ra: 62, re: 64, ba: 110, be: 70, np: 4, nw: 46, nr: 6, la: 124, le: -44 },
-  { t: 1.02, tw: 30, hw: -10, sw: 6, sp: -4, nw: 24, ra: -30, re: -30, rl: 0.8, ba: -60, be: 30 },
+  { t: 1.02, tw: 30, lg: 0, hw: -10, sw: 6, sp: -4, nw: 24, ra: -30, re: -30, rl: 0.8, ba: -60, be: 30 },
   { t: 1.25, tw: 0, hy: -0.04, hw: -32, hp: -2, sw: 6, ra: -62, re: -66, rl: 0.93, ba: -128, be: -33, flx: 0.04, flz: 0.13, flw: -4, frx: -0.06, frz: -0.16, frw: -58, flp: 0, la: 18, le: -70, ll: 0.86 } ] });
 
 // after a fight beat: snap the blade clean, then let it hang

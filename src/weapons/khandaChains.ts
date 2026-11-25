@@ -13,9 +13,15 @@ def('b1', { dur: 0.62, hit: [0.13, 0.24], chain: 0.3, free: 0.46, power: 1, blen
   { t: 0.1, hy: -0.23, hw: 48, sw: 46, ra: 84, ba: 164 }, { t: 0.185, hy: -0.19, hw: -4, sw: -2, nw: 0, ra: 4, re: -6, rl: 0.98, ba: 8, be: -4, la: 70, le: -6, frz: 0.36, flz: -0.2, frw: -14, flw: 34 },
   { t: 0.25, hw: -36, sw: -34, nw: 46, ra: -78, re: 8, ba: -112, be: 14, la: 84, le: 10, ll: 0.85 }, { t: 0.36, hw: -40, sw: -38, ra: -88, re: 12, ba: -128, be: 18 }, { t: 0.62, hy: -0.14, hw: -34, sw: -26, ra: -80, re: -20, ba: -140, be: -10 } ] });
 def('b2', { dur: 0.78, hit: [0.2, 0.34], chain: 0.42, free: 0.56, power: 1.15, arc: 150, blend: 0.12, move: [[0, 0], [0.12, 0.05], [0.34, 0.95], [0.78, 1.0]], fx: [{ t: 0.36, kind: 'dust' }], keys: [
-  { t: 0, ...R0, hy: -0.2, hp: 12, hw: -34, sp: 10, sw: -30, np: -8, nw: 30, ra: -90, re: -10, rl: 0.9, ba: -136, be: -4, la: 50, le: -10, ll: 0.7, flx: 0.1, flz: 0.24, frx: -0.1, frz: -0.28, frw: -40, flw: 0 },
-  { t: 0.1, tw: -40, hy: -0.28, hr: 6 }, { t: 0.13, air: 1 }, { t: 0.24, tw: -215, hy: -0.06, hp: 4, sp: 4, sw: 0, sr: -8, nw: 0, ra: -60, re: 14, rl: 1, ba: -66, be: 18, la: 80, le: 12, ll: 0.9, fly: 0.12, fry: 0.2, frp: 30 },
-  { t: 0.34, tw: -352, hy: -0.2, hw: -28, sw: -34, nw: 40, ra: -82, re: 22, ba: -110, be: 30, air: 1, fly: 0, fry: 0, frp: 0 }, { t: 0.37, air: 0, tw: -360 }, { t: 0.5, hw: -32, sw: -38, ra: -90, ba: -122, flx: 0.12, flz: 0.32, frx: -0.14, frz: -0.34 }, at(0.78, RDY, { tw: -360 }) ] });
+  { t: 0, ...R0, hy: -0.2, hp: 12, hw: -34, sp: 10, sw: -30, np: -8, nw: 30, ra: -90, re: -10, rl: 0.9, ba: -136, be: -4, la: 30, le: -20, ll: 0.5, flx: 0.1, flz: 0.24, frx: -0.1, frz: -0.28, frw: -40, flw: 0 },
+  { t: 0.1, hy: -0.3, hp: 16, hw: -52, sp: 14, sw: -46, nw: 52, ra: -62, re: 52, rl: 0.82, ba: -88, be: 74, la: 38, le: -34, ll: 0.46, flz: 0.34, frz: -0.34 },
+  { t: 0.2, hy: -0.28, hw: -20, sw: -16, nw: 20, ra: -48, re: 42, rl: 0.95, ba: -60, be: 46, la: 24, le: -42, ll: 0.4, flz: 0.46, frz: -0.34, flp: 0 },
+  { t: 0.275, hy: -0.2, hp: 12, hw: 28, sp: 14, sw: 30, nw: -26, ra: 4, re: 12, rl: 1, ba: 6, be: 14, la: 4, le: -48, ll: 0.36 },
+  { t: 0.34, hw: 46, sw: 42, nw: -34, ra: 62, re: -34, ba: 108, be: -38, la: -22, le: -34, ll: 0.42, frz: -0.4 },
+  { t: 0.42, hw: 54, sw: 46, ra: 76, re: -40, ba: 124, be: -44 },
+  { t: 0.5, hy: -0.22, hp: 8, hw: 28, sw: 20, nw: -10, ra: 8, re: 14, ba: 14, be: 2, la: 10, le: -40, ll: 0.4 },
+  { t: 0.6, hy: -0.16, hp: 4, hw: -22, sw: -14, nw: 26, ra: -46, re: 62, ba: -64, be: 84, la: 24, le: -34 },
+  { t: 0.66, hw: -28, sw: -18, ra: -34, re: 86, ba: -28, be: 128 }, at(0.78, RDY, { tw: 0 }) ] });
 
 // --- chain C: straight lines and stabs, then a tilted double turn and a cut that keeps going
 def('c1', { dur: 0.6, hit: [0.14, 0.23], chain: 0.29, free: 0.45, power: 1.05, blend: 0.12, move: [[0, 0], [0.12, 0.1], [0.22, 0.85], [0.6, 0.9]], keys: [
@@ -33,10 +39,10 @@ def('c4', { dur: 0.98, hit: [0.2, 0.34], hits: [[0.2, 0.34], [0.4, 0.54]], chain
   { t: 0.14, tw: -30, hy: -0.36 }, { t: 0.18, air: 1 }, { t: 0.28, tw: 170, hy: 0.24, hp: 26, hr: 34, sp: 6, sw: 12, nw: 0, np: -6, ra: -70, re: 20, rl: 1, ba: -76, be: 22, la: 84, le: -10, ll: 0.9, flx: 0.16, fly: 0.5, flz: -0.4, flp: 50, frx: -0.06, fry: 0.24, frz: 0.1, frp: 20 },
   { t: 0.38, tw: 370, hy: 0.3, hr: 30, flx: 0.04, fly: 0.2, flz: 0.1, frx: -0.18, fry: 0.56, frz: -0.4, frp: 50 }, { t: 0.48, tw: 560, hy: 0.18, hr: 16, re: 4, be: 4 }, { t: 0.57, tw: 712, air: 1, hy: -0.22, hp: 16, hr: 0, sp: 16, hw: 14, sw: 30, ra: 30, re: -14, ba: 46, be: -14, fly: 0, flz: 0.3, flp: 0, fry: 0, frz: -0.3, frp: 0 },
   { t: 0.6, air: 0, tw: 720 }, { t: 0.68, hy: -0.32, hw: 26, sw: 40, nw: -30, ra: 66, re: -18, ba: 112, be: -14, la: 110, le: 0 }, at(0.98, RDY, { tw: 720 }) ] });
-def('c5', { dur: 1.6, hit: [0.42, 0.54], chain: 1.0, free: 1.06, power: 3.0, reel: true, arc: 130, reach: 2.4, blend: 0.14, move: [[0, 0], [0.2, -0.15], [0.36, 0.1], [0.5, 1.5], [1.6, 1.6]], fx: [{ t: 0.08, kind: 'flare' }, { t: 0.28, kind: 'flare' }, { t: 0.44, kind: 'crescent' }, { t: 0.47, kind: 'throw' }, { t: 0.5, kind: 'dust' }], keys: [
+def('c5', { dur: 1.6, hit: [0.42, 0.54], chain: 1.0, free: 1.06, power: 3.0, reel: true, arc: 130, reach: 2.4, blend: 0.14, move: [[0, 0], [0.2, -0.15], [0.36, 0.1], [0.5, 1.5], [1.6, 1.6]], fx: [{ t: 0.08, kind: 'flare' }, { t: 0.28, kind: 'flare' }, { t: 0.44, kind: 'crescent' }, { t: 0.47, kind: 'throw' }, { t: 0.5, kind: 'dust' }, { t: 0.95, kind: 'flare' }], keys: [
   { t: 0, ...R0, hy: -0.3, hp: 12, hw: -50, sp: 14, sw: -30, np: -10, nw: 64, ra: -104, re: -20, rl: 0.9, ba: -172, be: -8, la: 20, le: -30, ll: 0.6, flx: 0.12, flz: 0.34, frx: -0.14, frz: -0.36, frw: -66 },
   { t: 0.3, hy: -0.4, hw: -62, sw: -40, nw: 82, ra: -118, ba: -182 }, { t: 0.4, hw: -50 }, { t: 0.48, hy: -0.3, hp: 8, hw: 22, sp: 6, sw: 24, nw: -16, ra: 0, re: 4, rl: 1, ba: 4, be: 4, la: 90, le: -10, frz: 0.42, frx: -0.04, frw: 14, flz: -0.34, flw: 30 }, { t: 0.57, hy: -0.26, hp: 0, hw: 46, sp: -4, sw: 46, sr: 6, nw: -36, ra: 78, re: 16, ba: 124, be: 18, la: 60, le: 34, ll: 0.8 },
-  { t: 0.7, hw: 48, sw: 48, ra: 82, ba: 130, nw: -50, np: 6 }, { t: 1.02, hw: 46, sw: 44, ra: 80, ba: 130, la: 56, le: 38 }, at(1.6, RESTK) ] });
+  { t: 0.7, hw: 48, sw: 48, ra: 82, ba: 130, nw: -50, np: 6 }, { t: 0.86, hy: -0.34, hp: 18, hw: 30, sp: 16, sw: 30, nw: -20, np: -16, ra: 24, re: -54, rl: 0.95, ba: 40, be: -68, la: 24, le: -50, ll: 0.44 }, { t: 1.06, hy: -0.34, hw: 28, ra: 26, re: -56, ba: 44, be: -72 }, at(1.6, RESTK) ] });
 
 // --- after a parry or last-instant dodge, when the long answer was used recently
 def('riposteA', { dur: 1.15, hit: [0.17, 0.28], chain: 0.56, free: 0.64, power: 4.4, reel: true, arc: 150, reach: 2.6, blend: 0.08, move: [[0, 0], [0.12, 0.3], [0.24, 1.7], [0.36, 1.9], [1.15, 1.9]], fx: [{ t: 0.05, kind: 'blur' }, { t: 0.12, kind: 'blur' }, { t: 0.2, kind: 'crescent' }, { t: 0.22, kind: 'riposte' }], keys: [
@@ -49,8 +55,9 @@ def('riposteB', { dur: 1.3, hit: [0.1, 0.18], hits: [[0.1, 0.18], [0.27, 0.35], 
 
 // --- from the air
 def('airCut', { dur: 0.5, hit: [0.05, 0.24], chain: 0.28, power: 1.25, arc: 180, reach: 2.2, blend: 0.07, keys: [
-  { t: 0, tw: -20, air: 1, lg: 0, hy: 0.02, hp: 18, hr: 0, hw: -20, sp: 10, sw: -20, np: -12, nw: 20, ra: -90, re: 0, rl: 0.95, ba: -120, be: 4, la: 70, le: 0, ll: 0.8, flx: 0.1, fly: 0.3, flz: 0.06, flp: 30, frx: -0.1, fry: 0.44, frz: -0.2, frp: 50 },
-  { t: 0.1, tw: 130, hr: 22, hp: 24, hw: 0, sw: 10, nw: 0, ra: -68, re: 2, rl: 1, ba: -74, be: 2, la: 86, le: 6, ll: 0.9, fly: 0.46, flz: -0.3 }, { t: 0.22, tw: 330, hr: 14 }, { t: 0.3, tw: 360, hr: 0, sw: 26, ra: 50, re: 8, ba: 86, be: 10, fly: 0.3, flz: 0, fry: 0.4 }, { t: 0.5, tw: 360, hw: 6, sw: 18, ra: 56, ba: 100 } ] });
+  { t: 0, tw: 0, air: 1, lg: 0, hy: 0.02, hp: 18, hr: 0, hw: -40, sp: 10, sw: -34, np: -12, nw: 40, ra: -80, re: 40, rl: 0.95, ba: -80, be: 50, la: 38, le: -30, ll: 0.46, flx: 0.1, fly: 0.3, flz: 0.06, flp: 30, frx: -0.1, fry: 0.44, frz: -0.2, frp: 50 },
+  { t: 0.1, hr: 8, hp: 24, hw: -4, sw: 0, nw: 0, ra: -10, re: 18, rl: 1, ba: -8, be: 12, la: 12, le: -40, ll: 0.4, fly: 0.46, flz: -0.3 },
+  { t: 0.2, hr: 0, hw: 38, sw: 40, nw: -30, ra: 60, re: -34, ba: 100, be: -40, la: -18, le: -30, ll: 0.42, fly: 0.3, flz: 0, fry: 0.4 }, { t: 0.3, hw: 42, sw: 44, ra: 72, re: -40, ba: 120, be: -46 }, { t: 0.5, hw: 30, sw: 26, ra: 56, re: -22, ba: 92, be: -20 } ] });
 def('plunge', { dur: 2.4, blend: 0.1, trail: [0.16, 2.4], fx: [{ t: 0.04, kind: 'flare' }, { t: 0.2, kind: 'dive' }], keys: [
   { t: 0, tw: 0, air: 1, hy: 0.04, hp: -14, hr: 0, hw: 0, sp: -22, sw: 0, np: -10, nw: 0, ra: -6, re: 62, rl: 0.8, ba: 4, be: -62, bo: 0, la: 0, le: 60, ll: 0.8, lg: 1, flx: 0.07, fly: 0.46, flz: -0.16, flp: 60, frx: -0.08, fry: 0.56, frz: -0.1, frp: 60 },
   { t: 0.18, hp: -18, sp: -28, re: 72, be: -78 }, { t: 0.3, hp: 8, sp: 8, np: -34, re: 34, rl: 0.8, be: -84, fly: 0.3, fry: 0.6, flz: 0.12, frz: -0.34 }, { t: 2.4, hp: 10, sp: 12, re: 26, be: -84 } ] });
