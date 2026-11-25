@@ -34,5 +34,5 @@ export const MATS: MatDef[] = [
   m(24, 2, 1.1, [0.085, 0.066, 0.05], { keep: 0.22, rough: 0.58, bump: 1.7, edge: 0.4, grime: 1.2 }),    // wet timber
   m(25, 1, 0.9, [0.14, 0.06, 0.035], { keep: 0.1, rough: 0.9, bump: 0.9, edge: 0.4, grime: 0.7 }),       // clay of the lamps
   m(26, 5, 2.6, [0.145, 0.125, 0.092], { keep: 0.15, rough: 0.96, bump: 1.5, edge: 0.3, grime: 1.0 }),    // wet hemp net
-  m(27, 4, 2.2, [0.2, 0.185, 0.17], { keep: 0.1, rough: 0.55, bump: 0.5, edge: 0.15, grime: 0.9 }),     // old wet skin
+  m(27, 4, 2.2, [0.075, 0.085, 0.07], { keep: 0.1, rough: 0.5, bump: 0.5, edge: 0.15, grime: 0.9 }),     // old wet skin
 ];

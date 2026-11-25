@@ -29,7 +29,7 @@ void main(){ vec3 r = normalize(d); float y = max(r.y, 0.), m = max(dot(r, uMoon
  c += vec3(.16,.052,.014) * exp(-max(r.y,0.) * 13.) * .12;
  if (uEcl > .001) { vec2 sh = vec2(dot(r - uMoon, normalize(cross(uMoon, vec3(0., 1., 0.)))), (r - uMoon).y); float bite = smoothstep(.0425, .0395, length(sh - vec2(.11 * (1. - uEcl), .03 * (1. - uEcl)))); vec3 cor = vec3(1., .16, .04) * (exp(-max(ang - .04, 0.) * 46.) * 1.6 + exp(-max(ang - .04, 0.) * 9.) * .35) * (.7 + .5 * fbm(vec3(sh * 26., uT.w * .2))); vec3 e = c * vec3(.42, .14, .11) + vec3(.0075, .0014, .0011) * (1. + 2. * cl2) + cor * smoothstep(.037, .041, ang); e *= 1. - bite * .98 * smoothstep(.0415, .0385, ang); c = mix(c * (1. - .9 * bite * step(ang, .0405)), e, smoothstep(.3, 1., uEcl)); }
  if (uDawn > .001) { float hz = exp(-max(r.y, 0.) * 5.), side = .35 + .65 * smoothstep(-.6, .9, -r.z * .8 + r.x * .5); c += uDawn * side * (vec3(.34, .13, .035) * hz + vec3(.06, .04, .05) * exp(-max(r.y, 0.) * 1.6) * (.6 + cover * .9)); }
- if (uLine > .001) { float side = smoothstep(-.5, .5, -r.z - r.x * .15), bn = exp(-pow((r.y - .012) * 170., 2.)), hz = exp(-abs(r.y) * 22.); c *= 1. - .68 * uLine; c += uLine * side * (vec3(1.1, .6, .26) * bn * 2.4 + vec3(.3, .13, .045) * hz * .3); }
+ if (uLine > .001) { float az = atan(r.x, -r.z), side = smoothstep(-.2, .7, -r.z - r.x * .15), brk = smoothstep(.35, .75, fbm(vec3(az * 9., 3.1, 1.7))) * (.55 + .45 * n(vec3(az * 40., 1., 2.))), bn = exp(-pow((r.y - .006) * 520., 2.)) * brk, hz = exp(-abs(r.y - .01) * 30.); c *= 1. - .6 * uLine; c += uLine * side * (vec3(1., .58, .27) * bn * 1.1 + vec3(.24, .11, .04) * hz * .32 * (.5 + brk)); }
  if (r.y < 0.) c = mix(c, vec3(.012,.0125,.014), smoothstep(0., -.12, r.y));
  gl_FragColor = vec4(c, 1.); }`,
   });

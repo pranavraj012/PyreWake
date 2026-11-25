@@ -15,7 +15,7 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number,
 export interface RiverGeo extends FxGeo { boat: THREE.BufferGeometry; body: THREE.BufferGeometry; pole: THREE.BufferGeometry; hull: THREE.BufferGeometry; section: THREE.BufferGeometry }
 export interface RiverMats { skin: THREE.Material; held: THREE.Material; wood: THREE.Material }
 /** Scale of the Ferryman's rig, which is the King's frame: broad and bent, he stands about two and a quarter metres. */
-const SCALE = 0.66, POLE = 1.7, CHAIN_MODES = ['cast', 'haul', 'haulIn', 'wheelIron', 'dragDeep'];
+const SCALE = 0.8, POLE = 1.7, CHAIN_MODES = ['cast', 'haul', 'haulIn', 'wheelIron', 'dragDeep'];
 
 export class RiverView implements BossView {
   group = new THREE.Group(); form: 1 | 2; sim: River; rig = new Rig(KING); body: Body; mesh: THREE.SkinnedMesh; cleaver: THREE.Mesh; man = new THREE.Group(); fxv: RiverFx; light: THREE.PointLight | null = null;
