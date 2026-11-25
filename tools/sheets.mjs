@@ -6,10 +6,10 @@ import fs from 'node:fs';
 const which = process.argv[2] ?? 'player', yaw = +(process.argv.find(a => a.startsWith('--yaw='))?.slice(6) ?? (which === 'king' ? 0.6 : 2.4)), want = process.argv[3]?.startsWith('--') ? null : process.argv[3]?.split(',');
 const DUR = { idle: 3, ready: 2, walk: 0.94, run: 0.67, sprint: 0.6, stalk: 3, crawl: 2.2, hang: 4.5, slam: 3.3, sweep: 3.2, grab: 3.5, reel: 1.5, kneel: 3.4, fall: 6.6, guard: 1, guardwalk: 1.2 };
 const W = 300, H = 300, NF = 8; fs.mkdirSync('shots_out', { recursive: true });
-const srv = await createServer({ server: { port: 5301 }, logLevel: 'error' }); await srv.listen();
+const srv = await createServer({ server: { port: 5195 }, logLevel: 'error' }); await srv.listen();
 const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--force-high-performance-gpu'] });
 const p = await b.newPage({ viewport: { width: W * 2, height: H * 2 } }); p.on('pageerror', e => console.log(e.message)); p.on('console', m => m.type() === 'error' && console.log(m.text()));
-await p.goto(`http://localhost:5301/?tier=high&bench=${which}`); await p.waitForFunction(() => window.__frames > 90 && window.__bench, null, { timeout: 60000 });
+await p.goto(`http://localhost:5195/?tier=high&bench=${which}`); await p.waitForFunction(() => window.__frames > 90 && window.__bench, null, { timeout: 60000 });
 const all = await p.evaluate(() => window.__bench.names);
 for (const n of want ?? all) {
   const dur = DUR[n] ?? await p.evaluate(n => { const c = window.__m && window.__bench && n; return c ? null : null; }, n) ?? 1.0;
