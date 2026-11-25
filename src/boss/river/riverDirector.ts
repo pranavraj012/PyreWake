@@ -19,7 +19,6 @@ export class RiverDirector {
   private dir: Director; private f: Fight; private g: Awaited<ReturnType<typeof buildGhats>>; private v1: RiverView; private v2: RiverView; private post: Post; private hud: Hud; private boilT = 0; private stepT = 0; private darkK = 0; private freedSeen = 0; private sprayT = 0; private told = new Set<string>(); private waterT = 0;
   constructor(dir: Director, f: Fight, g: Awaited<ReturnType<typeof buildGhats>>, v1: RiverView, v2: RiverView, post: Post, hud: Hud) {
     this.dir = dir; this.f = f; this.g = g; this.v1 = v1; this.v2 = v2; this.post = post; this.hud = hud; dir.vm = VOICE; dir.moods = { pole: 'row', chain: 'row2', lantern: 'row3', weight: 'weight', low: 'weight2' }; dir.extra = (e, t) => this.on(e, t); dir.ambient = fi => this.ambient(fi);
-    dir.court.ripple = (x, z, a, t) => g.ripple(x, z, a, t);
   }
   get sim() { return this.f.king as River; }
   private ambient(f: Fight) { sound.bed('waterBed', f.phase === 'won' ? 0.35 : 0.62); sound.bed('windLow', 0.3); sound.bed('lampsBed', 0.18 + 0.2 * this.g.water.line.value); }

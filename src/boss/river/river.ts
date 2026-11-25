@@ -93,7 +93,7 @@ export class River implements Boss {
   }
   /** Three lanterns round the player; one is real. */
   private conjure() {
-    const real = Math.floor(((this.serial * 7919) % 97) / 97 * 3), a0 = (this.serial * 2.399) % 6.283; this.lanterns = [0, 1, 2].map(i => { const a = a0 + i * 2.094 + (i === 1 ? 0.3 : 0), R = 4.4 + ((i * 1.7 + this.serial) % 2.6), x = this.px + Math.sin(a) * R, z = this.pz + Math.cos(a) * R, q = Math.hypot(x, z), k = q > 16.5 ? 16.5 / q : 1; return { x: x * k, z: z * k, real: i === real, t: 0, gone: 0 }; });
+    const real = Math.floor(((this.serial * 7919) % 97) / 97 * 3), a0 = Math.atan2(this.x - this.px, this.z - this.pz); this.lanterns = [0, 1, 2].map(i => { const a = a0 + (i - 1) * 0.95 + (i === 1 ? 0.1 : 0), R = 3.6 + ((i * 1.7 + this.serial) % 2.2), x = this.px + Math.sin(a) * R, z = this.pz + Math.cos(a) * R, q = Math.hypot(x, z), k = q > 16.5 ? 16.5 / q : 1; return { x: x * k, z: z * k, real: i === real, t: 0, gone: 0 }; });
     this.say('lanterns');
   }
   private weight(dt: number, m: string, dist: number, face: number, dx: number, dz: number) {

@@ -32,7 +32,7 @@ export class RiverView implements BossView {
     const eye = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.3, 1.5, 1.7), fog: false }), h = KING.find(b => b.name === 'head')!.pos; for (const s of [1, -1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), eye); e.position.set(0.09 * s - h[0], 3.585 - h[1], 0.4 - h[2]); this.rig.bones[this.rig.i('head')].add(e); }
     this.fxv = new RiverFx(g, m.held, m.skin); scene.add(this.fxv.group); this.boatM = new THREE.Mesh(g.boat, m.wood); this.boatM.visible = false; this.boatM.castShadow = this.boatM.receiveShadow = true; this.boatM.scale.setScalar(1.05); scene.add(this.boatM);
     if (form === 2) {
-      this.hull = new THREE.Mesh(g.hull, m.skin); this.hull.castShadow = this.hull.receiveShadow = true; this.hull.customDepthMaterial = depth.still; this.hull.frustumCulled = false; this.group.add(this.hull); this.man.position.set(0, 1.35, 0.55);
+      this.hull = new THREE.Mesh(g.hull, m.skin); this.hull.castShadow = this.hull.receiveShadow = true; this.hull.customDepthMaterial = depth.still; this.hull.frustumCulled = false; this.group.add(this.hull); this.man.position.set(0, 1.31, -0.05);
       for (let i = 0; i < 5; i++) { const s = new THREE.Mesh(g.section, m.skin); s.castShadow = s.receiveShadow = true; s.customDepthMaterial = depth.still; s.frustumCulled = false; s.scale.setScalar(1.1 - i * 0.06); scene.add(s); this.sections.push(s); }
     }
   }

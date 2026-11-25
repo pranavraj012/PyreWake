@@ -13,8 +13,8 @@ const stab = (t: number): Key[] => [{ t: t - 0.6, hy: -0.3, hp: 8, sp: 14, np: -
 
 // --- the Pole
 C.lowWater = clip('lowWater', { dur: 3.0, hit: [1.0, 1.16], blend: 0.3, move: [[0, 0], [0.9, 0.2], [1.1, 1.5], [3, 1.5]], fx: [{ t: 1.02, kind: 'sweep' }], keys: [at(0),
-  { t: 0.55, hy: -0.5, hp: 26, hw: -50, sp: 24, sw: -48, np: -40, nw: 44, ra: -100, re: -14, rl: 0.95, ba: -122, be: -12, flz: 0.42, frz: -0.42, flw: -30, frw: -20 }, { t: 0.92, hw: -56, sw: -52, ra: -106, ba: -128 },
-  { t: 1.05, hy: -0.52, hw: 20, sw: 30, nw: -20, ra: -10, re: -12, ba: 6, be: -12, flz: -0.2, frz: 0.4 }, { t: 1.22, hw: 56, sw: 58, nw: -50, ra: 56, ba: 112, be: -10 }, { t: 1.6, hw: 56, sw: 58, ra: 60, ba: 120, be: -4 }, at(3.0)] });
+  { t: 0.55, hy: -0.86, hp: 34, hw: -50, sp: 30, sw: -48, np: -50, nw: 44, ra: -100, re: -48, rl: 0.95, ba: -122, be: -9, flz: 0.5, frz: -0.5, flw: -30, frw: -20 }, { t: 0.92, hw: -56, sw: -52, ra: -106, ba: -128 },
+  { t: 1.05, hy: -0.9, hw: 20, sw: 30, nw: -20, ra: -10, re: -50, ba: 6, be: -9, flz: -0.2, frz: 0.4 }, { t: 1.22, hw: 56, sw: 58, nw: -50, ra: 56, re: -48, ba: 112, be: -8 }, { t: 1.6, hw: 56, sw: 58, ra: 60, ba: 120, be: -4 }, at(3.0)] });
 C.sounding = clip('sounding', { dur: 3.6, hit: [1.12, 1.22], hits: [[1.12, 1.22], [1.82, 1.92], [2.52, 2.62]], blend: 0.3, move: [[0, 0], [0.6, 0.3], [3.6, 0.3]], fx: [{ t: 1.15, kind: 'slam' }, { t: 1.85, kind: 'slam' }, { t: 2.55, kind: 'slam' }], keys: [at(0), ...stab(1.15), ...stab(1.85), ...stab(2.55), at(3.6)] });
 C.pushOff = clip('pushOff', { dur: 3.4, blend: 0.3, fx: [{ t: 0.82, kind: 'launch' }, { t: 1.64, kind: 'slam' }], keys: [at(0),
   { t: 0.55, hy: -0.9, hp: 40, sp: 40, np: -70, ra: -14, re: -30, rl: 1, ba: 0, be: -62, lg: 1, flz: 0.4, frz: -0.3, flp: 20, frp: 20 }, { t: 0.78, hy: -1.0, hp: 44 }, { t: 0.84, air: 1, hy: 0.1, hp: 4, sp: 10, np: -20, be: -84, flz: -0.4, flp: 40, frz: 0.3, frp: 50 },

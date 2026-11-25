@@ -138,17 +138,22 @@ export async function arm(): Promise<Mesh> {
   return finish([[f, 0.0105, 9, 1800]], 0.15);
 }
 
-/** The Weight's head: a ferry hull stood on end, 4.5 m, its ribs split, hands holding on all round the rim. Origin at the waterline. */
+/** The Weight's head: a ferry hull stood on end, 5 m, hollow and open toward where it looks, ribs showing, hands holding on all round the rim. Origin at the waterline; a thwart at 1.3 m for the rower. */
 export async function hull(): Promise<Mesh> {
-  const f = boatField(0), g = new Field(0.02), h = new Field(0.02), r = rng(21), tilt = -1.28, cs = Math.cos(tilt), sn = Math.sin(tilt);
-  const rot = (x: number, y: number, z: number): V3 => { const yy = y - 0.5; return [x, yy * cs - z * sn + 0.9, yy * sn + z * cs]; }; // stand it up: the stern goes down, the prow reaches
-  const body = new Field(0.02); body.put(any((x, y, z) => { const q = rot(x, y, z); return f.eval(q[0], q[1] + 0.0, q[2]); }, [0, 2.2, 0], 4.2));
-  // a gap torn along one side, showing the ribs
-  body.put(any((x, y, z) => Math.max(Math.abs(x - 0.7) - 0.18, Math.abs(y - 2.0) - 0.9, -(z + 1.0)) * 0.6, [0.7, 2, 0], 1.3), { op: 'sub', k: 0.03 });
-  body.displace((x, y, z) => 0.012 * Math.abs(Math.sin(y * 7 + 0.5 * Math.sin(x * 2))) + 0.014 * fbm(x * 6, y * 6, z * 6, 3), 0.03);
-  for (let i = 0; i < 18; i++) { const a = r() * 6.283, y = 0.8 + r() * 3.2, rad = 0.74 * Math.sqrt(Math.max(0.05, 1 - Math.pow((y - 2.2) / 2.5, 2))), p: V3 = [Math.sin(a) * rad, y, Math.cos(a) * rad * 0.7 - 0.1]; g.put(ell(p, [0.07, 0.05, 0.09]), { k: 0.02 }); for (let j = 0; j < 4; j++) g.put(cone(p, add(p, [Math.sin(a) * 0.1 + (j - 1.5) * 0.03, 0.13 + 0.03 * j, Math.cos(a) * 0.08]), 0.02, 0.012), { k: 0.012 }); }
-  h.put(ell([0, 0.2, 0.4], [0.7, 0.7, 0.7]), { k: 0.1 });
-  return finish([[body, 0.045, 23, 12000], [g, 0.012, 9, 2600], [h, 0.07, 25, 400]], 0.5);
+  const body = new Field(0.03), g = new Field(0.02), r = rng(21), C: V3 = [0, 2.4, -0.45], RAD: V3 = [1.25, 2.75, 1.5], shell = 0.1;
+  const outer = ell(C, RAD), inner = ell([C[0], C[1], C[2] + 0.05], [RAD[0] - shell, RAD[1] - shell, RAD[2] - shell]);
+  body.put(any((x, y, z) => Math.max(outer[0](x, y, z), z - 0.3, -y - 0.2), C, 3.2));
+  body.put(any((x, y, z) => inner[0](x, y, z), C, 3.2), { op: 'sub', k: 0.02 });
+  // the thwart, a keel timber down the back, ribs lying on the inside of the planking, the prow's upturned stem
+  body.put(box([0, 1.28, -0.4], [1.0, 0.05, 0.85], 0.02), { k: 0.03 }).put(box([0, 2.4, -1.85], [0.07, 2.7, 0.07], 0.03), { k: 0.03 });
+  for (let i = 0; i < 8; i++) { const y = 0.5 + i * 0.58; body.put(any((x, yy, z) => Math.max(Math.abs(inner[0](x, yy, z) + 0.03) - 0.035, Math.abs(yy - y) - 0.055, z - 0.28), [0, y, -0.4], 1.5), { k: 0.012 }); }
+  body.put(tube(curve([[0, 4.6, -1.1], [0, 5.3, -0.7], [0, 5.55, 0.2], [0, 5.35, 0.7]], 12), t => 0.16 - 0.1 * t), { k: 0.06 });
+  // the planking on the left is torn away
+  body.put(any((x, y, z) => Math.max(Math.abs(x + 1.0) - 0.45, Math.abs(y - 2.7) - 0.8, Math.abs(z + 0.5) - 0.9) * 0.6, [-1, 2.7, -0.5], 1.4), { op: 'sub', k: 0.03 });
+  body.displace((x, y, z) => 0.012 * Math.abs(Math.sin(y * 7 + 0.4 * Math.sin(x * 2))) + 0.016 * fbm(x * 5, y * 5, z * 5, 3), 0.03);
+  // hands on the rim and over the planking
+  for (let i = 0; i < 26; i++) { const a = -1.6 + (i / 25) * 3.2 + (r() - 0.5) * 0.15, y = 1.0 + r() * 3.6, k = Math.sqrt(Math.max(0.06, 1 - Math.pow((y - C[1]) / RAD[1], 2))), p: V3 = [Math.sin(a) * (RAD[0] * k + 0.02), y, C[2] + Math.cos(a) * RAD[2] * k * 0.55 + 0.1]; if (p[2] > 0.3) continue; g.put(ell(p, [0.07, 0.05, 0.09]), { k: 0.02 }); for (let j = 0; j < 4; j++) g.put(cone(p, add(p, [Math.sin(a) * 0.12 + (j - 1.5) * 0.03, 0.12 + 0.03 * j, Math.cos(a) * 0.06]), 0.02, 0.012), { k: 0.012 }); }
+  return finish([[body, 0.05, 23, 14000], [g, 0.012, 9, 2600]], 0.5);
 }
 
 /** One section of the long body behind: a keel timber, ribs, and arms grown through it. 3 m, along z, origin at its centre. */
