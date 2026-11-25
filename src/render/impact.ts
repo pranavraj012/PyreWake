@@ -18,7 +18,7 @@ export class Bursts {
       vertexShader: `attribute vec4 aP, aQ, aC; uniform vec4 uT; varying vec2 u; varying float k; varying vec3 col; flat varying float kd, sd;
 void main(){ float t = uT.w - aP.w; k = t / aQ.w; kd = aQ.x; u = position.xy; col = aC.rgb; sd = fract(aP.x * 3.7 + aP.z * 5.3 + aP.w * 9.1) * 30.; if (t < 0. || k > 1.) { gl_Position = vec4(2.); return; }
  float e = 1. - pow(1. - k, 3.), z = aQ.z; vec4 mv;
- if (kd < .5) { vec2 s = vec2(z * (.55 + .75 * e), z * .1 * (1. - k)); vec2 q = position.xy * s; float c = cos(aQ.y), n = sin(aQ.y); mv = viewMatrix * vec4(aP.xyz, 1.); mv.xy += vec2(q.x * c - q.y * n, q.x * n + q.y * c); mv.z += .5; }
+ if (kd < .5) { vec2 s = vec2(z * (.55 + .75 * e), z * .1 * (1. - k) * mix(1., .16, aC.w)); vec2 q = position.xy * s; float c = cos(aQ.y), n = sin(aQ.y); mv = viewMatrix * vec4(aP.xyz, 1.); mv.xy += vec2(q.x * c - q.y * n, q.x * n + q.y * c); mv.z += .5; }
  else if (kd > 3.5 && kd < 4.5) { mv = viewMatrix * vec4(aP.xyz + vec3(position.x, 0., position.y) * z * (.15 + .85 * e), 1.); }
  else if (kd > 4.5 && kd < 5.5) { vec3 r = normalize(vec3(viewMatrix[0][0], 0., viewMatrix[2][0])); mv = viewMatrix * vec4(aP.xyz + r * position.x * z * .46 * (.6 + .6 * e) + vec3(0., (position.y + .5) * z * (.35 + .75 * e), 0.), 1.); }
  else { float s = kd < 1.5 ? z * (1. - .5 * k) : kd > 5.5 ? z : z * (.25 + .75 * e); vec3 w = aP.xyz; if (kd > 2.5 && kd < 3.5) w.y += e * z * .22; mv = viewMatrix * vec4(w, 1.); float c = cos(aQ.y), n = sin(aQ.y); vec2 q = position.xy * s; mv.xy += vec2(q.x * c - q.y * n, q.x * n + q.y * c); mv.z += .25; }
@@ -35,8 +35,9 @@ void main(){ vec3 c = vec3(0.); float d = length(u) * 2.;
  gl_FragColor = vec4(max(c, 0.), 1.); }` });
     this.mesh = new THREE.Mesh(g, m); this.mesh.frustumCulled = false; this.mesh.renderOrder = 10;
   }
-  add(kind: keyof typeof BURST, p: THREE.Vector3, size: number, life: number, t: number, rot = 0, r = 1.4, g = 0.55, b = 0.16) {
-    this.a.setXYZW(this.i, p.x, p.y, p.z, t); this.b.setXYZW(this.i, BURST[kind], rot, size, life); this.c.setXYZW(this.i, r, g, b, 0); this.i = (this.i + 1) % this.n;
+  /** `thin` 1 makes a slash a hairline. */
+  add(kind: keyof typeof BURST, p: THREE.Vector3, size: number, life: number, t: number, rot = 0, r = 1.4, g = 0.55, b = 0.16, thin = 0) {
+    this.a.setXYZW(this.i, p.x, p.y, p.z, t); this.b.setXYZW(this.i, BURST[kind], rot, size, life); this.c.setXYZW(this.i, r, g, b, thin); this.i = (this.i + 1) % this.n;
     this.a.needsUpdate = this.b.needsUpdate = this.c.needsUpdate = true;
   }
 }

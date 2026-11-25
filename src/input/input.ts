@@ -1,8 +1,8 @@
 // One action map fed by keyboard/mouse, gamepad and touch.
-export type Action = 'attack' | 'dodge' | 'guard' | 'skill1' | 'skill2' | 'ultimate' | 'heal' | 'pause';
-export const ACTIONS: Action[] = ['attack', 'dodge', 'guard', 'skill1', 'skill2', 'ultimate', 'heal', 'pause'];
-const KEYS: Record<string, Action> = { Space: 'dodge', KeyQ: 'skill1', KeyE: 'skill2', KeyR: 'ultimate', KeyF: 'heal', Escape: 'pause', KeyJ: 'attack', KeyK: 'guard' };
-const PAD: [number, Action][] = [[2, 'attack'], [1, 'dodge'], [4, 'guard'], [5, 'skill1'], [7, 'skill2'], [12, 'heal'], [9, 'pause']];
+export type Action = 'attack' | 'dodge' | 'jump' | 'guard' | 'skill1' | 'skill2' | 'ultimate' | 'heal' | 'pause';
+export const ACTIONS: Action[] = ['attack', 'dodge', 'jump', 'guard', 'skill1', 'skill2', 'ultimate', 'heal', 'pause'];
+const KEYS: Record<string, Action> = { Space: 'dodge', KeyC: 'jump', KeyQ: 'skill1', KeyE: 'skill2', KeyR: 'ultimate', KeyF: 'heal', Escape: 'pause', KeyJ: 'attack', KeyK: 'guard' };
+const PAD: [number, Action][] = [[2, 'attack'], [1, 'dodge'], [0, 'jump'], [4, 'guard'], [5, 'skill1'], [7, 'skill2'], [12, 'heal'], [9, 'pause']];
 
 export class Input {
   move = { x: 0, y: 0 };

@@ -18,6 +18,7 @@
     "sheets": "node tools/sheets.mjs",
     "sfx": "node tools/sfx.mjs",
     "menu": "node tools/menu.mjs",
+    "scenes": "node tools/scenes.mjs",
     "moments": "node tools/m4.mjs"
   },
   "dependencies": {

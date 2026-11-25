@@ -33,7 +33,7 @@ export class Score {
     if (m.bra > 0.06 && i === 0 && bar % 2 === 0) { this.note('bra', root, 0.6 * m.bra, d, 0.45); if (m.bra > 0.7) this.note('bra', root + 6, 0.2 * m.bra, d, 0.5); } if (m.bra > 0.8 && i === 8 && phrase === 3) this.note('bra', root + 1, 0.5 * m.bra, d, 0.4);
     if (m.cho > 0.06 && i === 0 && bar % 2 === 0) { this.note('cho', root, 0.55 * m.cho, d, 0.7); if (m.cho > 0.5) this.note('cho', root + 3, 0.3 * m.cho, d, 0.7); }
     if (m.trem > 0.06 && i === 0 && bar % 2 === 1) { this.note('trem', root + 1, 0.4 * m.trem, d, 0.6); this.note('trem', root, 0.3 * m.trem, d, 0.6); }
-    if (m.anvil > 0.06 && (i === 4 || i === 12) && this.R() < 0.75) this.note('anvil', -2, 0.28 * m.anvil, d, 0.4);
+    if (m.anvil > 0.06 && (i === 4 || i === 12) && this.R() < 0.75) this.note('anvil', -2, 0.24 * m.anvil, d, 0.3);
     // the hero's line: only while your streak is alive
     const lead = Math.max(m.lead, this.aura >= 3 && m.drum > 0.5 ? 0.35 + 0.2 * (this.aura - 3) : 0); if (lead > 0.06 && (i === 0 || i === 6 || i === 10 || (i === 14 && this.R() < 0.4)) && this.R() < 0.8) { this.leadAt = Math.max(2, Math.min(SCALE.length - 1, this.leadAt + Math.round(this.R() * 4 - 2))); this.note('lead', SCALE[this.leadAt] + (root === 1 ? 0 : root), 0.5 * lead, d, 0.55); }
   }

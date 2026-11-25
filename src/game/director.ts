@@ -6,6 +6,7 @@ import type { KingView } from '../boss/kingView.ts';
 import { isAttack } from '../boss/king.ts';
 import type { Fight } from '../combat/fight.ts';
 import { D } from '../combat/difficulty.ts';
+import { settings } from '../core/settings.ts';
 import type { Input } from '../input/input.ts';
 import type { PlayerView } from '../player/view.ts';
 import { CueMark, type Fx } from '../render/impact.ts';
@@ -18,8 +19,8 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 export const AURA = ['', 'Kindled', 'Ablaze', 'Pyre', 'Wake'];
 const STYLE: Record<string, Mood> = { executioner: 'r1', crawler: 'crawl', hanged: 'hang', blades: 'r2', eclipse: 'eclipse' };
 export class Director {
-  cue = new CueMark(); marks = new Marks(); crescents = new Crescents(); heroT = 0; private at = V(); private p = V(); private hurtK = 0; private slowK = 0; private fadeK = 0; private heartT = 0; private breathT = 3; private ritesK = 0; private painT = 0; private cloak = 0;
-  f: Fight; pv: PlayerView; views: [KingView, KingView]; fx: Fx; cam: FollowCam; post: Post; hud: Hud; input: Input; camera: THREE.Camera; onHalf: () => void = () => { };
+  cue = new CueMark(); marks = new Marks(); crescents = new Crescents(); heroT = 0; private at = V(); private p = V(); private hurtK = 0; private slowK = 0; private fadeK = 0; private heartT = 0; private breathT = 3; private ritesK = 0; private painT = 0; private cloak = 0; private inkT = 0; private cutN = 0;
+  f: Fight; pv: PlayerView; views: [KingView, KingView]; fx: Fx; cam: FollowCam; post: Post; hud: Hud; input: Input; camera: THREE.Camera; onHalf: () => void = () => { }; onWon: () => void = () => { }; /** Extra colour drain asked for by a scene. */ mono = 0; private auraSeen = 0;
   constructor(o: { f: Fight; pv: PlayerView; views: [KingView, KingView]; fx: Fx; cam: FollowCam; post: Post; hud: Hud; input: Input; camera: THREE.Camera }) { this.f = o.f; this.pv = o.pv; this.views = o.views; this.fx = o.fx; this.cam = o.cam; this.post = o.post; this.hud = o.hud; this.input = o.input; this.camera = o.camera; }
   get kv() { return this.views[this.f.king.form - 1]; }
   private buzz(ms: number) { if (this.input.lastDevice === 'touch') try { navigator.vibrate?.(ms); } catch { /* not supported */ } }
@@ -39,7 +40,7 @@ export class Director {
     fx.sparks.emit(n, d, Math.round(12 + pw * 16), 3.4 + pw * 1.8, 1.3, 0.5, t); fx.gore.emit(n, d, Math.round(12 + pw * 12), 2.6 + pw * 1.0, 1.4, 0.8, t); fx.sparks.emit(n, V(0, 0.4, 0), Math.round(3 + pw * 3), 0.9, 2, -1.2, t);
     // the blow lights the room for an instant
     pv.boomAt.copy(n); pv.boomK = Math.max(pv.boomK, 0.03 + pw * 0.03); cam.hit(pw, v); this.hud.struck(pw);
-    sound.play(pw > 1.7 ? 'fleshH' : 'flesh', { ...pos, gain: light ? 0.55 : 0.8 + pw * 0.08, rate: pw > 2.4 ? 0.88 : 1 }); if (pw > 1.15 || Math.random() < 0.35) sound.play('bone', { ...pos, gain: 0.4 + pw * 0.16, rate: e.head ? 1.25 : 1 }); if (e.kind === 'fire') sound.play('fire', { ...pos, gain: 0.7 }); if (pw > 2.6) { sound.play('sub', { gain: 0.6 }); sound.duck(0.5, 0.2); }
+    sound.play('slice', { ...pos, gain: light ? 0.5 : 0.75, rate: 1.15 - Math.min(0.35, pw * 0.1) }); sound.play(pw > 1.7 ? 'fleshH' : 'flesh', { ...pos, gain: light ? 0.55 : 0.8 + pw * 0.08, rate: pw > 2.4 ? 0.88 : 1 }); if (pw > 1.15 || Math.random() < 0.35) sound.play('bone', { ...pos, gain: 0.4 + pw * 0.16, rate: e.head ? 1.25 : 1 }); if (e.kind === 'fire') sound.play('fire', { ...pos, gain: 0.7 }); if (pw > 2.6) { sound.play('sub', { gain: 0.6 }); sound.duck(0.5, 0.2); }
     this.painT -= pw; if (e.reel || this.painT < 0) { this.painT = 2.5 + Math.random() * 3; this.say('kPain', 'bPain', e.reel ? 1 : 0.7); } this.buzz(8 + pw * 9);
   }
   /** After the simulation and views have stepped. `dt` is simulated time, 0 while frozen on a hit. */
@@ -47,7 +48,13 @@ export class Director {
     const { f, pv, fx, cam } = this, kv = this.kv, m = f.m, k = f.king, pos = { x: k.hx, z: k.hz }, me = { x: m.x, z: m.z };
     for (const e of f.ev) switch (e.k) {
       case 'hit': this.hit(e, t); break;
-      case 'cue': if (e.strike.kind !== 'ground') this.cue.start(e.strike.kind, e.strike.mark, e.lead); sound.play(e.strike.kind === 'white' ? 'cueWhite' : e.strike.kind === 'red' ? 'cueRed' : 'cueGround', { gain: e.strike.kind === 'white' ? 1.35 : 1.25, wet: 0.2 }); if (e.strike.kind === 'red') this.buzz(40); if (e.strike === k.strikes[0] && Math.random() < 0.8) this.say('kGrunt', 'bBark', 0.75); break;
+      case 'cue': if (e.strike.kind !== 'ground') this.cue.start(e.strike.kind, e.strike.mark, e.lead); sound.play(e.strike.kind === 'white' ? 'cueWhite' : e.strike.kind === 'red' ? 'cueRed' : 'cueGround', { gain: e.strike.kind === 'white' ? 1.2 : 1.2, wet: 0.25 }); if (e.strike.kind === 'red') this.buzz(40); if (e.strike === k.strikes[0] && Math.random() < 0.8) this.say('kGrunt', 'bBark', 0.75); break;
+      case 'break': {
+        // its attack comes apart: you should feel it stop
+        const q = V(k.hx, 1.7, k.hz); fx.bursts.add('ring', q, e.by === 'heavy' ? 3 : 4.6, 0.4, t, 0, 1.5, 1.0, 0.6); fx.bursts.add('glint', q, e.by === 'heavy' ? 2.6 : 3.6, 0.35, t, 0.5, 1.5, 1.1, 0.7); if (e.by !== 'heavy') fx.bursts.add('ground', V(k.x, 0.06, k.z), 5, 0.6, t); fx.sparks.emit(q, V(0, 0.4, 0), 70, 7, 2.2, 0.9, t); fx.puffs.emit(V(k.x, 0, k.z), 6, 2.6, 1.2, t); cam.trauma = Math.max(cam.trauma, 0.8); cam.punch = -6; this.slowK = Math.max(this.slowK, 0.6);
+        sound.play('break', { ...pos, gain: 1, wet: 0.5 }); sound.duck(0.35, 0.5); this.say('kPain', 'bPain', 1); this.hud.struck(3); this.buzz(80); if (e.by !== 'heavy' || m.clip?.name === m.weapon.heavy) this.hud.callout('Broken'); break;
+      }
+      case 'leap': sound.play('leapt', { ...me, gain: 0.8 }); this.slowK = Math.max(this.slowK, 0.5); pv.ghosts.snap(t); fx.sparks.emit(V(m.x, 0.3, m.z), V(0, 0.8, 0), 26, 2.4, 2, -1, t); pv.ember = 1.6; break;
       case 'block': { const p = pv.base.clone().lerp(pv.tip, 0.4); fx.bursts.add('flare', p, 1.8, 0.18, t, 0, 1.5, 1.1, 0.7); fx.bursts.add('slash', p, 1.6, 0.16, t, 1.1, 1.6, 1.2, 0.7); fx.sparks.emit(p, V(0, 0.3, 0), 36, 5, 2, 0.5, t); cam.trauma = Math.max(cam.trauma, 0.45); sound.play('block', { ...me, gain: 0.95 }); this.buzz(25); break; }
       case 'parry': { const p = pv.base.clone().lerp(pv.tip, 0.5); fx.bursts.add('glint', p, 3.4, 0.4, t, 0.3, 1.5, 1.25, 0.9); fx.bursts.add('ring', p, 4.2, 0.45, t, 0, 1.4, 0.9, 0.5); fx.bursts.add('flare', p, 3, 0.25, t, 0, 1.5, 1.1, 0.7); fx.sparks.emit(p, V(0, 0.5, 0), 90, 7, 2, 0.8, t); cam.trauma = 0.7; cam.punch = -7; kv.flinch(Math.atan2(k.hx - m.x, k.hz - m.z), 2); sound.play('parry', { ...me, gain: 1, wet: 0.6 }); sound.duck(0.25, 0.7); this.say('kPain', 'bPain', 0.8); this.buzz(50); this.slowK = 1; break; }
       case 'evade': if (e.perfect) { sound.play('perfect', { gain: 0.9 }); this.slowK = 1; cam.punch = -4; pv.ghosts.snap(t); fx.sparks.emit(V(m.x, 0.9, m.z), V(0, 0.3, 0), 30, 2, 2.2, -1.3, t); pv.ember = 1.6; } break;
@@ -68,28 +75,29 @@ export class Director {
       }
       case 'rites': {
         this.ritesK = 1; cam.trauma = 1; const a = m.yaw, c = V(k.hx, 1.7, k.hz);
-        for (let i = -4; i <= 4; i++) { const r = 5 + Math.abs(i) * 0.3, q = V(m.x + Math.sin(a + i * 0.2) * r, 0, m.z + Math.cos(a + i * 0.2) * r); fx.bursts.add('pillar', q, 2.6, 0.8, t + 0.35 + Math.abs(i) * 0.03); fx.sparks.emit(V(q.x, 1, q.z), V(Math.sin(a) * 0.6, 0.8, Math.cos(a) * 0.6), 14, 6, 1.6, -2, t + 0.35); }
-        fx.bursts.add('slash', V(m.x + (c.x - m.x) * 0.6, 1.5, m.z + (c.z - m.z) * 0.6), 16, 0.5, t, this.screenAngle(V(Math.sin(a), 0, Math.cos(a))), 2, 1.5, 1); fx.bursts.add('flare', c, 8, 0.4, t + 0.3); for (let i = 0; i < 4; i++) fx.bursts.add('fire', V(c.x + (Math.random() - 0.5) * 3, 1 + Math.random() * 2, c.z + (Math.random() - 0.5) * 3), 2.8, 0.8, t + 0.35 + i * 0.07, i);
-        pv.boomAt.copy(c); pv.boomK = 1.2; sound.play('ritesCut', { gain: 1.05, wet: 0.7 }); sound.play('boom', { gain: 1, delay: 0.34, wet: 0.6 }); this.say('kPain', 'bPain'); this.buzz(200); break;
+        for (let i = 0; i < 10; i++) { const b = i / 10 * 6.283, q = V(k.hx + Math.cos(b) * 1.5, 0, k.hz + Math.sin(b) * 1.5); fx.bursts.add('pillar', q, 3.4, 0.9, t + i * 0.012); fx.sparks.emit(V(q.x, 1, q.z), V(Math.cos(b) * 0.5, 0.9, Math.sin(b) * 0.5), 12, 6, 1.6, -2, t); }
+        for (let i = 0; i < 6; i++) fx.bursts.add('slash', V(c.x, 1.2 + (i % 3) * 0.4, c.z), 9, 0.4, t + i * 0.022, [0.35, -0.6, 1.25, -0.15, 0.85, -1.0][i], 2, 0.8, 0.25, 0.75);
+        fx.bursts.add('flare', c, 9, 0.4, t); fx.bursts.add('ground', V(k.hx, 0.06, k.hz), 12, 0.8, t); for (let i = 0; i < 4; i++) fx.bursts.add('fire', V(c.x + (Math.random() - 0.5) * 3, 1 + Math.random() * 2, c.z + (Math.random() - 0.5) * 3), 3.2, 0.9, t + i * 0.05, i); fx.gore.emit(c, V(0, 0.4, 0), 120, 7, 2, 1, t); void a;
+        pv.boomAt.copy(c); pv.boomK = 1.2; sound.play('ritesCut', { gain: 1.05, wet: 0.7 }); sound.play('boom', { gain: 1, delay: 0.06, wet: 0.6 }); this.say('kPain', 'bPain'); this.buzz(200); break;
       }
       case 'heal': sound.play('heal', { ...me, gain: 0.9 }); break;
       case 'flame': this.hud.say('Second Flame', 2.4, 'flame'); this.slowK = 1; sound.play('heart', { gain: 1.1 }); sound.play('erupt', { gain: 0.9, delay: 1.4 }); sound.duck(0.2, 1.6); break;
       case 'ready': if (e.a === 'ultimate') { sound.play('aura3', { gain: 0.8 }); this.hud.callout('Last Rites ready'); } else sound.play('ready', { gain: e.a === 'skill2' ? 0.8 : 0.9, rate: e.a === 'skill2' ? 1.33 : 1 }); pv.ember = 1.5; break;
       case 'deny': sound.play('deny'); this.hud.deny(e.a); break;
-      case 'aura': pv.auraStep = e.tier; if (sound.score) sound.score.aura = e.tier; if (e.up) { sound.play('aura' + (e.tier - 1), { gain: 0.8, wet: 0.5 }); this.hud.callout(AURA[e.tier]); pv.ember = 1.8; pv.boomAt.set(m.x, 1.4, m.z); pv.boomK = 0.35; for (let i = 0; i < 3 + e.tier * 2; i++) { const a = i / (3 + e.tier * 2) * 6.283; fx.bursts.add('pillar', V(m.x + Math.cos(a) * 0.8, 0, m.z + Math.sin(a) * 0.8), 1.2 + e.tier * 0.35, 0.6, t); } fx.sparks.emit(V(m.x, 1, m.z), V(0, 0.6, 0), 30 + e.tier * 20, 3, 2.2, -1.8, t); } else this.hud.callout(''); break;
+      case 'aura': pv.auraStep = e.tier; if (sound.score) sound.score.aura = e.tier; if (e.up && e.tier <= this.auraSeen) { /* reached before: it simply catches again */ pv.ember = 1.6; sound.play('flare', { ...me, gain: 0.6 }); fx.sparks.emit(V(m.x, 0.6, m.z), V(0, 0.8, 0), 16 + e.tier * 10, 2.4, 2, -1.6, t); } else if (e.up) { this.auraSeen = e.tier; sound.play('aura' + (e.tier - 1), { gain: 0.8, wet: 0.5 }); this.hud.callout(AURA[e.tier]); pv.ember = 1.8; pv.boomAt.set(m.x, 1.4, m.z); pv.boomK = 0.35; for (let i = 0; i < 3 + e.tier * 2; i++) { const a = i / (3 + e.tier * 2) * 6.283; fx.bursts.add('pillar', V(m.x + Math.cos(a) * 0.8, 0, m.z + Math.sin(a) * 0.8), 1.2 + e.tier * 0.35, 0.6, t); } fx.sparks.emit(V(m.x, 1, m.z), V(0, 0.6, 0), 30 + e.tier * 20, 3, 2.2, -1.8, t); } else this.hud.callout(''); break;
       case 'style': sound.score?.set(STYLE[e.style]); if (e.style === 'crawler') { this.say('kScreech', 'bRoar', 0.9); cam.trauma = 0.4; } if (e.style === 'hanged') { sound.play('creak', { ...pos, gain: 1 }); sound.play('creak', { ...pos, gain: 0.8, delay: 0.5 }); this.say('kScreech', 'bRoar', 0.6); } if (e.style === 'eclipse') { this.say('kScreech', 'bRoar', 1); cam.trauma = 0.7; fx.bursts.add('ground', V(k.x, 0.06, k.z), 14, 0.9, t); } break;
       case 'snap': sound.play('snap', { ...pos, gain: 1 }); cam.trauma = 0.8; cam.punch = -4; fx.puffs.emit(V(k.x, 0, k.z), 16, 3, 1.6, t); this.say('kPain', 'bPain'); break;
       case 'hero': this.heroT = 0.75; this.slowK = 1; sound.duck(0.15, 1); break;
       case 'half': this.onHalf(); break;
-      case 'round2': this.hud.callout(''); break;
+      case 'round2': this.hud.refill(); sound.play('barFill', { gain: 0.9, wet: 0.4 }); this.hud.callout(''); break;
       case 'finish': sound.score?.set('finish'); this.say('kBreath', 'kBreath', 1.3); break;
-      case 'won': sound.score?.set('won'); this.say('kDeath', 'bDeath'); sound.play('boom', { ...pos, gain: 0.9 }); cam.trauma = 1; this.hud.say('At rest', 5, 'title'); this.slowK = 1; break;
+      case 'won': { sound.score?.set('won'); this.say('kDeath', 'bDeath'); sound.play('finalCut', { gain: 1.05, wet: 0.7 }); sound.play('boom', { ...pos, gain: 0.7, delay: 0.5 }); cam.trauma = 1; this.slowK = 1; this.ritesK = 1; this.inkT = 1.1; const q = V(k.hx, 1.5, k.hz); fx.bursts.add('slash', q, 16, 1.6, t, 0.06, 1.8, 1.6, 1.4, 1); fx.bursts.add('slash', q, 8, 0.3, t, 0.06, 2, 0.8, 0.3, 0.5); fx.sparks.emit(q, V(0, 0.3, 0), 140, 8, 1.6, 0.9, t); this.onWon(); break; }
       case 'dead': this.hud.say('Extinguished', 2.6, 'dead'); sound.play('die', { gain: 1 }); sound.score?.set('dead'); break;
-      case 'reset': pv.reset(); this.views.forEach(v => { v.settle(); v.wounds.w.value.forEach(w => { w.w = 0; }); }); this.views[0].show(k.form === 1); this.views[1].show(k.form === 2); this.cue.stop(); this.fadeK = 1; cam.yaw = 0.12; pv.auraStep = 0; sound.score?.set(f.round === 2 ? 'r2' : 'spar'); this.hud.callout(''); break;
+      case 'reset': if (f.round === 1 && f.hits === 0) this.auraSeen = 0; pv.reset(); this.views.forEach(v => { v.settle(); v.wounds.w.value.forEach(w => { w.w = 0; }); }); this.views[0].show(k.form === 1); this.views[1].show(k.form === 2); this.cue.stop(); this.fadeK = 1; cam.yaw = 0.12; pv.auraStep = 0; sound.score?.set(f.round === 2 ? 'r2' : 'spar'); this.hud.callout(''); break;
     }
     if (dt > 0) {
       for (const e of m.events) {
-        if (e === 'swing') { const pw = m.clip?.power ?? 1; sound.play(pw > 1.7 ? 'whooshH' : 'whoosh', { ...me, gain: 0.7 + 0.1 * pw, rate: 1 / Math.sqrt(Math.max(0.8, pw * 0.75)) }); sound.play('cloth', { ...me, gain: 0.7 }); }
+        if (e === 'swing') { const pw = m.clip?.power ?? 1; sound.play(pw > 1.7 ? 'whooshH' : 'whoosh', { ...me, gain: 0.7 + 0.1 * pw, rate: 1 / Math.sqrt(Math.max(0.8, pw * 0.75)) }); sound.play('cloth', { ...me, gain: 0.7 }); if (pw > 1.4 || Math.random() < 0.3) sound.play('effort', { ...me, gain: pw > 1.7 ? 0.8 : 0.5 }); }
         else if (e.startsWith('clip:dodge')) { sound.play('dodge', { ...me, gain: 0.9 }); sound.play('cloth', { ...me, gain: 1 }); }
         else if (e === 'fx:erupt' || e === 'fx:wave') sound.play('erupt', { ...me, gain: 1 });
         else if (e === 'fx:slam' || e === 'fx:crack') sound.play('slam', { ...me, gain: 0.75, rate: 1.15 });
@@ -98,9 +106,27 @@ export class Director {
         else if (e === 'fx:scrape' || e === 'fx:flick') sound.play('scrape', { ...me, gain: 0.55 });
         else if (e === 'fx:reform') sound.play('reform', { ...me, gain: 0.9 });
         else if (e === 'fx:rekindle') { sound.play('boom', { ...me, gain: 0.9 }); sound.play('fire', { ...me, gain: 1 }); }
+        else if (e === 'clip:jump') { sound.play('jump', { ...me, gain: 0.9 }); sound.play('cloth', { ...me, gain: 1 }); }
+        else if (e === 'land') sound.play(m.clip?.name === m.weapon.air.hit ? 'thud' : 'land', { ...me, gain: m.clip?.name === m.weapon.air.hit ? 0.5 : 0.8 });
+        else if (e === 'fx:dive') sound.play('whooshH', { ...me, gain: 1, rate: 1.25 });
+        else if (e === 'fx:plunge') { sound.play('erupt', { ...me, gain: 0.8, rate: 1.2 }); sound.play('slam', { ...me, gain: 0.5, rate: 1.3 }); cam.trauma = Math.max(cam.trauma, 0.6); cam.punch = Math.min(cam.punch, -3); }
+        else if (e === 'fx:wipe') sound.play('wipe', { ...me, gain: 0.9, wet: 0.5 });
+        else if (e === 'fx:wheel') sound.play('whooshH', { ...me, gain: 0.9, rate: 1.1 });
+        else if (e === 'fx:pillar') sound.play('fire', { ...me, gain: 0.9, wet: 0.5 });
+        else if (e === 'fx:vanish' && m.clip?.name === 'rites') { sound.play('vanish', { gain: 1, wet: 0.5 }); this.cutN = 0; sound.duck(0.0, 2.2); }
+        else if (e === 'fx:rcut') {
+          // a straight white line through it each time, all still hanging in the air when he stops
+          const i = this.cutN++, far = f.m.targetDist > 14, q = far ? V(m.x + Math.sin(m.yaw) * 2, 1.4, m.z + Math.cos(m.yaw) * 2) : V(k.hx, 1.3 + (i % 3) * 0.35, k.hz), an = [0.35, -0.6, 1.25, -0.15, 0.85, -1.0][i % 6]; fx.bursts.add('slash', q, 10, 1.7, t, an, 1.6, 1.6, 1.6, 1); fx.bursts.add('slash', q, 5, 0.16, t, an, 1.6, 1.6, 1.6, 0.6); pv.blade.clear(); this.hud.callout(''); if (!far) { kv.flinch(Math.atan2(k.hx - m.x, k.hz - m.z), 1.4); fx.gore.emit(q, V(Math.cos(an), 0.3, Math.sin(an)), 24, 5, 1.2, 0.8, t); } sound.play('riteCut', { ...pos, gain: 0.85, rate: 1 + i * 0.05, wet: 0.5 }); cam.trauma = Math.max(cam.trauma, 0.45); this.buzz(20);
+        }
+        else if (e === 'fx:rlast') { pv.blade.clear(); sound.play('sheathe', { gain: 0.9, wet: 0.8 }); }
+        else if (e === 'fx:ritesEnd') { sound.play('whooshH', { ...me, gain: 0.6 }); cam.snap(m, { x: k.hx, z: k.hz }); }
+        else if (e === 'fx:riposte') sound.play('parry', { ...me, gain: 0.6, rate: 1.1 });
+        else if (e === 'fx:impale') { sound.play('fleshH', { ...pos, gain: 1.1 }); sound.play('riteCut', { ...pos, gain: 0.5, rate: 0.7 }); const p = pv.tip.clone(); fx.gore.emit(p, V(Math.sin(m.yaw), 0.3, Math.cos(m.yaw)), 70, 5, 1.6, 0.9, t); fx.bursts.add('flare', p, 3.4, 0.3, t); cam.trauma = 0.7; kv.flinch(m.yaw, 3); this.buzz(80); }
+        else if (e === 'fx:twist') { sound.play('crackBone', { ...pos, gain: 1, wet: 0.5 }); sound.play('fire', { ...pos, gain: 0.9 }); cam.trauma = 0.6; kv.flinch(m.yaw + 1.5, 2.4); for (let i = 0; i < 3; i++) fx.bursts.add('fire', V(k.hx, 1.2 + i * 0.4, k.hz), 2.2, 0.6, t + i * 0.06, i); this.say('bPain', 'bPain', 1); }
+        else if (e === 'fx:finale') { sound.play('whooshB', { gain: 1, rate: 1.3 }); }
         else if (e === 'fx:blur') sound.play('whoosh', { ...me, gain: 0.8, rate: 1.5 });
-        else if (e === 'fx:reckon') { sound.play('parry', { ...me, gain: 0.8, rate: 0.8 }); for (let i = 0; i < 7; i++) fx.bursts.add('slash', V(k.hx + (Math.random() - 0.5) * 0.9, 0.8 + Math.random() * 1.8, k.hz + (Math.random() - 0.5) * 0.9), 3.4, 0.3, t + i * 0.035, Math.random() * 3.1, 1.7, 0.8, 0.3); }
-        else if (e === 'fx:wrench') { sound.play('tear', { ...pos, gain: 0.5, rate: 1.6 }); sound.play('fire', { ...pos, gain: 1 }); }
+        else if (e === 'fx:reckon') { sound.play('sheathe', { ...me, gain: 0.9, wet: 0.5 }); for (let i = 0; i < 7; i++) fx.bursts.add('slash', V(k.hx + (Math.random() - 0.5) * 0.9, 0.8 + Math.random() * 1.8, k.hz + (Math.random() - 0.5) * 0.9), 3.4, 0.3, t + i * 0.035, Math.random() * 3.1, 1.7, 0.8, 0.3); }
+        else if (e === 'fx:wrench') { sound.play('tear', { ...pos, gain: 0.5, rate: 1.6 }); sound.play('fire', { ...pos, gain: 1 }); if (m.clip?.name === 'finale') { const q = V(k.hx, 1.6, k.hz); fx.bursts.add('fire', q, 3.4, 0.7, t); fx.gore.emit(q, V(0, 1, 0), 80, 6, 1.4, 1, t); fx.sparks.emit(q, V(0, 1, 0), 60, 6, 1.4, 0.8, t); cam.trauma = 0.8; kv.flinch(m.yaw, 3); } }
         else if (e === 'fx:ritesStart') { sound.play('riser', { gain: 0.95, wet: 0.5 }); sound.duck(0.12, 2.4); }
       }
       // feet
@@ -116,10 +142,10 @@ export class Director {
     if (f.phase === 'won') { const u = Math.max(0, Math.min(1, (k.mt - 2) / 2.6)); kv.dissolve.value = u; if (u > 0.02 && u < 1 && Math.random() < 0.7) fx.sparks.emit(V(k.x + (Math.random() - 0.5), 0.4 + Math.random() * 1.8, k.z + (Math.random() - 0.5)), V(0.1, 0.8, 0), 4, 1, 1.4, -2.4, t); }
     cam.trauma = Math.max(cam.trauma, pv.shake, kv.shake * Math.max(0, 1 - Math.hypot(k.x - m.x, k.z - m.z) / 16)); pv.fireK = f.fire / D.fireMax; this.heroT = Math.max(0, this.heroT - real);
     // --- the world gathers into the blade
-    const rites = m.clip?.name === 'rites' ? m.t : -1; if (rites > 0.2 && rites < 1.9) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.283, r = 2 + Math.random() * 5, p = V(m.x + Math.cos(a) * r, 0.3 + Math.random() * 2.5, m.z + Math.sin(a) * r), to = pv.tip.clone().sub(p); fx.sparks.emit(p, to.multiplyScalar(0.32), 2, 1.6, 0.2, -0.9, t); }
+    const rites = m.clip?.name === 'rites' ? m.t : -1; if (rites > 0.4 && rites < 1.9) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.283, r = 2 + Math.random() * 5, p = V(m.x + Math.cos(a) * r, 0.3 + Math.random() * 2.5, m.z + Math.sin(a) * r), to = pv.tip.clone().sub(p); fx.sparks.emit(p, to.multiplyScalar(0.32), 2, 1.6, 0.2, -0.9, t); }
     // --- screen and mix
-    this.hurtK *= Math.exp(-real * 2.6); this.slowK *= Math.exp(-real * 2.2); this.ritesK *= Math.exp(-real * 1.6); const low = f.hp > 0 && f.hp < D.hp * 0.3 ? 0.28 + 0.12 * Math.sin(t * 4.2) : 0, quiet = rites > 0.3 && rites < 2.06 ? Math.min(1, (rites - 0.3) * 1.4) : 0;
-    this.post.pulse.value.w = Math.max(this.hurtK * 0.42, low * 0.8, m.dead ? 0.3 : 0); this.post.desat.value += (Math.max(m.dead ? 0.8 : 0, this.slowK * 0.55, quiet * 0.92) - this.post.desat.value) * Math.min(1, real * 10); this.post.kick.value = Math.max(this.ritesK * 1.4, cam.trauma * cam.trauma * 0.6);
+    this.hurtK *= Math.exp(-real * 2.6); this.slowK *= Math.exp(-real * 2.2); this.ritesK *= Math.exp(-real * 1.6); const low = f.hp > 0 && f.hp < D.hp * 0.3 ? 0.28 + 0.12 * Math.sin(t * 4.2) : 0, quiet = rites > 0.3 && rites < 3.6 ? Math.min(1, (rites - 0.3) * 1.4) : 0; this.inkT = Math.max(0, this.inkT - real); this.mono = Math.max(0, this.mono);
+    this.post.pulse.value.w = Math.max(this.hurtK * 0.42, low * 0.8, m.dead ? 0.3 : 0); this.post.desat.value += (Math.max(m.dead ? 0.8 : 0, this.slowK * 0.55, quiet * 0.97, this.mono, Math.min(1, this.inkT * 3) * 0.97) - this.post.desat.value) * Math.min(1, real * 10); this.post.kick.value = Math.max(this.ritesK * 1.4, cam.trauma * cam.trauma * 0.6) * settings.shake; this.post.ink.value += (Math.max(rites > 1.9 && rites < 3.6 ? 1 : 0, this.inkT > 0 ? 1 : 0) - this.post.ink.value) * Math.min(1, real * 12);
     const out = f.deadT > 2.3 ? Math.min(1, (f.deadT - 2.3) / 0.6) : 0; this.fadeK = Math.max(out, this.fadeK - real * 1.6); this.post.fade.value = this.fadeK;
     sound.slow(Math.max(this.slowK > 0.35 ? this.slowK * 0.75 : 0, quiet * 0.8, low * 0.5)); if (low > 0 && (this.heartT -= real) < 0) { this.heartT = 0.95; sound.play('heart', { gain: 0.8 }); }
     sound.bed('wind', f.round === 2 ? 0.3 : 0.5); sound.bed('fireBed', f.round === 2 ? 0.75 : 0.35); sound.score?.update(real);

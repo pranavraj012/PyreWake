@@ -14,7 +14,7 @@ const sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.mi
 export const ROPE = 10.6, HEAD_DROP = 8.9;
 
 export class King {
-  x = 0; z = -4; y = 0; yaw = 0; vx = 0; vz = 0; speed = 0; mode: KingMode = 'idle'; mt = 0; prev = 0; burst = 0; r = 0.75; form: 1 | 2 = 1;
+  x = 0; z = -4; y = 0; private vy = 0; yaw = 0; vx = 0; vz = 0; speed = 0; mode: KingMode = 'idle'; mt = 0; prev = 0; burst = 0; r = 0.75; form: 1 | 2 = 1;
   /** Playback speed of the wind-up: the first showing of an attack is slower. */ rate = 1; /** Overall pace, from the brain. */ pace = 1;
   /** Bumped on every mode change, so each attack instance is distinct. */ serial = 0;
   cues: Strike[] = []; live: Strike[] = []; ended: KingMode | null = null;
@@ -33,12 +33,14 @@ export class King {
   /** True from the start of an attack until its last blow has landed: it can't be interrupted. */
   get committed() { const s = this.strikes; return s.length > 0 && this.mt < s[s.length - 1].t[1]; }
   get helpless() { return this.mode === 'kneel' || this.mode === 'crash' || this.mode === 'reel' || this.mode === 'reel2'; }
+  /** Its attack is broken: whatever it was doing stops here. From a leap, it falls. */
+  break() { const y = this.y; this.set(this.form === 2 ? 'reel2' : 'reel'); this.y = y; this.vy = 0; }
   turn(step: number, to: number) { const d = wrap(to - this.yaw); this.yaw += Math.max(-step, Math.min(step, d)); return d; }
 
   step(dt: number, px: number, pz: number) {
     const s = this.strikes, m = this.mode, d = dt * this.pace * (s.length && this.mt < s[0].t[0] ? this.rate : 1);
     this.prev = this.mt; this.mt += d; this.ended = null; this.cues = s.filter(q => q.cue > this.prev && q.cue <= this.mt); this.live = s.filter(q => this.mt >= q.t[0] && this.prev <= q.t[1]);
-    const dx = px - this.x, dz = pz - this.z, dist = Math.hypot(dx, dz), face = Math.atan2(dx, dz); this.speed = 0; this.vx = this.vz = 0;
+    const dx = px - this.x, dz = pz - this.z, dist = Math.hypot(dx, dz), face = Math.atan2(dx, dz); this.speed = 0; this.vx = this.vz = 0; if (this.y > 0 && !LEAPS[m]) { this.vy -= 26 * dt; this.y = Math.max(0, this.y + this.vy * dt); }
     if (m === 'stalk') {
       // broken time: a held beat, then three quick steps
       const k = (this.mt * 0.8) % 1; this.burst = k < 0.22 ? 0 : sst(0.22, 0.3, k) * sst(1, 0.92, k); this.speed = this.burst * (dist > D.boss.near - 0.2 ? 5.2 : 0); this.turn((0.8 + this.burst * 2.8) * dt, face);

@@ -10,7 +10,9 @@ export interface Weapon {
   clips: Record<string, Clip>;
   combo: string[];
   /** finishers[i] is what holding Attack gives after combo hit i. */ finishers: string[];
-  /** The second chain: replaces hits 3-5 after a pause. */ alt: string[];
-  /** Attack pressed out of something else. */ from: { sprint: string; dodgeF: string; dodgeB: string; dodgeL: string; dodgeR: string; guard: string; reckon: string; execute: string };
+  /** Every five-hit chain. The first is `combo`; a new one comes up after each chain you carry past the second hit. */ chains: string[][];
+  /** Short answers after a perfect defence, used while the long one is cooling. */ ripostes: string[];
+  air: { cut: string; plunge: string; hit: string };
+  /** Attack pressed out of something else. */ from: { sprint: string; dodgeF: string; dodgeB: string; dodgeL: string; dodgeR: string; guard: string; reckon: string; execute: string; finale: string };
   charge: string; heavy: string;
 }

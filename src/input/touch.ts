@@ -4,6 +4,7 @@ import type { Action, Input } from './input.ts';
 export const ICON: Record<string, string> = {
   attack: '<path d="M5 19 17 5l2-1-1 2L7 18z M4 16l4 4"/>',
   dodge: '<path d="M4 15c4 2 9 1 11-4m0 0-4 .5M15 11l1 4M6 8h4M4 11h4"/>',
+  jump: '<path d="M12 20V7m0 0-5 5m5-5 5 5M6 21h12"/>',
   guard: '<path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/>',
   skill1: '<path d="M4 18c5-1 4-6 9-7s5-4 7-6M4 13c3 0 4-2 6-4"/>',
   skill2: '<path d="M4 17C6 9 12 5 20 5c-5 2-9 6-9 13-2-2-4-2-7-1z"/>',
@@ -11,12 +12,12 @@ export const ICON: Record<string, string> = {
   heal: '<path d="M12 20C7 17 4 13 5 9c1-3 5-3 7 0 2-3 6-3 7 0 1 4-2 8-7 11z"/>',
   pause: '<path d="M9 5v14M15 5v14"/>',
 };
-const LABEL: Partial<Record<Action, string>> = { attack: 'Attack', dodge: 'Dodge', guard: 'Guard', heal: 'Heal', skill1: 'Rush', skill2: 'Sunder', ultimate: 'Rites' };
+const LABEL: Partial<Record<Action, string>> = { attack: 'Attack', dodge: 'Dodge', jump: 'Jump', guard: 'Guard', heal: 'Heal', skill1: 'Rush', skill2: 'Sunder', ultimate: 'Rites' };
 
 export function mountTouch(root: HTMLElement, input: Input) {
   const ui = document.createElement('div'); ui.id = 'touch';
   ui.innerHTML = `<div class="pad-l"><div class="base"><div class="knob"></div></div></div><div class="pad-r"></div>` +
-    (['attack', 'dodge', 'guard', 'skill1', 'skill2', 'ultimate', 'heal', 'pause'] as Action[]).map(a =>
+    (['attack', 'dodge', 'jump', 'guard', 'skill1', 'skill2', 'ultimate', 'heal', 'pause'] as Action[]).map(a =>
       `<button class="tb tb-${a}" data-a="${a}" aria-label="${a}"><b></b><svg viewBox="0 0 24 24">${ICON[a]}</svg>${LABEL[a] ? `<i>${LABEL[a]}</i>` : ''}</button>`).join('');
   root.append(ui); input.lastDevice = 'touch';
   const L = ui.querySelector<HTMLElement>('.pad-l')!, R = ui.querySelector<HTMLElement>('.pad-r')!, base = ui.querySelector<HTMLElement>('.base')!, knob = ui.querySelector<HTMLElement>('.knob')!;

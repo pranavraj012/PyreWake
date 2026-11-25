@@ -29,6 +29,7 @@ export interface ClipDef {
   blend?: number; power?: number;
   /** Extra damage windows; defaults to [hit]. */ hits?: [number, number][];
   /** Overrides of the weapon's reach (m) and half arc (deg). */ reach?: number; arc?: number;
+  /** When the blade leaves a trail, for clips with no damage of their own. */ trail?: [number, number];
   /** Strong enough to send the target reeling. */ reel?: boolean;
 }
 export interface Clip extends ClipDef { name: string; tracks: { t: number[]; v: number[]; m: number[] }[] }
@@ -78,6 +79,8 @@ export class Inertial {
     if (e > 0.002) for (let i = 0; i < N; i++) p[i] += (this.x[i] + (this.v[i] * 0.6 + this.w * this.x[i]) * this.t) * e;
     this.p2.set(this.p1); this.p1.set(p); this.dt = Math.max(dt, 1e-4); this.primed++;
   }
+  /** The body has been turned for real: forget that much of the spin. */
+  turned(deg: number) { const i = IX.tw; this.p1[i] -= deg; this.p2[i] -= deg; }
   /** Shift remembered yaw spin so a finished 360 does not unwind. */
   unwind() { const i = IX.tw; for (const p of [this.p1, this.p2]) p[i] -= Math.round(p[i] / 360) * 360; }
 }

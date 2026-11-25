@@ -13,7 +13,7 @@ export class Post {
   private shRT = rt(); private down: THREE.WebGLRenderTarget[] = []; private up: THREE.WebGLRenderTarget[] = [];
   private tri: THREE.Mesh; private cam = new THREE.OrthographicCamera(); private sc = new THREE.Scene();
   private mAO; private mBlur; private mShaft; private mDown; private mUp; private mFin;
-  exposure = { value: 1.0 }; desat = { value: 0 }; fade = { value: 0 }; /** Moon shaft colour. */ shaft = { value: new THREE.Vector3(0.5, 0.66, 0.9) }; /** Impact: radial colour split. */ kick = { value: 0 }; /** Edge tint: colour + amount. */ pulse = { value: new THREE.Vector4(0.6, 0.02, 0.01, 0) }; dofAmt = 0;
+  exposure = { value: 1.0 }; desat = { value: 0 }; /** 0-1: drained frames go to ink: hard blacks, bright edges, and only fire keeps its colour. */ ink = { value: 0 }; fade = { value: 0 }; /** Moon shaft colour. */ shaft = { value: new THREE.Vector3(0.5, 0.66, 0.9) }; /** Impact: radial colour split. */ kick = { value: 0 }; /** Edge tint: colour + amount. */ pulse = { value: new THREE.Vector4(0.6, 0.02, 0.01, 0) }; dofAmt = 0;
   w = 4; h = 4;
   private r: THREE.WebGLRenderer; private tier: Tier;
 
@@ -44,7 +44,7 @@ void main(){ vec3 wp = (uCW * vec4(vp(vUv), 1.)).xyz, rd = wp - uCam; float L = 
 void main(){ vec3 c = s(vec2(0)) * 4. + s(vec2(-1,-1)) + s(vec2(1,-1)) + s(vec2(-1,1)) + s(vec2(1,1)); c = c / 8.; if (uFirst > .5) { float b = max(c.r, max(c.g, c.b)); c *= smoothstep(.55, 2.2, b); } o = vec4(c, 1.); }`, { tA: { value: null }, uPx: { value: new THREE.Vector2() }, uFirst: { value: 0 } });
     this.mUp = pass(`uniform sampler2D tA, tB; uniform vec2 uPx; void main(){ vec3 c = vec3(0.); for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) c += textureLod(tA, vUv + vec2(x,y) * uPx, 0.).rgb * (x == 0 ? 2. : 1.) * (y == 0 ? 2. : 1.); o = vec4(texture(tB, vUv).rgb + c / 16. * .92, 1.); }`, { tA: { value: null }, tB: { value: null }, uPx: { value: new THREE.Vector2() } });
     this.mFin = pass(`uniform sampler2D tA, tB, tO, tH, tD; uniform mat4 uIP; float lz(vec2 u){ vec4 p = uIP * vec4(vec3(u, textureLod(tD, u, 0.).r) * 2. - 1., 1.); return -p.z / p.w; }
-uniform float uExp, uT, uDesat, uFade; uniform vec2 uPx; uniform vec4 uPulse; uniform float uKick;
+uniform float uExp, uT, uDesat, uFade, uInk; uniform vec2 uPx; uniform vec4 uPulse; uniform float uKick;
 // AgX display transform (polynomial fit), written from the published matrices
 vec3 agx(vec3 v){ const mat3 M = mat3(.842479,.0423283,.0423757,.0784336,.878469,.0784336,.0792237,.0791661,.879143); v = M * max(v, vec3(1e-6)); v = clamp((log2(v) + 12.47393) / 16.5, 0., 1.); vec3 a = v*v, b = a*a; v = 15.5*b*a - 40.14*b*v + 31.96*b - 6.868*a*v + .4298*a + .1191*v - .00232; return v; }
 vec3 agxO(vec3 v){ const mat3 M = mat3(1.19688,-.0528969,-.0529716,-.0980209,1.1519,-.0980435,-.0990297,-.0989612,1.15107); return clamp(M * v, 0., 1.); }
@@ -62,10 +62,10 @@ void main(){ vec3 c = texture(tA, vUv).rgb;
  c += texture(tB, vUv).rgb * .075;
  c *= uExp; vec2 q = vUv - .5; c *= mix(1., smoothstep(.95, .25, length(q * vec2(1.05, 1.))), .55);
  vec3 d = agx(c); float l = dot(d, vec3(.2126,.7152,.0722));
- d = mix(vec3(l), d, 1.22 * (1. - uDesat)); d = pow(max(d, 0.), vec3(1.32)) * 1.06; d = mix(d, d * vec3(.93,1.0,1.1), smoothstep(.45, 0., l) * .6);
+ vec3 d0 = d; d = mix(vec3(l), d, 1.22 * (1. - uDesat)); if (uInk > .01) { float hot = smoothstep(.1, .3, d0.r - d0.b) * smoothstep(.45, .8, l); vec3 ik = vec3(smoothstep(.16, .62, l)); ik = mix(ik * ik * .9 + ik * .12, vec3(1., .34, .08) * (.35 + l), hot); d = mix(d, ik, uInk * uDesat); } d = pow(max(d, 0.), vec3(1.32)) * 1.06; d = mix(d, d * vec3(.93,1.0,1.1), smoothstep(.45, 0., l) * .6);
  d = agxO(d); d += (fract(sin(dot(gl_FragCoord.xy + uT * 61., vec2(12.9898,78.233))) * 43758.5453) - .5) * .022 * (1. - l);
  d = mix(d, uPulse.rgb, uPulse.a * smoothstep(.3, .85, length(q * vec2(1.1, 1.))));
- o = vec4(mix(d, vec3(0.), uFade), 1.); }`, { tA: { value: null }, tB: { value: null }, tO: { value: null }, tH: { value: null }, tD: { value: null }, uIP: { value: new THREE.Matrix4() }, uExp: this.exposure, uT: { value: 0 }, uDesat: this.desat, uFade: this.fade, uPulse: this.pulse, uKick: this.kick, uPx: { value: new THREE.Vector2() } }, { ...(tier.ao ? { AO: 1 } : {}), ...(tier.shafts ? { SHAFTS: 1 } : {}), ...(tier.name !== 'phone' ? { SHARP: 1 } : {}) });
+ o = vec4(mix(d, vec3(0.), uFade), 1.); }`, { tA: { value: null }, tB: { value: null }, tO: { value: null }, tH: { value: null }, tD: { value: null }, uIP: { value: new THREE.Matrix4() }, uExp: this.exposure, uT: { value: 0 }, uDesat: this.desat, uInk: this.ink, uFade: this.fade, uPulse: this.pulse, uKick: this.kick, uPx: { value: new THREE.Vector2() } }, { ...(tier.ao ? { AO: 1 } : {}), ...(tier.shafts ? { SHAFTS: 1 } : {}), ...(tier.name !== 'phone' ? { SHARP: 1 } : {}) });
     for (let i = 0; i < tier.bloomMips; i++) { this.down.push(rt()); if (i < tier.bloomMips - 1) this.up.push(rt()); }
   }
   resize(w: number, h: number) {

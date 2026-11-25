@@ -25,5 +25,14 @@ const side = (s: number) => ({ dur: 0.6, free: 0.38, chain: 0.3, blend: 0.14, mo
   { t: 0.6, tw: 360 * s, hy: -0.12, hr: 0, hp: 4, sp: 2, sw: 2, np: 2, ra: -62, re: -60, ba: -136, be: -30, la: 20, le: -60, flx: 0.06, flz: 0.16, frx: -0.08, frz: -0.2 } ] });
 def('dodgeL', side(1)); def('dodgeR', side(-1));
 
+// a jump. Height and travel come from the motor; the clip is the shape in the air.
+def('jump', { dur: 1.2, blend: 0.08, keys: [
+  { t: 0, tw: 0, air: 1, hr: 0, hy: -0.2, hp: 18, hw: -18, sp: 16, sw: -8, np: -24, nw: 18, ra: -84, re: -40, rl: 0.9, ba: -150, be: -22, la: 50, le: -50, ll: 0.8, lg: 0, flx: 0.08, fly: 0, flz: 0.14, flp: 30, frx: -0.08, fry: 0, frz: -0.2, frp: 50, flw: 0, frw: -20 },
+  { t: 0.12, hy: 0.04, hp: -6, sp: -12, np: 6, ra: -104, re: -14, ba: -146, be: -14, la: 84, le: 6, ll: 0.9, fly: 0.18, flz: 0.12, frx: -0.07, fry: 0.4, frz: -0.16, frp: 60 },
+  { t: 0.34, hy: 0.03, hp: 10, sp: 4, np: -18, fly: 0.36, flz: 0.14, flp: 24, fry: 0.48, ra: -110, re: -4, la: 92, le: 14 }, { t: 0.62, hy: 0, hp: 12, sp: 8, np: -26, fly: 0.06, flz: 0.18, flp: 14, fry: 0.14, frz: -0.1, frp: 26, ra: -96, re: 10, ba: -140, be: 0, la: 96, le: 26 }, { t: 1.2, fly: 0.04, fry: 0.1 } ] });
+def('land', { dur: 0.42, free: 0.1, chain: 0.04, blend: 0.05, fx: [{ t: 0.01, kind: 'land' }], keys: [
+  { t: 0, tw: 0, air: 0, hr: 0, hy: -0.3, hp: 20, hw: -26, sp: 20, sw: 0, np: -26, nw: 26, ra: -72, re: -40, rl: 0.88, ba: -150, be: -22, la: 60, le: -20, ll: 0.8, lg: 0, flx: 0.1, fly: 0, flz: 0.24, flp: 0, frx: -0.12, fry: 0, frz: -0.26, frp: 20, frw: -50 },
+  { t: 0.08, hy: -0.36 }, { t: 0.42, hy: -0.13, hp: 8, hw: -36, sp: 12, sw: 2, np: -14, nw: 34, ra: -58, re: -52, rl: 0.82, ba: -158, be: -24, la: 12, le: -38, ll: 0.62, flx: 0.09, flz: 0.27, frx: -0.1, frz: -0.27, frp: 0, frw: -62 } ] });
+
 addReactions(def);
 export const BODY_CLIPS = C;

@@ -1,9 +1,9 @@
 // Khanda: attacks that depend on what you were just doing, the second chain, and the fire arts. Same button, different answers.
 import type { ClipDef, Key } from '../anim/pose.ts';
 
-const READYK: Key = { t: 0, hx: -0.01, hy: -0.13, hp: 8, hw: -38, hr: 0, sp: 12, sw: 2, sr: 0, np: -14, nw: 34, nr: 0, ra: -58, re: -52, rl: 0.82, ba: -158, be: -24, la: 12, le: -38, ll: 0.62, lg: 0, xl: 12, flx: 0.09, fly: 0, flz: 0.27, flw: -8, flp: 0, frx: -0.1, fry: 0, frz: -0.27, frw: -62, frp: 0, air: 0 };
-const RESTK: Key = { t: 0, hx: -0.025, hy: -0.035, hp: -2, hw: -32, hr: -3, sp: -3, sw: 6, sr: 3, np: 9, nw: 24, nr: 3, ra: -62, re: -66, rl: 0.93, ba: -128, be: -33, la: 18, le: -70, ll: 0.86, lg: 0, xl: 8, flx: 0.04, fly: 0, flz: 0.13, flw: -4, flp: 0, frx: -0.06, fry: 0, frz: -0.16, frw: -58, frp: 0, air: 0 };
-const at = (t: number, k: Key, o: Partial<Key> = {}): Key => ({ ...k, ...o, t });
+export const READYK: Key = { t: 0, hx: -0.01, hy: -0.13, hp: 8, hw: -38, hr: 0, sp: 12, sw: 2, sr: 0, np: -14, nw: 34, nr: 0, ra: -58, re: -52, rl: 0.82, ba: -158, be: -24, la: 12, le: -38, ll: 0.62, lg: 0, xl: 12, flx: 0.09, fly: 0, flz: 0.27, flw: -8, flp: 0, frx: -0.1, fry: 0, frz: -0.27, frw: -62, frp: 0, air: 0 };
+export const RESTK: Key = { t: 0, hx: -0.025, hy: -0.035, hp: -2, hw: -32, hr: -3, sp: -3, sw: 6, sr: 3, np: 9, nw: 24, nr: 3, ra: -62, re: -66, rl: 0.93, ba: -128, be: -33, la: 18, le: -70, ll: 0.86, lg: 0, xl: 8, flx: 0.04, fly: 0, flz: 0.13, flw: -4, flp: 0, frx: -0.06, fry: 0, frz: -0.16, frw: -58, frp: 0, air: 0 };
+export const at = (t: number, k: Key, o: Partial<Key> = {}): Key => ({ ...k, ...o, t });
 
 export function addArts(def: (n: string, d: ClipDef) => void) {
 // sprinting: a long airborne turn into a diagonal fall
@@ -66,10 +66,4 @@ def('sunder', { dur: 1.5, chain: 0.95, free: 1.0, blend: 0.14, move: [[0, 0], [0
   { t: 0, air: 0, tw: 0, hy: -0.2, hp: 6, hw: -40, sp: 6, sw: -20, np: -6, nw: 44, ra: -90, re: -20, rl: 0.9, ba: -140, be: 10, la: 20, le: -20, ll: 0.6, lg: 0, flx: 0.1, fly: 0, flz: 0.3, flp: 0, frx: -0.12, fry: 0, frz: -0.34, frp: 0 },
   { t: 0.3, hy: -0.06, hp: -14, hw: -24, sp: -24, sw: -14, np: 12, nw: 22, ra: -30, re: 82, rl: 0.9, ba: -10, be: 140, la: -10, le: 70, lg: 0.8 }, { t: 0.44, hp: -16, sp: -28, re: 88, be: 156, lg: 1 },
   { t: 0.52, hy: -0.28, hp: 22, hw: 10, sp: 26, sw: 10, np: -24, nw: -8, ra: -6, re: -20, rl: 1, ba: 0, be: -20, flz: 0.5, frz: -0.4, frp: 40 }, { t: 0.6, hy: -0.36, sp: 34, re: -46, be: -48 }, { t: 0.95, hy: -0.34, be: -46 }, at(1.5, READYK) ] });
-
-// ultimate, Last Rites. Every fire in the court comes to the blade. One draw.
-def('rites', { dur: 4.4, chain: 4.0, free: 4.0, blend: 0.2, fx: [{ t: 0.2, kind: 'ritesStart' }, { t: 2.06, kind: 'rites' }, { t: 3.3, kind: 'ritesEnd' }], keys: [
-  { t: 0, air: 0, tw: 0, hy: -0.1, hp: 0, hw: -20, sp: 0, sw: 0, np: -4, nw: 14, ra: -60, re: -40, rl: 0.8, ba: -90, be: -10, la: 20, le: -50, ll: 0.7, lg: 0, flx: 0.08, fly: 0, flz: 0.2, flp: 0, frx: -0.1, fry: 0, frz: -0.22, frp: 0 },
-  { t: 0.7, hy: 0, hp: -6, sp: -12, np: 14, ra: -20, re: 84, rl: 0.95, ba: 0, be: 90, la: -10, le: 78, lg: 0.8 }, { t: 1.5, hy: 0.02, re: 88, sp: -14, lg: 1 }, { t: 1.72, hy: -0.2, hp: 8, hw: -56, sp: 8, sw: -34, np: -4, nw: 70, ra: -110, re: -24, rl: 0.95, ba: -176, be: -6, la: 20, le: -20, lg: 0, flx: 0.14, flz: 0.4, frx: -0.16, frz: -0.42 }, { t: 2.02, hw: -60, sw: -36, hy: -0.24 },
-  { t: 2.1, hw: 30, sw: 34, nw: -20, ra: 40, re: 4, rl: 1, ba: 60, be: 4, la: 100, le: -10, ll: 0.9 }, { t: 2.18, hw: 46, sw: 44, nw: -30, ra: 74, re: 10, ba: 120, be: 10 }, { t: 2.9, hw: 46, sw: 44, ra: 76, ba: 124 }, { t: 3.3, tw: 60, hy: -0.06, hp: -2, hw: 0, sp: -4, sw: 0, np: 6, nw: 0, ra: -50, re: -40, rl: 0.9, ba: -60, be: -40 }, { t: 3.8, tw: 60, ra: -60, re: -60 }, at(4.4, RESTK, { tw: 0 }) ] });
 }

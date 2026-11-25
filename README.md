@@ -16,15 +16,16 @@ You are the Pyrekeeper, a human who tends the cremation fires and has died once 
 1. Hit the boss and its health goes down. Your normal attack always works on it.
 2. When it attacks, dodge or guard.
 3. Landing hits fills your fire. Spend fire on skills.
-4. At half health it changes. Beat that too.
+4. When it falls, keep your sword up.
 
 | | |
 |---|---|
-| ![Counter flurry](docs/media/combo.jpg) | ![Last Rites](docs/media/rush.jpg) |
+| ![Last Rites: the wait](docs/media/rites.jpg) | ![Last Rites: what follows](docs/media/rites2.jpg) |
+| ![An aerial cut](docs/media/air.jpg) | ![The way out](docs/media/ending.jpg) |
 | ![The hanging style](docs/media/cue.jpg) | ![Round 2](docs/media/round2.jpg) |
 | ![Second Flame](docs/media/flame.jpg) | ![Phone](docs/media/phone.jpg) |
 
-**One rule for reading danger:** a white star means dodge *or* guard, a red diamond means dodge, glowing ground means move. Each differs in shape and sound as well as colour.
+**One rule for reading danger:** a white star means dodge *or* guard, a red diamond means dodge, glowing ground means move, or jump as it goes off. Each differs in shape and sound as well as colour.
 
 **Round 1, the Hanged King:** fights on two feet, then on all fours, then hanging upside down from the tree, where its head swings at sword height.
 **Round 2, the One Beneath:** what was wearing it. Six arms, a burning court, an eclipse.
@@ -33,14 +34,17 @@ You are the Pyrekeeper, a human who tends the cremation fires and has died once 
 
 | Do this | Get this |
 |---|---|
-| tap Attack | five-hit chain |
-| pause after hit two, then tap | a second chain: cross cuts, spinning kick, fire wave |
+| tap Attack | a five-hit chain; three different ones take turns |
+| pause after hit two, then tap | switch to another chain |
 | hold Attack after hit 1, 2, 3 or 4 | rising cut, spinning cleave, thrust, ground slam |
 | hold Attack from rest | charged heavy |
 | sprint, then Attack | a leaping turn into a falling cut |
 | dodge, then Attack | forward: low turn; sideways: passing cut; back: thrown fire |
 | Guard, then Attack | a burst from the burnt hand |
-| parry or last-instant dodge, then Attack | six cuts and a wait |
+| jump, then Attack | an aerial turn; again, or hold, to dive blade first |
+| jump over a sweep or ground fire | fire, and a harder dive |
+| parry or last-instant dodge, then Attack | a riposte; now and then, six cuts and a wait |
+| Sunder Arc, or a full charge, into its attack | the attack breaks, and so does the rest of its combo |
 | Attack a kneeling boss | execution |
 | keep hitting without being hit | your aura builds in four steps |
 
@@ -57,6 +61,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Move | W A S D | left stick | drag on the left |
 | Attack (hold for heavy) | left click or J | X | Attack |
 | Dodge | Space | B | Dodge |
+| Jump | C | A | Jump |
 | Guard (tap at the last moment to parry) | right click or K | LB | Guard |
 | Cinder Rush | Q | RB | Rush |
 | Sunder Arc | E | RT | Sunder |
@@ -73,7 +78,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Motion | a small clip language over named pose channels, solved with two-bone IK, foot locking, inertialised blending, and simulated cloth and hair |
 | Combat | 60 Hz fixed step with no rendering imports, so whole fights run headless in tests |
 | Rendering | three.js (WebGL 2) with one layered surface shader, own HDR chain, height fog, GPU particles |
-| Sound | 118 sounds synthesised sample by sample in a worker (modal metal, formant voices, debris, fire), a court reverb, and an adaptive score |
+| Sound | 155 sounds synthesised sample by sample in a worker (modal metal, formant voices, debris, fire), a court reverb, and an adaptive score |
 | Checks | unit tests, bots that play hundreds of headless fights, per-tier performance budgets, scripted screenshots |
 
 ```
@@ -101,10 +106,11 @@ src/ui/ src/input/ src/arena/ src/core/
 | `npm run shots`, `npm run sheets` | stills, motion contact sheets |
 | `npm run sfx` | renders every sound, prints levels, draws spectrograms |
 | `npm run menu` | checks the title screen, full screen, pause and boss bar |
+| `npm run scenes` | films the intro, the turn, the ending and Last Rites, frame by frame |
 | `npm run moments` | drives the game to each key moment and captures it |
 | `npm run forge [names]` | rebake models (`textures` needs the CC0 sources in `assets_src/`) |
 
-Address options: `?nointro`, `?still`, `?touch`, `?tier=phone|mid|high`, `?bench=player`, `?bench=king`, `?bench=beneath`, `?shot=<name>`, `?round2` (start in round 2), `?turn` (one hit from the cutscene).
+Address options: `?nointro`, `?still`, `?touch`, `?tier=phone|mid|high`, `?bench=player`, `?bench=king`, `?bench=beneath`, `?shot=<name>`, `?round2` (start in round 2), `?turn` (one hit from the cutscene), `?fps`.
 
 ## Licence
 

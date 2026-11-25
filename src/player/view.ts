@@ -41,6 +41,8 @@ export class PlayerView {
     specs.push({ bones: ['braid1', 'braid2', 'braid3', 'braid4'], anchor: 'head', tip: V(0.008, 1.06, -0.145), stiff: 0.05, group: 'braid', wind: 0.3, drag: 0.8 });
     this.chains = new Chains(this.rig, specs, [{ a: 'hips', b: 'chest', r: 0.145 }, { a: 'chest', b: 'neck', r: 0.135 }, { a: 'thigh.L', b: 'shin.L', r: 0.105 }, { a: 'thigh.R', b: 'shin.R', r: 0.105 }, { a: 'shin.L', b: 'foot.L', r: 0.075 }, { a: 'shin.R', b: 'foot.R', r: 0.075 }, { a: 'upperArm.L', b: 'foreArm.L', r: 0.07 }, { a: 'upperArm.R', b: 'foreArm.R', r: 0.07 }]);
   }
+  /** The body was turned in the world by this much: the pose must not swing back through it. */
+  about(deg: number) { this.inert.turned(deg); }
   /** After a teleport. */
   reset() { this.footing.reset(); this.blade.clear(); this.eye.clear(); this.dis.value = 0; this.guardK = 0; this.chains.reset(); this.wasGait = false; this.tipPrev.set(0, -99, 0); }
   private locomotion(m: Motor, out: Pose, dt: number) {
@@ -70,6 +72,7 @@ export class PlayerView {
   update(dt: number, m: Motor, t: number) {
     this.time = t; const p = this.pose;
     let dy = m.yaw - this.yawPrev; dy -= Math.round(dy / 6.2832) * 6.2832; this.yawPrev = m.yaw; this.lean += ((-dy / Math.max(dt, 1e-3)) * Math.min(1, m.speed / 5) * 3.2 - this.lean) * Math.min(1, dt * 8); this.lean = Math.max(-16, Math.min(16, this.lean));
+    if (m.events.includes('about')) this.about(180);
     const inClip = m.state === 'clip' && m.clip, key = inClip ? 'c' + m.started : 'loco';
     this.locomotion(m, this.tmp, dt);
     if (inClip) sampleClip(m.clip!, m.t, this.tmp, this.src); else this.src.set(this.tmp);
@@ -78,9 +81,9 @@ export class PlayerView {
       this.inert.start(this.src, null, Math.max(inClip ? m.clip!.blend ?? 0.12 : 0.26, /^(hurt|down|block|parry|rekindle)$/.test(m.clip?.name ?? '') ? 0 : far * 0.26, /^(hurt|down|block|parry|rekindle)$/.test(m.clip?.name ?? '') ? 0 : Math.min(0.24, turn / 390))); this.source = key; }
     p.set(this.src); this.inert.apply(p, dt);
 
-    this.group.position.set(m.x, 0, m.z); this.group.rotation.y = m.yaw + p[IX.tw] * Math.PI / 180; this.group.updateMatrixWorld(true);
+    this.group.position.set(m.x, m.y, m.z); this.group.rotation.y = m.yaw + p[IX.tw] * Math.PI / 180; this.group.updateMatrixWorld(true);
     const root = this.group.matrixWorld, L = this.body.limbs.footL, R = this.body.limbs.footR;
-    const gaiting = !inClip && m.speed > 0.35;
+    const gaiting = !inClip && m.speed > 0.35 && m.y === 0;
     if (gaiting) {
       if (!this.wasGait) { this.gait.reset(this.footing.world); this.gait.phase = this.stepped ? 0.1 : 0.6; this.stepped = !this.stepped; }
       const run = sst(2.2, 4.6, m.speed), k = Math.min(1, m.speed / 1.6), rest = [V(0.085, 0.09, 0.02 - 0.05 * run), V(-0.085, 0.09, 0.02 - 0.05 * run)].map(v => v.applyMatrix4(root));
@@ -103,14 +106,14 @@ export class PlayerView {
     // --- trails and embers
     this.weapon.localToWorld(this.tip.set(0, this.arm.blade[1] + (inClip && m.clip!.name === 'rites' ? this.long : 0), 0)); this.weapon.localToWorld(this.base.set(0, this.arm.blade[0], 0));
     this.tipSpeed += (Math.min(60, this.tip.distanceTo(this.tipPrev) / Math.max(dt, 1e-3)) - this.tipSpeed) * 0.6; if (this.tipPrev.y > -90) this.tipVel.copy(this.tip).sub(this.tipPrev).divideScalar(Math.max(dt, 1e-3)); this.tipPrev.copy(this.tip);
-    const hot = inClip && !!m.clip!.hit, hitEnd = hot ? (m.clip!.hits ?? [m.clip!.hit!]).at(-1)![1] : 0;
-    this.blade.push(this.base, this.tip, hot ? sst(5, 15, this.tipSpeed) * sst(m.clip!.hit![0] - 0.07, m.clip!.hit![0] - 0.02, m.t) * sst(hitEnd + 0.12, hitEnd + 0.03, m.t) * (m.clip!.reel ? 1.5 : 1) : 0, t); this.blade.update(t);
+    const tr = inClip ? m.clip!.trail ?? (m.clip!.hit ? [m.clip!.hit[0], (m.clip!.hits ?? [m.clip!.hit]).at(-1)![1]] : null) : null, hot = !!tr, hitEnd = tr ? tr[1] : 0;
+    this.blade.push(this.base, this.tip, hot ? sst(5, 15, this.tipSpeed) * sst(tr![0] - 0.07, tr![0] - 0.02, m.t) * sst(hitEnd + 0.12, hitEnd + 0.03, m.t) * (m.clip!.reel || m.clip!.trail ? 1.5 : 1) : 0, t); this.blade.update(t);
     const hb = this.rig.bones[this.rig.i('head')]; this.eyeW.set(0.032, 0.067, 0.085); hb.localToWorld(this.eyeW);
     const ew = sst(3.5, 8, sp) * 0.5 + (hot ? 0.25 : 0) + (this.auraStep >= 2 ? 0.45 : 0); const up = V(0, 0.0075, 0); this.eye.push(this.eyeW.clone().sub(up), this.eyeW.clone().add(up), ew, t); this.eye.update(t);
     // the blade tip scraping stone
     if (!hot && this.tip.y < 0.09 && this.tipSpeed > 0.7 && Math.random() < Math.min(0.75, this.tipSpeed * 0.16)) this.fx.sparks.emit(V(this.tip.x, 0.03, this.tip.z), V(-m.vx * 0.1, 0.5, -m.vz * 0.1), 2, 1.5 + this.tipSpeed * 0.25, 1.2, 0.45, t);
     if (hot && this.tipSpeed > 12 && Math.random() < 0.8) this.fx.sparks.emit(this.tip, V(0, 0.3, 0), 2, 0.9, 1.6, -0.9, t);
-    this.aura.value += (this.auraStep - this.aura.value) * Math.min(1, dt * 3); const rites = inClip && m.clip!.name === 'rites', wantLong = rites && m.t > 0.7 && m.t < 2.9 ? (m.t < 1.95 ? sst(0.7, 1.7, m.t) * 3.2 : 9.5 * sst(2.9, 2.2, m.t)) : this.auraStep >= 4 ? 1.1 : 0; this.long += (wantLong - this.long) * Math.min(1, dt * 18); this.blaze.set(Math.max(0.2, this.long), rites ? Math.min(1, this.long) : Math.min(0.3, this.long * 0.3));
+    this.aura.value += (this.auraStep - this.aura.value) * Math.min(1, dt * 3); const rites = inClip && m.clip!.name === 'rites', wantLong = rites && m.t > 0.4 && m.t < 3.6 ? (m.t < 1.4 ? sst(0.4, 0.8, m.t) * 0.6 : m.t < 1.95 ? 0.6 + sst(1.4, 1.75, m.t) * 3.4 : m.t < 2.9 ? 2.2 : 2.6 * sst(3.5, 2.95, m.t)) : this.auraStep >= 4 ? 1.1 : 0; this.long += (wantLong - this.long) * Math.min(1, dt * 18); this.blaze.set(Math.max(0.2, this.long), rites ? Math.min(1, this.long) : Math.min(0.3, this.long * 0.3));
     this.auraFx(m, t, dt, sp);
     const charging = inClip && m.clip!.name === this.arm.charge ? Math.min(1, m.t / 1.2) : 0, want = 0.35 + this.fireK * 0.75 + this.aura.value * 0.16 + charging * 1.1 + (hot ? 0.35 : 0) + (m.calm < 2 ? 0.15 : 0);
     this.ember += (want - this.ember) * Math.min(1, dt * 5); SHARED.uEmber.value = this.ember;
@@ -125,6 +128,18 @@ export class PlayerView {
       if (e === 'fx:heal') { this.ember = 1.6; this.flash.value.set(1, 0.36, 0.07, 0.16); for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283; this.fx.sparks.emit(V(m.x + Math.cos(a) * 0.55, 0.1, m.z + Math.sin(a) * 0.55), V(-Math.cos(a) * 0.25, 1.5, -Math.sin(a) * 0.25), 3, 1.3, 0.5, -1.5, t); } }
       if (e === 'fx:vanish') { this.ghosts.snap(t); this.fx.sparks.emit(V(m.x, 1, m.z), V(0, 0.4, 0), 60, 2.4, 2.4, -1.6, t); this.fx.bursts.add('fire', V(m.x, 0.8, m.z), 1.7, 0.5, t, 1); this.fx.puffs.emit(V(m.x, 0, m.z), 8, 1.4, 1.0, t); }
       if (e === 'fx:reform') { this.shake = 0.2; this.fx.sparks.emit(V(m.x, 0.8, m.z), V(Math.sin(m.yaw), 0.2, Math.cos(m.yaw)), 40, 3, 2, -1.2, t); this.fx.puffs.emit(V(m.x, 0, m.z), 8, 1.6, 1.0, t); }
+      if (e === 'land') { const hard = m.clip?.name === this.arm.air.hit; if (!hard) this.fx.puffs.emit(V(m.x, 0, m.z), 8, 1.5, 0.9, t); }
+      if (e === 'clip:jump') { this.ghosts.snap(t); this.fx.puffs.emit(V(m.x, 0, m.z), 4, 1.4, 0.7, t); this.fx.sparks.emit(V(m.x, 0.1, m.z), V(0, 0.7, 0), 14, 2, 2, 0.4, t); }
+      if (e === 'fx:dive') { this.ghosts.snap(t); this.ghostT = 0.3; this.fx.bursts.add('ring', V(m.x, m.y + 1.1, m.z), 2.6, 0.3, t); this.fx.sparks.emit(V(m.x, m.y + 1, m.z), V(0, 0.4, 0), 24, 2.4, 2, -0.6, t); }
+      if (e === 'fx:plunge') { this.shake = 0.8; this.ember = 1.8; const g = V(m.x + Math.sin(m.yaw) * 0.5, 0.06, m.z + Math.cos(m.yaw) * 0.5), hot = m.sky > 0; this.fx.bursts.add('ground', g, hot ? 8 : 5.5, 0.5, t); for (let i = 0; i < (hot ? 7 : 4); i++) { const a = m.yaw + (i - (hot ? 3 : 1.5)) * 0.66, r = 1.5 + (i & 1) * 0.5; this.fx.bursts.add('pillar', V(m.x + Math.sin(a) * r, 0, m.z + Math.cos(a) * r), 1.3 + Math.random() * 0.6, 0.5, t + 0.02 + i * 0.015); } this.fx.sparks.emit(g, V(0, 1, 0), 80, 5.2, 2, 0.9, t); this.fx.sparks.emit(g, V(0, 0.5, 0), 36, 2.4, 2.2, -1.8, t); this.fx.puffs.emit(g, 7, 2.6, 1.1, t); this.boomAt.copy(g).setY(1.2); this.boomK = Math.max(this.boomK, 0.35); }
+      if (e === 'fx:wipe') { this.ember = 1.7; for (let i = 0; i < 10; i++) this.fx.sparks.emit(this.base.clone().lerp(this.tip, i / 9), V(0, 0.8, 0), 4, 1, 1.6, -1.4, t + i * 0.025); }
+      if (e === 'fx:wheel') { this.ember = 1.8; this.ghosts.snap(t); this.fx.bursts.add('ring', V(m.x + Math.cos(m.yaw) * -0.5, 1.15, m.z + Math.sin(m.yaw) * 0.5), 2.4, 0.35, t, 0, 1.5, 0.7, 0.3); }
+      if (e === 'fx:pillar') { this.shake = 0.5; this.ember = 2; for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; this.fx.bursts.add('pillar', V(m.x + Math.cos(a) * 1.5, 0, m.z + Math.sin(a) * 1.5), 2.4, 0.7, t + i * 0.02); } this.fx.bursts.add('ground', V(m.x, 0.06, m.z), 7, 0.7, t); }
+      if (e === 'fx:rcut') { this.ghosts.snap(t); this.shake = 0.35; }
+      if (e === 'fx:rlast') { this.ghosts.snap(t); this.shake = 0.5; this.fx.puffs.emit(V(m.x, 0, m.z), 12, 2, 1.1, t); this.fx.sparks.emit(V(m.x, 0.05, m.z), V(Math.sin(m.yaw), 0.3, Math.cos(m.yaw)), 40, 4.5, 1, 0.6, t); }
+      if (e === 'fx:riposte') { this.shake = 0.6; this.ember = 1.8; const f = V(Math.sin(m.yaw), 0, Math.cos(m.yaw)); for (let i = 0; i < 3; i++) this.fx.bursts.add('pillar', V(m.x + f.x * (0.9 + i * 0.7), 0, m.z + f.z * (0.9 + i * 0.7)), 1.6 + i * 0.3, 0.5, t + i * 0.03); }
+      if (e === 'fx:impale' || e === 'fx:twist') { this.shake = 0.6; this.ember = 1.9; }
+      if (e === 'fx:finale') { this.shake = 1; this.ember = 2; this.ghosts.snap(t); }
       if (e === 'fx:dust') this.fx.puffs.emit(V(m.x, 0, m.z), 8, 1.4, 1.0, t);
       if (e === 'fx:crescent') { this.shake = 0.3; this.fx.sparks.emit(this.tip, dirOf(0, 60), 40, 4, 1.8, 0.8, t); }
       if (e === 'fx:flare') { this.ember = 1.5; for (const h of ['hand.L', 'hand.R']) { const q = V(); this.rig.bones[this.rig.i(h)].localToWorld(q); this.fx.sparks.emit(q, V(0, 1, 0), 12, 0.8, 1.5, -1.6, t); } }
@@ -142,7 +157,7 @@ export class PlayerView {
     }
     // Cinder Rush: body to ash and back, a burning wall where it passed
     const rush = inClip && m.clip!.name === 'rush', dead = inClip && m.clip!.name === 'die';
-    const dw = rush ? sst(0.05, 0.12, m.t) * sst(0.5, 0.34, m.t) : dead ? sst(1.5, 2.9, m.t) : 0; this.dis.value = rush || dead ? dw : Math.max(0, this.dis.value - dt * 6); this.shadow.castShadow = this.dis.value < 0.5;
+    const gone = rites && m.t > 1.9 && m.t < 2.98, u = (m.t - 2.0) / 0.14, dw = rush ? sst(0.05, 0.12, m.t) * sst(0.5, 0.34, m.t) : dead ? sst(1.5, 2.9, m.t) : gone ? (m.t < 2.0 ? sst(1.9, 1.96, m.t) : m.t > 2.84 ? sst(2.96, 2.91, m.t) : sst(0.55, 0.95, u - Math.floor(u)) * 0.9) : 0; this.dis.value = rush || dead || gone ? dw : Math.max(0, this.dis.value - dt * 6); this.shadow.castShadow = this.dis.value < 0.5;
     const on = rush && m.t > 0.06 && m.t < 0.42; if (on) { for (let d = m.speed * dt; d > 0; d -= 0.42) { const sx = m.vx / (m.speed || 1), sz = m.vz / (m.speed || 1); this.fx.bursts.add('pillar', V(m.x - sx * d, -0.04, m.z - sz * d), 1.1 + Math.random() * 0.5, 1.0 + Math.random() * 0.25, t); } }
     if (on) { for (let i = 0; i < 3; i++) this.fx.sparks.emit(V(m.x - m.vx * dt * i / 3, 0.2 + Math.random() * 1.5, m.z - m.vz * dt * i / 3), V(0, 0.5, 0), 5, 1.2, 1.6, -1.7, t); }
     if (dead && m.t > 1.4 && m.t < 3) this.fx.sparks.emit(V(m.x, 0.3 + Math.random() * 1.0, m.z), V(0.2, 0.7, 0), 2, 0.7, 1.4, -2, t);

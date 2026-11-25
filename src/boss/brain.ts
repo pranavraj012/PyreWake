@@ -8,7 +8,7 @@ interface Option { seq: KingMode[]; w: number; near: number; far: number; /** On
 const BOOK: Record<Style, Option[]> = {
   executioner: [
     { seq: ['slam'], w: 2, near: 0, far: 4.2 }, { seq: ['sweep'], w: 2, near: 0, far: 4.4 }, { seq: ['drag'], w: 3, near: 2.2, far: 6.8 }, { seq: ['leap'], w: 1, near: 0, far: 5 }, { seq: ['leap'], w: 5, near: 5, far: 30 },
-    { seq: ['drag', 'sweep'], w: 3, near: 2, far: 6.5, below: 0.92 }, { seq: ['sweep', 'slam'], w: 2, near: 0, far: 4.2, below: 0.92 }, { seq: ['grab'], w: 2, near: 1.5, far: 5, below: 0.9 }, { seq: ['slam', 'drag'], w: 2, near: 0, far: 4.5, below: 0.86 },
+    { seq: ['drag', 'sweep'], w: 3, near: 2, far: 6.5, below: 0.92 }, { seq: ['sweep', 'slam'], w: 2, near: 0, far: 4.2, below: 0.92 }, { seq: ['grab'], w: 2, near: 0, far: 5, below: 0.9 }, { seq: ['slam', 'drag'], w: 2, near: 0, far: 4.5, below: 0.86 },
   ],
   crawler: [{ seq: ['pounce'], w: 3, near: 2.5, far: 30 }, { seq: ['rake'], w: 3, near: 0, far: 6.5 }, { seq: ['rake', 'pounce'], w: 2, near: 0, far: 6.5 }, { seq: ['rake', 'rake'], w: 1, near: 0, far: 6 }],
   hanged: [{ seq: ['hangSwing'], w: 3, near: 0, far: 30 }, { seq: ['hangSwipe'], w: 2, near: 0, far: 3 }],
@@ -22,16 +22,19 @@ const BOOK: Record<Style, Option[]> = {
 };
 
 export class Brain {
+  /** Chosen in the menu: 0 measured, 1 fierce, 2 relentless. */ temper = 1;
   seen = new Set<KingMode>(); style: Style = 'executioner'; private wait = 1.0; private queue: KingMode[] = []; private recent: string[] = []; private s: number; private calmT = 0; private hangDmg = 0; private hangsLeft = 2; private ease = 0; private hurts: number[] = []; private strings = 0;
   /** Set when a style begins, for prompts and the director. */ began: Style | null = null;
   constructor(seed = 7) { this.s = seed; }
   private rnd() { this.s = (this.s + 0x6d2b79f5) | 0; let t = Math.imul(this.s ^ (this.s >>> 15), 1 | this.s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
-  private rest(form: 1 | 2) { const r = form === 2 ? D.boss.rest2 : D.boss.rest; this.wait = r[0] + this.rnd() * (r[1] - r[0]) + (this.ease > 0 ? (this.ease--, D.boss.assist) : 0); }
+  private rest(form: 1 | 2) { const r = form === 2 ? D.boss.rest2 : D.boss.rest; this.wait = (r[0] + this.rnd() * (r[1] - r[0])) * D.temper[this.temper].rest + (this.ease > 0 ? (this.ease--, D.boss.assist) : 0); }
   reset(form: 1 | 2) { this.wait = 1.1; this.calmT = 0; this.queue = []; this.recent = []; this.hangsLeft = 2; this.hangDmg = 0; this.ease = 0; this.style = form === 2 ? 'blades' : 'executioner'; this.began = null; this.strings = 0; }
   /** Quiet assist: two blows taken close together and the boss eases off for a couple of strings. */
   hurt(time: number) { this.hurts = [...this.hurts.filter(t => time - t < 6), time]; if (this.hurts.length >= 2) { this.ease = 2; this.hurts = []; } }
   /** It answers being hit instead of standing there. Returns true when the roots give way. */
   struck(k: King, dmg: number) { this.wait -= 0.1; if (!k.hanging) return false; this.hangDmg += dmg; if (this.hangDmg < D.boss.hangBreak) return false; this.drop(k); return true; }
+  /** Its attack was broken: the rest of the string is forgotten, and it needs a moment. */
+  broken() { this.queue = []; this.wait = 0.45; }
   drop(k: King) { this.style = 'executioner'; this.queue = []; k.armed = true; k.crawling = false; k.set('crash'); this.wait = 0.3; }
   private enter(style: Style, k: King) {
     this.style = style; this.began = style; this.queue = []; this.wait = 1.0; this.recent = [];
@@ -72,7 +75,7 @@ export class Brain {
     const opts = BOOK[this.style].filter(o => dist >= o.near && dist <= o.far && (o.below === undefined || frac < o.below) && !(this.recent.at(-1) === o.seq.join()));
     if (!opts.length) { if (k.mode === 'idle' || k.mode === 'strafe') k.set('stalk'); if (k.form === 2 && dist > 6) this.start(k, ['cross']); return; }
     // unseen attacks come up sooner, alone; repeats less often
-    const weight = (o: Option) => o.w * (o.seq.some(q => isAttack(q) && !this.seen.has(q)) ? (o.seq.filter(isAttack).length > 1 ? 0.02 : 3) : 1) * (this.recent.includes(o.seq.join()) ? 0.4 : 1);
+    const weight = (o: Option) => o.w * (o.seq.filter(isAttack).length > 1 ? D.temper[this.temper].long : 1) * (o.seq.some(q => isAttack(q) && !this.seen.has(q)) ? (o.seq.filter(isAttack).length > 1 ? 0.02 : 3) : 1) * (this.recent.includes(o.seq.join()) ? 0.4 : 1);
     let x = this.rnd() * opts.reduce((a, o) => a + weight(o), 0), pick = opts[0]; for (const o of opts) { x -= weight(o); if (x <= 0) { pick = o; break; } }
     this.start(k, [...pick.seq]);
   }

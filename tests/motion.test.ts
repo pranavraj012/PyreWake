@@ -38,20 +38,20 @@ describe('player motion', () => {
     for (let i = 0; i < 400; i++) { const a = Math.floor(i / 40) * 2.1; m.step(DT, Math.sin(a), Math.cos(a), []); t += DT; v.update(DT, m, t); expect(v.rig.pos[v.rig.i('thigh.L')].distanceTo(v.rig.pos[v.rig.i('shin.L')])).toBeCloseTo(rest, 3); for (const q of v.rig.rot) expect(Number.isFinite(q.w)).toBe(true); }
   });
   it('transitions never pop', () => {
-    const { m, v } = make(); let t = 0; const prev = new THREE.Vector3(), q0 = new THREE.Quaternion(); let prevClip = ''; let since = 9, lastStart = 0, lastFree = true, worstStrike = 0, worstHip = 0, worstSpine = 0, worstName = '', hipName = '';
+    const { m, v } = make(); let t = 0; const prev = new THREE.Vector3(), q0 = new THREE.Quaternion(); let prevClip = ''; let since = 9, lastStart = 0, lastFree = true, worstStrike = 0, worstHip = 0, worstSpine = 0, worstName = '', hipName = '', strikeName = '';
     const tap = (a: string) => [{ a, up: false }, { a, up: true }];
     for (let i = 0; i < 900; i++) {
       const ev = i % 97 === 40 ? tap('dodge') : i % 7 === 0 && i % 300 < 200 ? tap('attack') : []; m.step(DT, i % 250 < 60 ? 1 : 0, i % 250 < 60 ? 0.2 : 0, ev); t += DT; v.update(DT, m, t);
       const hip = v.rig.pos[0].clone(), q = v.rig.rot[v.rig.i('chest')].clone();
       if (m.started !== lastStart || (m.state === 'free') !== lastFree) { since = 0; lastStart = m.started; lastFree = m.state === 'free'; } else since++;
-      if (i > 5) { const dh = hip.distanceTo(prev), dq = q.angleTo(q0) * 57.3; if (dh > worstHip) { worstHip = dh; hipName = (m.clip?.name ?? 'loco') + '@' + m.t.toFixed(2); } worstStrike = Math.max(worstStrike, dq); if (since < 5 && dq > worstSpine) { worstSpine = dq; worstName = (m.clip?.name ?? 'loco') + '@' + m.t.toFixed(3) + ' frame ' + since + ' step ' + i + ' from ' + prevClip; } }
+      if (i > 5) { const dh = hip.distanceTo(prev), dq = q.angleTo(q0) * 57.3; if (dh > worstHip) { worstHip = dh; hipName = (m.clip?.name ?? 'loco') + '@' + m.t.toFixed(2); } if (dq > worstStrike) { worstStrike = dq; strikeName = (m.clip?.name ?? 'loco') + '@' + m.t.toFixed(2); } if (since < 5 && dq > worstSpine) { worstSpine = dq; worstName = (m.clip?.name ?? 'loco') + '@' + m.t.toFixed(3) + ' frame ' + since + ' step ' + i + ' from ' + prevClip; } }
       prev.copy(hip); q0.copy(q); if (m.started === lastStart && since > 5) prevClip = m.clip?.name ?? 'loco';
     }
     expect(worstHip, 'hip jump per frame (m) in ' + hipName).toBeLessThan(0.16); expect(worstSpine, 'chest turn per frame (deg) in ' + worstName).toBeLessThan(20);
-    expect(worstStrike, 'fastest authored strike (deg/frame)').toBeLessThan(32);
+    expect(worstStrike, 'fastest authored strike (deg/frame) in ' + strikeName).toBeLessThan(32);
   });
   it('the blade reaches out at contact in every attack', () => {
-    for (const n of [...COMBO, 'heavy', ...KHANDA.finishers.slice(0, 3)]) {
+    for (const n of [...KHANDA.chains.flat().filter(n => n !== 'alt4'), 'heavy', 'riposteA', ...KHANDA.finishers.slice(0, 3)]) {
       const { m, v } = make(); let t = 0; for (let i = 0; i < 30; i++) { m.step(DT, 0, 0, []); v.update(DT, m, t += DT); }
       (m as never as { begin(n: string): void }).begin(n); let best = 0; const x0 = m.x, z0 = m.z;
       for (let i = 0; i < 60; i++) { m.step(DT, 0, 0, []); v.update(DT, m, t += DT); if (m.clip?.name === n && m.clip.hit && m.t >= m.clip.hit[0] && m.t <= m.clip.hit[1]) best = Math.max(best, Math.hypot(v.tip.x - m.x, v.tip.z - m.z)); }
