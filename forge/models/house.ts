@@ -119,7 +119,7 @@ export async function bowl(): Promise<Mesh> {
   c.displace((x, y, z) => 0.0015 * fbm(x * 30, y * 30, z * 30, 2), 0.002);
   for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; r.put(cone([Math.sin(a) * 0.2, Y + 0.17, Math.cos(a) * 0.2], [0, Y + 0.62, 0], 0.005, 0.005)); }
   r.put(cone([0, Y + 0.62, 0], [0, 0, 0], 0.007, 0.007));
-  return bakeAll([[c, 0.008, 38, 900], [r, 0.006, 11, 300]], 0.1);
+  return bakeAll([[c, 0.01, 38, 420], [r, 0.008, 11, 120]], 0.1);
 }
 /** A beam fallen from a ward roof, charred: 4.6 m along x. */
 export async function beam(): Promise<Mesh> {

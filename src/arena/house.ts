@@ -7,6 +7,7 @@ import { Ruin } from './ruin.ts';
 import { makeHouseProps } from './props.ts';
 import { slabs } from './court.ts';
 import { makeAsh } from '../render/ambient.ts';
+import { shadowOnly } from '../render/shadowProxy.ts';
 import type { Tier } from '../core/quality.ts';
 
 const seeded = (s: number) => () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -35,7 +36,7 @@ export async function buildHouse(tex: TexSet, tier: Tier) {
   const mesh = (g: THREE.BufferGeometry, m: THREE.Material, cast = true) => { const o = new THREE.Mesh(g, m); o.castShadow = cast; o.receiveShadow = true; o.customDepthMaterial = DEPTH.still; group.add(o); return o; };
   const inst = (g: THREE.BufferGeometry, m: THREE.Material, list: THREE.Matrix4[], cast = true) => { const o = new THREE.InstancedMesh(g, m, Math.max(1, list.length)); list.forEach((x, i) => o.setMatrixAt(i, x)); o.count = list.length; o.castShadow = cast; o.receiveShadow = true; o.customDepthMaterial = DEPTH.inst; o.frustumCulled = false; group.add(o); return o; };
   const M = (x: number, y: number, z: number, ry = 0, s = 1, rx = 0, rz = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz, 'YXZ')), new THREE.Vector3(s, s, s));
-  const [gArcade, gDial, gCot, gCotXs, gBowl, gBeam, c0, c1, c2, x0, x1, x2] = await Promise.all(['arcade', 'dial', 'cot', ['cot', '.xs'], 'bowl', 'beam', 'hcol0', 'hcol1', 'hcol2', ['hcol0', '.xs'], ['hcol1', '.xs'], ['hcol2', '.xs']].map(n => Array.isArray(n) ? loadGeo(n[0], n[1]) : loadGeo(n)));
+  const [gArcade, gDial, gCot, gCotXs, gBowl, gBeam, c0, c1, c2, x0, x1, x2, gArcXs, gDialXs] = await Promise.all(['arcade', 'dial', 'cot', ['cot', '.xs'], 'bowl', 'beam', 'hcol0', 'hcol1', 'hcol2', ['hcol0', '.xs'], ['hcol1', '.xs'], ['hcol2', '.xs'], ['arcade', '.xs'], ['dial', '.xs']].map(n => Array.isArray(n) ? loadGeo(n[0], n[1]) : loadGeo(n)));
   // --- the court: red sandstone paving, worn; the bed beyond it
   mesh(slabs(r, lo, 36), floor, false);
   const bed = new THREE.PlaneGeometry(400, 400, 1, 1).rotateX(-Math.PI / 2); bed.setAttribute('aInfo', new THREE.BufferAttribute(new Uint8Array([60, 128, 0, 36, 60, 128, 0, 36, 60, 128, 0, 36, 60, 128, 0, 36]), 4, true)); mesh(bed, floor, false).position.y = -0.08;
@@ -47,16 +48,16 @@ export async function buildHouse(tex: TexSet, tier: Tier) {
   const brass = mesh(strips(L, 0.013, 37), floor, false); brass.renderOrder = 1;
   // --- the cloister: cusped bays all round, but where the dial stands
   const bays: THREE.Matrix4[] = [], bayA: number[] = []; const NB = 30; for (let i = 0; i < NB; i++) { const a = (i + 0.5) / NB * Math.PI * 2; if (Math.cos(a) < -0.985) continue; bays.push(M(Math.sin(a) * CLOISTER_R, 0, Math.cos(a) * CLOISTER_R, a + Math.PI)); bayA.push(a); }
-  const arcade = inst(gArcade, stone, bays);
+  const arcade = inst(ph ? gArcXs : gArcade, stone, bays, false), arcShadow = shadowOnly((g, m) => new THREE.InstancedMesh(g, m, bays.length), gArcXs, DEPTH.inst); bays.forEach((x, i) => arcShadow.setMatrixAt(i, x)); group.add(arcShadow);
   // the wards' roofs, half fallen, and the gaps the light comes through
   const onSun = (a: number) => { let d = a - SUN_SIDE; d -= Math.round(d / (Math.PI * 2)) * Math.PI * 2; return Math.abs(d) < 0.8; };
   const roof: [number, number, number, number, number, number, number, number?][] = [], roofSun: typeof roof = []; bayA.forEach(a => { if (r() < 0.35) return; const R = CLOISTER_R + 1.7, f = r() < 0.3; (onSun(a) ? roofSun : roof).push([Math.sin(a) * R, f ? 4.4 : 6.15, Math.cos(a) * R, 2.25, 0.14, 1.9, a, f ? 0.4 : 0]); });
   mesh(boxes(roof, 19), stone); const sunRoof = roofSun.length ? mesh(boxes(roofSun, 19), stone) : null;
   // the dial, its foot at the edge of the court
-  mesh(gDial, stone).position.copy(F);
+  { const d = mesh(gDial, stone, false); d.position.copy(F); const sh = shadowOnly((g, m) => new THREE.Mesh(g, m), gDialXs, DEPTH.still); sh.position.copy(F); group.add(sh); }
   // --- the ward: rows of cots behind the arches, each with its ash shape; bowls hung over them
   const ward: THREE.Matrix4[] = []; bayA.forEach(a => { for (const k of [-1, 1]) { const R = CLOISTER_R + 1.5, t = a + k * 0.045; if (r() < 0.15) continue; ward.push(M(Math.sin(t) * R, 0, Math.cos(t) * R, a + Math.PI / 2 + (r() - 0.5) * 0.1)); } });
-  inst(gCot, stone, ward, !ph);
+  inst(lo ? gCotXs : gCot, stone, ward, false);
   const bowlAt: { p: THREE.Vector3; ph: number; sun: boolean }[] = []; bayA.forEach(a => { const n = 1 + (r() < 0.5 ? 1 : 0); for (let k = 0; k < n; k++) { const t = a + (k - (n - 1) / 2) * 0.05, R = CLOISTER_R + 0.4 + r() * 1.6; bowlAt.push({ p: new THREE.Vector3(Math.sin(t) * R, 5.3 + r() * 0.3, Math.cos(t) * R), ph: r() * 6, sun: onSun(a) }); } });
   const bowls = inst(gBowl, held, bowlAt.map(b => M(b.p.x, b.p.y, b.p.z)), false);
   // fallen beams on the ward floors
@@ -93,7 +94,7 @@ void main(){ float t = uT.w; vec2 q = w * .045; float a = fbm(q + vec2(t * .012,
     /** 0-1: round 2's battlefield: the sun side of the cloister lies fallen outward. */
     daylight(k: number) {
       const on = k > 0.5; if ((dayK > 0.5) === on && dayK >= 0) return; dayK = k; if (sunRoof) sunRoof.visible = !on;
-      for (const { a, i } of sunSide) { const m = M(Math.sin(a) * (CLOISTER_R + (on ? 2.2 : 0)), on ? -0.4 : 0, Math.cos(a) * (CLOISTER_R + (on ? 2.2 : 0)), a + Math.PI, 1, on ? -1.35 + 0.15 * Math.sin(i) : 0, on ? 0.1 * Math.cos(i * 3) : 0); arcade.setMatrixAt(i, m); } arcade.instanceMatrix.needsUpdate = true;
+      for (const { a, i } of sunSide) { const m = M(Math.sin(a) * (CLOISTER_R + (on ? 2.2 : 0)), on ? -0.4 : 0, Math.cos(a) * (CLOISTER_R + (on ? 2.2 : 0)), a + Math.PI, 1, on ? -1.35 + 0.15 * Math.sin(i) : 0, on ? 0.1 * Math.cos(i * 3) : 0); arcade.setMatrixAt(i, m); arcShadow.setMatrixAt(i, m); } arcade.instanceMatrix.needsUpdate = arcShadow.instanceMatrix.needsUpdate = true;
     },
     flames(_k: number) { }, omen(_k: number) { }, storm(_k: number) { }, breach() { }, tear() { },
     update(t: number, _focus: THREE.Vector3) {

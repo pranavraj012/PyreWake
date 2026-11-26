@@ -70,7 +70,7 @@ if (process.argv[2] === '--one') {
   const n = process.argv[3], t = Date.now(), m = await JOBS[n](), s = packMesh(m, `${OUT}/${n}.bin`);
   packMesh(await decimate(m, Math.round(m.idx.length / 3 * (CHAR.includes(n) ? 0.29 : n.startsWith('block') ? 0.36 : 0.45))), `${OUT}/${n}.lo.bin`);
   // afterimages and shadow stand-ins
-  const xs = CHAR.includes(n) ? 4500 : (n.startsWith('pillar') || n.startsWith('hcol')) && !n.endsWith('Bits') ? 260 : n === 'stele' ? 160 : n === 'boat' ? 300 : n === 'cot' ? 200 : 0; if (xs) packMesh(await decimate(m, xs), `${OUT}/${n}.xs.bin`);
+  const xs = CHAR.includes(n) ? 4500 : (n.startsWith('pillar') || n.startsWith('hcol')) && !n.endsWith('Bits') ? 260 : n === 'stele' ? 160 : n === 'boat' ? 300 : n === 'cot' ? 200 : n === 'arcade' ? 1100 : n === 'dial' ? 1500 : 0; if (xs) packMesh(await decimate(m, xs), `${OUT}/${n}.xs.bin`);
   console.log(`${n.padEnd(9)} ${String(s.tris).padStart(6)} tris  ${String(s.kb).padStart(5)} KB  ${((Date.now() - t) / 1000).toFixed(1)}s`);
 } else if (process.argv[2] === 'textures') {
   await (await import('./textures.ts')).bakeTextures('assets_src', OUT + '/tex');
