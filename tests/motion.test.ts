@@ -6,6 +6,7 @@ import { KHANDA } from '../src/weapons/khanda.ts';
 import { KING_MODES, type KingMode } from '../src/boss/king.ts';
 import { Bursts } from '../src/render/impact.ts';
 import { PlayerView } from '../src/player/view.ts';
+import { HUMAN_SPEC } from '../src/anim/body.ts';
 import { KingView } from '../src/boss/kingView.ts';
 import { Puffs, Sparks } from '../src/render/fx.ts';
 
@@ -39,6 +40,20 @@ describe('player motion', () => {
     for (let i = 0; i < 600; i++) { const a = Math.floor(i / 60) * 1.7, k = i % 120 < 60 ? 1 : 0.4; m.step(DT, Math.sin(a) * k, Math.cos(a) * k, []); t += DT; v.update(DT, m, t); const w = inside(v); if (w < worst) { worst = w; at = 'move ' + i; } }
     for (const n of Object.keys(KHANDA.clips)) { m.revive(0, 0, 0); v.reset(); m.begin(n); for (let i = 0; i < KHANDA.clips[n].dur * 60 && m.clip; i++) { m.step(DT, 0, 0, []); t += DT; v.update(DT, m, t); const w = inside(v); if (w < worst) { worst = w; at = n + ' ' + m.t.toFixed(2); } } }
     expect(worst, at).toBeGreaterThanOrEqual(0.97);
+  });
+  it('the wrists stay within what a wrist can do: walking, running, turning, and in every move', () => {
+    const A = HUMAN_SPEC.armDir, bend = (v: PlayerView) => { let worst = 0; for (const [S, d] of [['R', new THREE.Vector3(-A[0], A[1], A[2])], ['L', new THREE.Vector3(A[0], A[1], A[2])]] as const) { const r = v.rig, f = r.pos[r.i('hand.' + S)].clone().sub(r.pos[r.i('foreArm.' + S)]).normalize(), a = d.clone().applyQuaternion(r.rot[r.i('hand.' + S)]); worst = Math.max(worst, Math.acos(Math.max(-1, Math.min(1, f.dot(a)))) * 57.3); } return worst; };
+    const { m, v } = make(); let t = 0, worst = 0, at = '';
+    for (let i = 0; i < 600; i++) { const a = Math.floor(i / 60) * 1.7, k = i % 120 < 60 ? 1 : 0.4; m.step(DT, Math.sin(a) * k, Math.cos(a) * k, []); t += DT; v.update(DT, m, t); const w = bend(v); if (w > worst) { worst = w; at = 'move ' + i; } }
+    for (const n of Object.keys(KHANDA.clips)) { m.revive(0, 0, 0); v.reset(); m.begin(n); for (let i = 0; i < KHANDA.clips[n].dur * 60 && m.clip; i++) { m.step(DT, 0, 0, []); t += DT; v.update(DT, m, t); const w = bend(v); if (w > worst) { worst = w; at = n + ' ' + m.t.toFixed(2); } } }
+    expect(worst, at).toBeLessThan(40);
+  });
+  it('the wrists never wring: the hand turns no more than a forearm can carry on to it', () => {
+    const twist = (v: PlayerView) => { let worst = 0; for (const S of ['R', 'L']) { const r = v.rig, fa = r.i('foreArm.' + S), hd = r.i('hand.' + S), ax = r.rest[hd].clone().sub(r.rest[fa]).normalize(), rel = r.rot[fa].clone().invert().multiply(r.rot[hd]), d = new THREE.Vector3(rel.x, rel.y, rel.z).dot(ax), ang = 2 * Math.atan2(Math.abs(d), Math.abs(rel.w)) * 57.3; worst = Math.max(worst, ang); } return worst; };
+    const { m, v } = make(); let t = 0, worst = 0, at = '';
+    for (let i = 0; i < 600; i++) { const a = Math.floor(i / 60) * 1.7; m.step(DT, Math.sin(a), Math.cos(a), []); t += DT; v.update(DT, m, t); const w = twist(v); if (w > worst) { worst = w; at = 'move ' + i; } }
+    for (const n of Object.keys(KHANDA.clips)) { m.revive(0, 0, 0); v.reset(); m.begin(n); for (let i = 0; i < KHANDA.clips[n].dur * 60 && m.clip; i++) { m.step(DT, 0, 0, []); t += DT; v.update(DT, m, t); const w = twist(v); if (w > worst) { worst = w; at = n + ' ' + m.t.toFixed(2); } } }
+    expect(worst, at).toBeLessThan(70);
   });
   it('turning hard while running does not tear the legs', () => {
     const { m, v } = make(); let t = 0; const rest = v.rig.rest[v.rig.i('thigh.L')].distanceTo(v.rig.rest[v.rig.i('shin.L')]);

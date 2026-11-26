@@ -28,7 +28,7 @@ export class PlayerView {
   pose: Pose = new Float32Array(N); private src = new Float32Array(N); private tmp = new Float32Array(N); private inert = new Inertial(); private source = ''; private wasGait = false;
   private yawPrev = 0; private lean = 0; private drop = 0; ember = 0.35; /** 0-1, from the fire meter: the arms answer. */ fireK = 0; /** Aura step 0-4, eased. */ aura = { value: 0 }; auraStep = 0; /** Length of the fire beyond the steel (Last Rites; a lick of it at full aura). */ private long = 0; blaze = new Blaze(); shake = 0; private ghostT = 0; steps = 0; private time = 0; private stepped = false;
   /** Dissolve 0-1 and flash, shared with the body and weapon materials. */ dis = { value: 0 }; flash = { value: new THREE.Vector4(1, 0.3, 0.1, 0) }; flashAt = { value: new THREE.Vector4(0, 0, 0, 1) }; private guardK = 0; boomAt = V(); boomK = 0;
-  glow: THREE.PointLight | null = null; tip = V(); private tipPrev = V(); base = V(); tipVel = V(1, 0, 0); tipSpeed = 0; eyeW = V();
+  glow: THREE.PointLight | null = null; private weaponQ = new THREE.Quaternion(); tip = V(); private tipPrev = V(); base = V(); tipVel = V(1, 0, 0); tipSpeed = 0; eyeW = V();
 
   constructor(scene: THREE.Scene, geo: THREE.BufferGeometry, geoLo: THREE.BufferGeometry, khanda: THREE.BufferGeometry, mat: THREE.Material, held: THREE.Material, depth: { skin: THREE.Material; still: THREE.Material }, fx: Fx, ghostN: number, arm: Weapon) {
     this.arm = arm; this.fx = fx;
@@ -36,7 +36,7 @@ export class PlayerView {
     this.mesh.castShadow = this.mesh.receiveShadow = true; this.mesh.customDepthMaterial = depth.skin; this.mesh.frustumCulled = false; scene.add(this.group); this.shadow = this.mesh;
     this.weapon = new THREE.Mesh(khanda, held); this.weapon.castShadow = this.weapon.receiveShadow = true; this.weapon.customDepthMaterial = depth.still;
     const A = HUMAN_SPEC.armDir, g = HUMAN_SPEC.grip; this.weapon.position.set(-A[0] * g[0] - A[1] * g[1], A[1] * g[0] - A[0] * g[1], 0); this.weapon.rotation.set(Math.PI / 2, Math.atan2(A[1], -A[0]), 0);
-    this.rig.bones[this.rig.i('hand.R')].add(this.weapon); this.weapon.add(this.blaze.mesh); this.blaze.mesh.position.y = arm.blade[0] - 0.2;
+    this.weaponQ.copy(this.weapon.quaternion); this.rig.bones[this.rig.i('hand.R')].add(this.weapon); this.weapon.add(this.blaze.mesh); this.blaze.mesh.position.y = arm.blade[0] - 0.2;
     this.blade = new Ribbon(96, 0.2, new THREE.Color(...arm.trail), 0); this.eye = new Ribbon(96, 0.34, new THREE.Color(1.6, 0.5, 0.1), 1);
     scene.add(this.blade.mesh, this.eye.mesh);
     this.ghosts = new Ghosts(scene, geoLo, this.rig.skeleton, ghostN);
@@ -116,7 +116,7 @@ export class PlayerView {
     let over = 0; [L, R].forEach((f, k) => { const reach = 0.83, hipY = 0.92 + p[IX.hy], hx = k ? -0.095 : 0.095, d = Math.hypot(f.x - hx, f.z, hipY - f.y);
       if (d <= reach) return; if (gaiting && !this.stride.stance[k]) { const q = (reach * 0.995) / d; f.set(hx + (f.x - hx) * q, hipY - (hipY - f.y) * q, f.z * q); } else over = Math.max(over, Math.min(0.14, (d - reach) * 0.9)); });
     this.drop += (over - this.drop) * Math.min(1, dt * 22); p[IX.hy] -= this.drop;
-    this.body.solve(p);
+    this.body.solve(p); this.weapon.quaternion.copy(this.body.gripAdj).multiply(this.weaponQ);
     const sp = Math.hypot(m.vx, m.vz); this.chains.update(root, dt, t, 1.1, -0.5, sp * 0.05); this.rig.apply(); this.group.updateMatrixWorld(true);
 
     // --- trails and embers
