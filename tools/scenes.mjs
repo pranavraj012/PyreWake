@@ -22,11 +22,11 @@ const clip = (n, times, cols) => sheet(n, times.map(t => t), new Function('t', `
 const set = (gap, extra = '') => p.evaluate(([gap, extra]) => { __f.passive = true; __king.x = 0; __king.z = -3; __king.yaw = 0; __king.set('idle'); __m.revive(0, -3 + gap, Math.PI); new Function(extra)(); }, [gap, extra]);
 await go('intro', async () => {
   await open('x'); await one('menu'); await p.evaluate(() => document.querySelector('[data-b=play]').click());
-  await until(() => __story.t > 1); await p.keyboard.press('j'); await until(() => __intro.active); await sheet('intro', [0.4, 1.6, 2.6, 3.6, 4.4, 5.4, 6.2, 7.0, 7.8, 8.6, 9.6, 10.6, 11.2, 11.8, 12.4, 12.9, 13.5, 14.1, 14.6, 15.0, 15.6, 16.2, 16.8, 17], t => __intro.t >= t); await p.waitForTimeout(1200); await one('after_intro');
+  await until(() => __story.t > 1); await p.keyboard.press('j'); await until(() => __intro.active); await sheet('intro', [0.5, 2, 4, 6, 7.5, 9, 10.5, 12, 13.5, 15, 16.2, 16.8, 17.3, 17.9, 18.4, 19, 19.6, 20.3, 21, 21.7, 22.2, 22.4], t => __intro.t >= t); await p.waitForTimeout(1200); await one('after_intro');
 });
 await go('story', async () => {
   await open('x'); await p.evaluate(() => document.querySelector('[data-b=play]').click());
-  await sheet('story', [0.5, 1.2, 2.6, 4.2, 4.9, 5.6, 6.6, 8.2, 9.8, 10.6, 11.4, 12.6, 13.8, 15.0, 15.7, 16.4, 17.2, 18.2, 19.4, 20.2], t => __story.t >= t);
+  await sheet('story', [1.5, 4.5, 7.8, 10.8, 14.2, 17.2, 20.5, 23.5, 26.8, 29.8, 33.2, 35.6, 37.2, 38.2], t => __story.t >= t);
 });
 await go('lessons', async () => {
   await open('x'); await p.evaluate(() => document.querySelector('[data-b=train]').click()); await p.waitForTimeout(400);
@@ -47,7 +47,7 @@ await go('turn', async () => {
 await go('ending', async () => {
   await open('round2'); await set(1.8, '__f.bossHp = 5; __m.begin("light1")'); await until(() => __f.phase === 'finish'); await p.waitForTimeout(2600); await p.evaluate(() => { __m.revive(__king.x, __king.z + 1.9, Math.PI); }); await p.waitForTimeout(250); await p.keyboard.press('j');
   await clip('finale', [0.2, 0.5, 0.8, 1.1, 1.4, 1.55, 1.75, 1.95]); await until(() => __ending.t >= 0);
-  await sheet('ending', [0.1, 0.5, 1.2, 2.0, 2.8, 3.4, 3.9, 4.8, 5.6, 6.3, 6.8, 7.6, 8.1, 8.6, 9.6, 10.8, 11.6, 12.8, 13.8, 14.6, 15.2, 16.2, 17.5, 18.4], t => __ending.t >= t); await p.waitForTimeout(1800); await one('won');
+  await sheet('ending', [0.5, 2.0, 3.4, 4.8, 5.6, 6.8, 8.1, 9.5, 11, 12.6, 14.6, 16.2, 17.6, 19.2, 20.6, 22, 23.4, 24.3], t => __ending.t >= t); await p.waitForTimeout(1800); await one('won');
 });
 await go('rites', async () => { await open('nointro'); await set(3.6, '__f.wake = 100'); await p.waitForTimeout(300); await p.keyboard.press('r'); await clip('rites', [0.1, 0.35, 0.6, 0.8, 0.95, 1.1, 1.25, 1.4, 1.6, 1.8, 1.92, 2.02, 2.1, 2.2, 2.35, 2.5, 2.7, 2.86, 2.96, 3.2, 3.55, 3.62, 3.7, 3.85, 4.1, 4.3, 4.5, 4.9]); });
 await go('jump', async () => {

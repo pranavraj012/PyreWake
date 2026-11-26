@@ -40,6 +40,7 @@ export class Turn {
     this.at(7.2, 'stop', () => { sound.tracks?.stopTape(1.3); sound.score?.set('scene'); sound.play('drop', { gain: 0.9 }); pv.ember = 1.8; });
     for (const [i, at] of [7.7, 8.15, 8.6].entries()) this.at(at, 'out' + i, () => { sound.play('vanish', { gain: 0.65, rate: 0.62 - i * 0.07, x: (i - 1) * 9, z: -8 }); L.trauma = Math.max(L.trauma, 0.22); });
     this.flame = t < 7.7 ? 1 : t < BURST ? [0.62, 0.3, 0.03][t < 8.15 ? 0 : t < 8.6 ? 1 : 2] : 1 + 0.9 * Math.exp(-(t - BURST) * 0.5); this.dim = t > 7.7 && t < BURST ? 1 - 0.48 * E(7.7, 9, t) : 1;
+    this.at(8.4, 'v0', () => hud.verse('The fires go out. Behind you, the rope is creaking again.')); this.at(12.0, 'v0x', () => hud.verse(''));
     this.at(8.0, 'whisper', () => sound.play('whisper', { gain: 1 })); this.at(8.9, 'creak', () => sound.play('creak', { ...here, gain: 0.9 }));
     for (const [i, at] of [8.5, 9.3, 10.0, 10.6, 11.1, 11.5, 11.85].entries()) this.at(at, 'h' + i, () => sound.play('heart', { gain: 0.8 + i * 0.05 }));
     if (t > 9.2 && t < 10.5) m.yaw += (Math.PI - m.yaw) * Math.min(1, dt * 6);
