@@ -20,22 +20,22 @@ export interface RiverKit { f: Fight; pv: PlayerView; k1: RiverView; k2: RiverVi
 // The river at night. You set a lamp on the water to call the ferry. Every lamp on the river goes out, from the far bank toward you, and last of all yours.
 // One lantern, far out. Then a pole comes down through the dark in front of you, and he stands up out of the river, hat first.
 // Under the hat, behind the coins, two eyes. He drives the pole into the riverbed and the lamps run back to the horizon.
-export const INTRO_LEN = 25.5;
-const B = { lamp: 7.4, out: 9.9, last: 11.7, far: 12.7, plunge: 14.0, rise: 14.15, risen: 17.3, eyes: 18.1, line: 18.8, lift: 20.2, slam: 21.35, title: 23.0 };
+export const INTRO_LEN = 26.8;
+const B = { lamp: 7.4, out: 9.9, last: 11.7, far: 14.1, plunge: 15.3, rise: 15.45, risen: 18.6, eyes: 19.4, line: 20.1, lift: 21.5, slam: 22.65, title: 24.3 };
 export class RiverIntro {
   t = INTRO_LEN; private c = new Cues(); private lens = new Lens(); private kit: RiverKit; onEnd: () => void = () => { };
-  private lamp = new THREE.Group(); private lampGlow: THREE.Sprite; private lp = V(); private lv = V(); private eyeK = 1; private dark = 0;
+  private lamp = new THREE.Group(); private lampGlow: THREE.Sprite; private lp = V(); private lv = V(); private eyeK = 1; private dark = 0; private black = 0; private tongue!: THREE.Sprite;
   constructor(kit: RiverKit) {
     this.kit = kit;
-    const bowl = new THREE.Mesh(new THREE.LatheGeometry([new THREE.Vector2(0, 0), new THREE.Vector2(0.07, 0.01), new THREE.Vector2(0.11, 0.05), new THREE.Vector2(0.12, 0.09), new THREE.Vector2(0.1, 0.1), new THREE.Vector2(0, 0.07)], 10), new THREE.MeshBasicMaterial({ color: 0x140a05 }));
+    const bowl = kit.ghats.bowlMesh();
     const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,210,140,1)'); g.addColorStop(0.14, 'rgba(255,150,60,.6)'); g.addColorStop(1, 'rgba(255,90,20,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
-    this.lampGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), color: new THREE.Color(0.32, 0.18, 0.08), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); this.lampGlow.position.y = 0.16; this.lampGlow.scale.setScalar(0.3);
-    this.lamp.add(bowl, this.lampGlow); this.lamp.visible = false; kit.ghats.group.add(this.lamp);
+    this.lampGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), color: new THREE.Color(1.0, 0.62, 0.3), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); this.lampGlow.position.y = 0.11; this.lampGlow.scale.setScalar(0.2);
+    const tongue = new THREE.Sprite((this.lampGlow.material as THREE.SpriteMaterial).clone()); (tongue.material as THREE.SpriteMaterial).color.setRGB(1.6, 1.0, 0.5); tongue.position.y = 0.11; tongue.scale.set(0.045, 0.11, 1); this.tongue = tongue; tongue.renderOrder = this.lampGlow.renderOrder = 6; this.lamp.add(bowl, tongue, this.lampGlow); this.lamp.visible = false; kit.ghats.group.add(this.lamp);
   }
   get active() { return this.t < INTRO_LEN; }
   /** At rest: the hero at the top of the steps, the Ferryman far out in the dark. */
   rest() { const { f, k1 } = this.kit, k = f.king as River; k.form = 1; k.x = 0; k.z = -26; k.y = 0; k.yaw = 0; k.set('idle'); k1.settle(); k1.eyes(1); k1.show(true); }
-  start() { const { f, pv } = this.kit, m = f.m; this.t = 0; this.c.clear(); this.lens.cut = 0; this.lens.trauma = 0; this.rest(); m.revive(0, 15.5, Math.PI); pv.reset(); this.kit.rd.reset(); this.kit.ghats.lamps(1, true); this.kit.ghats.setOut(0, 0, 0); this.kit.ghats.setFront(0); this.kit.ghats.flames(1); this.lamp.visible = false; this.eyeK = 0; this.dark = 0; this.kit.k1.show(false); sound.score?.set('vigil'); }
+  start() { const { f, pv } = this.kit, m = f.m; this.t = 0; this.c.clear(); this.lens.cut = 0; this.lens.trauma = 0; this.rest(); m.revive(0, 15.5, Math.PI); pv.reset(); this.kit.rd.reset(); this.kit.ghats.lamps(1, true); this.kit.ghats.setOut(0, 0, 0); this.kit.ghats.setFront(0); this.kit.ghats.flames(1); this.lamp.visible = false; this.eyeK = 0; this.dark = 0; this.black = 0; this.kit.k1.show(false); sound.score?.set('vigil'); }
   stop() { this.t = INTRO_LEN; this.kit.hud.verse(''); this.restore(); }
   skip() { if (!this.active || this.t < 0.6) return; this.c.off = true; this.t = INTRO_LEN; this.finish(); }
   /** However it ended, the river is as the fight needs it. */
@@ -52,8 +52,8 @@ export class RiverIntro {
     c.at(t, 0.05, 'hush', () => { sound.duck(0.5, 3); sound.play('wave', { gain: 0.35, wet: 0.8 }); });
     const walk = t > 1.0 && t < 6.6 ? -0.5 : 0;
     // the hero's lamp: set down, drifting out ahead of the dark
-    c.at(t, B.lamp, 'lamp', () => { this.lp.set(m.x + 0.1, LEVEL + 0.01, m.z - 1.0); this.lv.set(0, 0, -1.25); this.lamp.visible = true; ghats.ripple(this.lp.x, this.lp.z, 1.2, time); sound.play('lampSet', { gain: 0.9, wet: 0.5 }); fx.sparks.emit(this.lp.clone().add(V(0, 0.15, 0)), V(0, 0.6, 0), 18, 1.2, 1.6, -1.2, time); });
-    if (this.lamp.visible) { this.lv.multiplyScalar(Math.exp(-dt * 0.45)); this.lp.addScaledVector(this.lv, dt); this.lamp.position.set(this.lp.x, LEVEL - 0.02 + Math.sin(time * 1.9) * 0.012, this.lp.z); this.lamp.rotation.set(Math.sin(time * 1.3) * 0.06, 0, Math.cos(time * 1.1) * 0.06); this.lampGlow.scale.setScalar(0.3 * (0.9 + 0.1 * Math.sin(time * 9)) * (t > B.last ? Math.max(0, 1 - (t - B.last) * 5) : 1)); }
+    c.at(t, B.lamp, 'lamp', () => { this.lp.set(m.x + 0.1, LEVEL, m.z - 1.0); this.lv.set(0, 0, -1.25); this.lamp.visible = true; ghats.ripple(this.lp.x, this.lp.z, 1.2, time); sound.play('lampSet', { gain: 0.9, wet: 0.5 }); fx.sparks.emit(this.lp.clone().add(V(0, 0.15, 0)), V(0, 0.6, 0), 18, 1.2, 1.6, -1.2, time); });
+    if (this.lamp.visible) { this.lv.multiplyScalar(Math.exp(-dt * 0.45)); this.lp.addScaledVector(this.lv, dt); this.lamp.position.set(this.lp.x, LEVEL - 0.035 + Math.sin(time * 1.9) * 0.012, this.lp.z); this.lamp.rotation.set(Math.sin(time * 1.3) * 0.06, 0, Math.cos(time * 1.1) * 0.06); this.lampGlow.scale.setScalar(0.2 * (0.9 + 0.1 * Math.sin(time * 9)) * (t > B.last ? Math.max(0, 1 - (t - B.last) * 5) : 1)); this.tongue.visible = t < B.last; this.tongue.scale.set(0.045, 0.11 * (0.85 + 0.25 * Math.sin(time * 17)), 1); }
     // the dark comes in off the river from the far bank, and the last lamp to go out is yours
     if (t >= B.out && t < B.plunge) { const u = Math.min(1, (t - B.out) / (B.last - 0.2 - B.out)); ghats.setOut(0, -110, 1 + Math.pow(u, 0.8) * 125); }
     c.at(t, B.out, 'out', () => { sound.duck(0.15, 4); sound.play('lampOut', { gain: 0.5, wet: 0.95 }); sound.play('whisper', { gain: 0.5, wet: 0.9 }); });
@@ -63,8 +63,11 @@ export class RiverIntro {
     this.dark += ((t > B.out + 1.2 && t < B.slam ? 1 : 0) - this.dark) * Math.min(1, dt * 3);
     // far out, one lantern: him, on the water
     if (t < B.plunge) { k.x = 0; k.z = -26; k.y = 0; k.yaw = 0; }
+    c.at(t, B.last + 0.9, 'held', () => { sound.play('heart', { gain: 0.7, wet: 0.4 }); });
+    c.at(t, B.last + 1.8, 'held2', () => { sound.play('heart', { gain: 0.85, wet: 0.4 }); });
     c.at(t, B.far, 'lantern', () => { k1.show(true); k1.eyes(0); sound.play('lanternRise', { gain: 0.8, wet: 0.8 }); });
-    this.kit.rd.cine = { lamps: t > B.out + 1.3 && t < B.slam ? 0 : 1, lantern: t < B.far ? (t < B.out + 1 ? 1 : 0) : t < B.plunge ? E(B.far, B.far + 0.8, t) : 1, night: this.dark * 0.8 };
+    this.black += ((t > B.last + 0.12 && t < B.far ? 1 : 0) - this.black) * Math.min(1, dt * (t < B.far ? 7 : 1.6));
+    this.kit.rd.cine = { black: this.black, lamps: t > B.out + 1.3 && t < B.slam ? 0 : 1, lantern: t < B.far ? (t < B.out + 1 ? 1 : 0) : t < B.plunge ? E(B.far, B.far + 0.8, t) : 1, night: this.dark * 0.8 };
     // a pole comes down through the dark, close; the river opens, and he stands up out of it
     c.at(t, B.plunge, 'plunge', () => { k.x = 0; k.z = -4.2; k.y = -3.6; k.yaw = 0; k.set('idle'); k1.settle(); this.lamp.visible = false; sound.play('slam', { gain: 0.9, wet: 0.5 }); sound.play('wave', { gain: 0.8, wet: 0.6 }); ghats.ripple(0.6, -3.6, 2.4, time); fx.puffs.emit(V(0.6, 0.2, -3.6), 16, 2.6, 1.4, time); this.lens.trauma = 0.55; });
     if (t >= B.plunge && t < B.risen + 0.4) { const u = E(B.rise, B.risen, t); k.y = -3.6 + 3.6 * (u * 0.85 + 0.15 * Math.pow(u, 3)); k.x = 0; k.z = -4.2; if (Math.random() < dt * 14) ghats.ripple((Math.random() - 0.5) * 1.6, -4.2 + (Math.random() - 0.5) * 1.2, 0.8, time); if (Math.random() < dt * 30 && k.y > -3) fx.puffs.emit(V((Math.random() - 0.5) * 1.1, 0.15, -4.2 + (Math.random() - 0.5) * 0.9), 1, 0.9, 1.2, time); }
@@ -143,7 +146,7 @@ export class RiverEnding {
   constructor(kit: RiverKit) { this.kit = kit; }
   get active() { return this.t >= 0; }
   start() { const m = this.kit.f.m; this.t = 0; this.over = false; this.dawn = 0; this.front = 0; this.c.clear(); this.lens.cut = 0; this.A.set(m.x, 0, m.z); document.body.classList.add('cine'); sound.score?.set('scene'); }
-  stop() { this.t = -1; this.dawn = 0; this.front = 0; this.over = false; this.kit.f.sceneMove = { x: 0, z: 0 }; this.kit.ghats.lamps(1, true); this.kit.ghats.setFront(0); document.body.classList.remove('cine'); DAWN.value = 0; }
+  stop() { this.t = -1; this.dawn = 0; this.front = 0; this.over = false; this.kit.f.sceneMove = { x: 0, z: 0 }; this.kit.k2.boat(false); this.kit.k2.standing(false); this.kit.hud.verse(''); this.kit.ghats.lamps(1, true); this.kit.ghats.setFront(0); document.body.classList.remove('cine'); DAWN.value = 0; }
   skip() { if (this.active && this.t > 2.2 && this.t < END_LEN) { this.c.off = true; this.t = END_LEN; this.dawn = 1; this.front = 400; } }
   step(dt: number, time: number) {
     if (!this.active) return; const { f, fx, hud, ghats, k2 } = this.kit, m = f.m, k = f.king as River, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.4);

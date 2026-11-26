@@ -73,7 +73,7 @@ export async function buildGhats(tex: TexSet, tier: Tier, moon: THREE.Vector3) {
     const m = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: u,
       vertexShader: `attribute vec4 aP; attribute float kind; uniform vec4 uT; uniform float uLit, uLevel, uFront; uniform vec3 uOut; varying vec2 u; varying float vk, vl, vf, vd, vg;
-void main(){ float t = uT.w; vec3 c = vec3(aP.x + sin(t * .07 + aP.z * 6.) * .35, uLevel + .1 + .012 * sin(t * 1.3 + aP.z * 20.), aP.y + cos(t * .05 + aP.z * 9.) * .35);
+void main(){ float t = uT.w; vec3 c = vec3(aP.x, uLevel + .07 + .006 * sin(t * 1.3 + aP.z * 20.), aP.y);
  vl = clamp((uLit - aP.w) * 9. + .5, 0., 1.); if (uOut.z > 0.) vl *= smoothstep(uOut.z - 2.5 - aP.z * 3., uOut.z - aP.z * 3., length(c.xz - uOut.xy)); float bd = length(c.xz - vec2(0., -9.)), fr = uFront > 0. ? smoothstep(uFront, uFront - 4., bd) : 0.; vg = fr * (.9 + 2.4 * exp(-max(uFront - bd, 0.) * .045)); vl = max(vl, fr); vk = kind; vf = aP.z; u = position.xy; float dist = length(c - cameraPosition); vd = dist; float s = .1 * (1. + dist * .011);
  vec4 clip = projectionMatrix * viewMatrix * vec4(c, 1.);
  if (kind < .5) { vec3 r = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]), up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]); gl_Position = projectionMatrix * viewMatrix * vec4(c + r * position.x * s * 1.6 + up * position.y * s * 2.6, 1.); }
@@ -88,7 +88,7 @@ void main(){ float t = uT.w, fl = .8 + .2 * sin(t * 7. + vf * 40.) + .1 * sin(t 
   })();
   // the clay bowls of those near enough to see
   const bowl = new THREE.LatheGeometry([new THREE.Vector2(0, 0), new THREE.Vector2(0.07, 0.01), new THREE.Vector2(0.11, 0.05), new THREE.Vector2(0.12, 0.09), new THREE.Vector2(0.1, 0.1), new THREE.Vector2(0.0, 0.07)], 9); { const n = bowl.attributes.position.count, a = new Uint8Array(n * 4); for (let i = 0; i < n; i++) a.set([220, 160, 0, 25], i * 4); bowl.setAttribute('aInfo', new THREE.BufferAttribute(a, 4, true)); }
-  const bowls = new THREE.InstancedMesh(bowl, wood, 140), pa = (lamp.mesh.geometry.attributes.aP as THREE.InstancedBufferAttribute); { let k = 0; for (let i = 0; i < pa.count && k < bowls.count; i++) { const x = pa.getX(i), z = pa.getY(i); if (Math.hypot(x, z) < 40) bowls.setMatrixAt(k++, M(x, LEVEL + 0.04, z, r() * 6, 1 + r() * 0.3)); } bowls.count = k; } bowls.receiveShadow = false; bowls.frustumCulled = false; group.add(bowls);
+  const bowls = new THREE.InstancedMesh(bowl, wood, 140), pa = (lamp.mesh.geometry.attributes.aP as THREE.InstancedBufferAttribute); { let k = 0; for (let i = 0; i < pa.count && k < bowls.count; i++) { const x = pa.getX(i), z = pa.getY(i); if (Math.hypot(x, z) < 40) bowls.setMatrixAt(k++, M(x, LEVEL - 0.035, z, r() * 6, 1 + r() * 0.3)); } bowls.count = k; } bowls.receiveShadow = false; bowls.frustumCulled = false; group.add(bowls);
 
   // --- the lamp posts burn; the dead throw a little light of their own
   const lampFire = makeFires(ruin.lamps.map(l => l.p), 3, 0.5, 0.14), lampAt = (lampFire.geometry.attributes.aP as THREE.InstancedBufferAttribute), lampY = Float32Array.from({ length: lampAt.count }, (_, i) => lampAt.getY(i)); group.add(lampFire, makeAsh(tier));
@@ -100,6 +100,7 @@ void main(){ float t = uT.w, fl = .8 + .2 * sin(t * 7. + vf * 40.) + .1 * sin(t 
     group, ruin, water, /** The lamps you can see, 0-1 lit. The next call eases to it; `at` jumps. */ lamps(k: number, at = false) { lampTo = k; if (at) { lit = k; lamp.u.uLit.value = k; } },
     /** 0-1: pyre light. Unused here; the lamp posts burn. */ flames(k: number) { flameK = k; (lampFire.material as THREE.ShaderMaterial).uniforms.uGain.value = k; }, omen(_k: number) { /* no eclipse on the river */ }, storm(_k: number) { }, breach() { }, tear() { },
     /** The fire running from lamp to lamp: how far out from the boat it has caught, in metres. 0 is off. */ setFront(d: number) { lamp.u.uFront.value = d; },
+    /** One more clay lamp like those on the water, for a scene to hold. */ bowlMesh() { return new THREE.Mesh(bowl, wood); },
     /** The clay bowls glow while their lamps burn; out, they are only clay. */ bowlsLit(on: boolean) { bowls.visible = on; },
     /** A darkness spreading over the water from (x, z): every lamp within `r` metres is out. r = 0 is off. */ setOut(x: number, z: number, r: number) { lamp.u.uOut.value.set(x, z, r); },
     /** A ring spreads on the water. */ ripple(x: number, z: number, amp: number, t: number) { water.ripple(x, z, amp, t); },

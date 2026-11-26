@@ -27,7 +27,7 @@ export class RiverDirector {
   round2(first = false) { this.g.lamps(0.3, first); }
   private ripple(x: number, z: number, a: number, t: number) { this.g.ripple(x, z, a, t); }
   private say(n: string, o: { x?: number; z?: number; gain?: number; rate?: number; delay?: number; wet?: number } = {}) { sound.play(n, o); }
-  /** A scene holding the light: the posts' lamps, his lantern, and how far the night has come in (0-1). */ cine: { lamps: number; lantern: number; night: number } | null = null;
+  /** A scene holding the light: the posts' lamps, his lantern, and how far the night has come in (0-1). */ cine: { lamps: number; lantern: number; night: number; black?: number } | null = null;
   /** Each step: lamps, darkness, ripples under the hero's feet, the boiling of the river. */
   step(sd: number, real: number, t: number) {
     const f = this.f, m = f.m, k = this.sim, w = this.g.water;
@@ -36,7 +36,7 @@ export class RiverDirector {
     for (const e of f.ev) { if (e.k === 'evade' || e.k === 'leap') this.ripple(m.x, m.z, 0.9, t); if (e.k === 'zoneHit' && e.z.shape !== 'line') this.ripple(e.z.x, e.z.z, e.z.shape === 'ring' ? 1.1 : 1.6, t); if (e.k === 'hit' && e.power > 1.5) this.ripple(k.hx, k.hz, 0.5 + e.power * 0.3, t); if (e.k === 'prop' && e.broken && e.p.kind === 'boat') { this.ripple(e.p.x, e.p.z, 2, t); sound.play('boatBreak', { x: e.p.x, z: e.p.z, gain: 0.9 }); } if (e.k === 'rites') this.boil(t); if (e.k === 'round2') this.round2(); if (e.k === 'reset') { this.reset(); if (f.round === 2) this.round2(true); } }
     // darkness: his hand closes over the lamp
     const dark = k.dark > 0 || k.lanterns.length > 0 && k.mode === 'wrongShore' && false; this.darkK += ((dark ? 1 : 0) - this.darkK) * Math.min(1, real * (dark ? 3.5 : 12)); w.dark.value = this.darkK;
-    const base = f.round === 2 ? 0.28 + 0.72 * k.lit : 1; const cine = this.cine; if (cine) { this.g.lamps(cine.lamps); this.v1.lampLight(cine.lantern); this.post.exposure.value = 1.85 - 0.95 * cine.night; } else { this.g.lamps(dark ? 0 : this.boilT > 0 ? 0.05 : base); this.v1.lampLight(1 - this.darkK); this.post.exposure.value = 1.85 - 0.35 * this.darkK; }
+    const base = f.round === 2 ? 0.28 + 0.72 * k.lit : 1; const cine = this.cine; if (cine) { this.g.lamps(cine.lamps); this.v1.lampLight(cine.lantern); this.post.exposure.value = (1.85 - 0.95 * cine.night) * (1 - 0.985 * (cine.black ?? 0)); } else { this.g.lamps(dark ? 0 : this.boilT > 0 ? 0.05 : base); this.v1.lampLight(1 - this.darkK); this.post.exposure.value = 1.85 - 0.35 * this.darkK; }
     if (k.freed !== this.freedSeen) { this.freedSeen = k.freed; }
     // the boiled bed
     if (this.boilT > 0) {
