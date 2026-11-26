@@ -57,8 +57,8 @@ export async function bootHours(c: Ctx) {
   const light = (day: number) => {
     const d = new THREE.Vector3(0.18, 1, 0.34).normalize().lerp(SUNDIR.value, day).normalize(); moonDir.copy(d); FOG.uMoonDir.value.copy(d); moon.position.copy(d).multiplyScalar(55);
     moon.color.setRGB(1.0, 0.5 + 0.0 * day, 0.28 - 0.08 * day); moon.intensity = 0.9 + 3.4 * day; hemi.color.setRGB(0.55 + 0.25 * day, 0.32 + 0.1 * day, 0.24); hemi.groundColor.setRGB(0.12, 0.05, 0.03); hemi.intensity = 0.42 + 0.25 * day; kick.color.setRGB(1, 0.55, 0.35); kick.intensity = 0.35 + 0.4 * day;
-    FOG.uFogCol.value.setRGB(0.034 + 0.06 * day, 0.016 + 0.02 * day, 0.012 + 0.008 * day); FOG.uFogMoon.value.setRGB(0.12 + 0.1 * day, 0.045 + 0.02 * day, 0.02); FOG.uFogP.value.x = 0.012 - 0.006 * day; FOG.uFogP.value.y = 0.05 - 0.03 * day;
-    RIM.value.set(0.9, 0.42, 0.22, 1.1 + 0.5 * day); post.shaft.value.set(0.9, 0.38, 0.16); post.exposure.value = 1.7 - 0.25 * day; SUN.value = day; house.smokeAmt(1 - day); house.daylight(day);
+    FOG.uFogCol.value.setRGB(0.034 + 0.01 * day, 0.016 - 0.004 * day, 0.012 - 0.004 * day); FOG.uFogMoon.value.setRGB(0.12 + 0.1 * day, 0.045 + 0.02 * day, 0.02); FOG.uFogP.value.x = 0.012 - 0.009 * day; FOG.uFogP.value.y = 0.05 - 0.042 * day;
+    RIM.value.set(0.9, 0.42, 0.22, 1.1 + 0.5 * day); post.shaft.value.set(0.9, 0.38, 0.16); post.exposure.value = 1.7 - 0.3 * day; SUN.value = day; house.smokeAmt(1 - day); house.daylight(day);
   };
   light(0);
   const cloth = surface(tex, tier, { world: false, ash: 0.1, side: THREE.DoubleSide }), hd = new HoursDirector(dir, fight, house, v1, v2, post, hud, light, { cot: gCot, hook: gHook, cloth, scene }); hud.names = [HOURS_NAMES.r1, HOURS_NAMES.r2]; hud.winTitle = HOURS_NAMES.won;
@@ -93,6 +93,7 @@ export async function bootHours(c: Ctx) {
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
+    { const fz = (window as unknown as { __freezeAt?: number }).__freezeAt; if (fz !== undefined && sim.mt >= fz) { sim.mt = sim.prev = fz; } }
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
     turn.step(dt, t); ending.step(dt, t); hd.step(sd, dt, t); if (!intro.active) dir.mono = Math.max(turn.mono, 0);

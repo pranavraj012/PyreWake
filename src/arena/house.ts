@@ -49,14 +49,15 @@ export async function buildHouse(tex: TexSet, tier: Tier) {
   const bays: THREE.Matrix4[] = [], bayA: number[] = []; const NB = 30; for (let i = 0; i < NB; i++) { const a = (i + 0.5) / NB * Math.PI * 2; if (Math.cos(a) < -0.985) continue; bays.push(M(Math.sin(a) * CLOISTER_R, 0, Math.cos(a) * CLOISTER_R, a + Math.PI)); bayA.push(a); }
   const arcade = inst(gArcade, stone, bays);
   // the wards' roofs, half fallen, and the gaps the light comes through
-  const roof: [number, number, number, number, number, number, number, number?][] = []; bayA.forEach((a, i) => { if (r() < 0.35) return; const R = CLOISTER_R + 1.7, f = r() < 0.3; roof.push([Math.sin(a) * R, f ? 4.4 : 6.15, Math.cos(a) * R, 2.25, 0.14, 1.9, a, f ? 0.4 : 0]); });
-  mesh(boxes(roof, 19), stone);
+  const onSun = (a: number) => { let d = a - SUN_SIDE; d -= Math.round(d / (Math.PI * 2)) * Math.PI * 2; return Math.abs(d) < 0.8; };
+  const roof: [number, number, number, number, number, number, number, number?][] = [], roofSun: typeof roof = []; bayA.forEach(a => { if (r() < 0.35) return; const R = CLOISTER_R + 1.7, f = r() < 0.3; (onSun(a) ? roofSun : roof).push([Math.sin(a) * R, f ? 4.4 : 6.15, Math.cos(a) * R, 2.25, 0.14, 1.9, a, f ? 0.4 : 0]); });
+  mesh(boxes(roof, 19), stone); const sunRoof = roofSun.length ? mesh(boxes(roofSun, 19), stone) : null;
   // the dial, its foot at the edge of the court
   mesh(gDial, stone).position.copy(F);
   // --- the ward: rows of cots behind the arches, each with its ash shape; bowls hung over them
   const ward: THREE.Matrix4[] = []; bayA.forEach(a => { for (const k of [-1, 1]) { const R = CLOISTER_R + 1.5, t = a + k * 0.045; if (r() < 0.15) continue; ward.push(M(Math.sin(t) * R, 0, Math.cos(t) * R, a + Math.PI / 2 + (r() - 0.5) * 0.1)); } });
   inst(gCot, stone, ward, !ph);
-  const bowlAt: { p: THREE.Vector3; ph: number }[] = []; bayA.forEach(a => { const n = 1 + (r() < 0.5 ? 1 : 0); for (let k = 0; k < n; k++) { const t = a + (k - (n - 1) / 2) * 0.05, R = CLOISTER_R + 0.4 + r() * 1.6; bowlAt.push({ p: new THREE.Vector3(Math.sin(t) * R, 5.3 + r() * 0.3, Math.cos(t) * R), ph: r() * 6 }); } });
+  const bowlAt: { p: THREE.Vector3; ph: number; sun: boolean }[] = []; bayA.forEach(a => { const n = 1 + (r() < 0.5 ? 1 : 0); for (let k = 0; k < n; k++) { const t = a + (k - (n - 1) / 2) * 0.05, R = CLOISTER_R + 0.4 + r() * 1.6; bowlAt.push({ p: new THREE.Vector3(Math.sin(t) * R, 5.3 + r() * 0.3, Math.cos(t) * R), ph: r() * 6, sun: onSun(a) }); } });
   const bowls = inst(gBowl, held, bowlAt.map(b => M(b.p.x, b.p.y, b.p.z)), false);
   // fallen beams on the ward floors
   const beams: THREE.Matrix4[] = []; for (let i = 0; i < 9; i++) { const a = r() * Math.PI * 2, R = CLOISTER_R + 1.2 + r() * 1.4; beams.push(M(Math.sin(a) * R, 0.15, Math.cos(a) * R, a + (r() - 0.5) * 0.8, 1, 0, (r() - 0.5) * 0.4)); } inst(gBeam, stone, beams);
@@ -82,7 +83,7 @@ void main(){ float t = uT.w; vec2 q = w * .045; float a = fbm(q + vec2(t * .012,
   const ceilingGlow = tier.lights > 0 ? [0, 1, 2].map(i => { const l = new THREE.PointLight(0xff7a3a, 0, 26, 1.6); l.position.set(Math.sin(i * 2.1) * 9, 6.3, Math.cos(i * 2.1) * 9 - 2); group.add(l); return l; }) : [];
   const ash = makeAsh(tier); group.add(ash);
   // round 2: the sun side of the cloister has fallen outward
-  const sunSide = bayA.map((a, i) => ({ a, i })).filter(({ a }) => { let d = a - (SUN_SIDE + Math.PI * 2); d -= Math.round(d / (Math.PI * 2)) * Math.PI * 2; return Math.abs(d) < 0.75; });
+  const sunSide = bayA.map((a, i) => ({ a, i })).filter(({ a }) => { return onSun(a); });
   group.updateMatrixWorld(true); group.traverse(o => { if (!(o as THREE.PointLight).isPointLight && !(o as THREE.Bone).isBone) o.matrixAutoUpdate = false; });
   let lastT = 0, smokeK = 1, dayK = -1;
   return {
@@ -91,14 +92,14 @@ void main(){ float t = uT.w; vec2 q = w * .045; float a = fbm(q + vec2(t * .012,
     /** 0-1: the smoke goes down into her mouth, at `at`. */ inhale(k: number, at?: THREE.Vector3) { smokeU.uIn.value = k; if (at) smokeU.uAt.value.copy(at); },
     /** 0-1: round 2's battlefield: the sun side of the cloister lies fallen outward. */
     daylight(k: number) {
-      const on = k > 0.5; if ((dayK > 0.5) === on && dayK >= 0) return; dayK = k;
+      const on = k > 0.5; if ((dayK > 0.5) === on && dayK >= 0) return; dayK = k; if (sunRoof) sunRoof.visible = !on;
       for (const { a, i } of sunSide) { const m = M(Math.sin(a) * (CLOISTER_R + (on ? 2.2 : 0)), on ? -0.4 : 0, Math.cos(a) * (CLOISTER_R + (on ? 2.2 : 0)), a + Math.PI, 1, on ? -1.35 + 0.15 * Math.sin(i) : 0, on ? 0.1 * Math.cos(i * 3) : 0); arcade.setMatrixAt(i, m); } arcade.instanceMatrix.needsUpdate = true;
     },
     flames(_k: number) { }, omen(_k: number) { }, storm(_k: number) { }, breach() { }, tear() { },
     update(t: number, _focus: THREE.Vector3) {
       const dt = Math.max(0, Math.min(0.1, t - lastT)); lastT = t; void dt;
       // the bowls turn on their cords; they never touch
-      bowlAt.forEach((b, i) => bowls.setMatrixAt(i, M(b.p.x, b.p.y, b.p.z, t * 0.12 + b.ph, 1, Math.sin(t * 0.4 + b.ph) * 0.03, Math.cos(t * 0.33 + b.ph) * 0.03))); bowls.instanceMatrix.needsUpdate = true;
+      bowlAt.forEach((b, i) => bowls.setMatrixAt(i, M(b.p.x, b.p.y, b.p.z, t * 0.12 + b.ph, b.sun && dayK > 0.5 ? 0 : 1, Math.sin(t * 0.4 + b.ph) * 0.03, Math.cos(t * 0.33 + b.ph) * 0.03))); bowls.instanceMatrix.needsUpdate = true;
       ceilingGlow.forEach((l, i) => { l.intensity = 34 * smokeK * (0.8 + 0.2 * Math.sin(t * 0.7 + i * 2) * Math.sin(t * 0.31 + i)); });
     },
   };
