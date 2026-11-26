@@ -74,9 +74,13 @@ describe('the lantern', () => {
   });
   it('a false lantern is only a ripple', () => { const { f, k } = go(6, 'wrongShore'); run(f, 1.6); const fake = k.lanterns.find(l => !l.real)!, real = k.lanterns.find(l => l.real)!, dx = fake.x - real.x, dz = fake.z - real.z, L = Math.hypot(dx, dz); f.m.x = fake.x + dx / L * 1.2; f.m.z = fake.z + dz / L * 1.2; f.m.yaw = Math.atan2(-dx, -dz); f.invuln = 5; const ev = run(f, 1, i => i === 0 ? tap('attack') : []); expect(b(ev, 'fake')).toBe(1); expect(k.mode).toBe('wrongShore'); expect(k.lanterns.length).toBe(2); });
   it('ignored, the lanterns burn where they float', () => { const { f } = go(6, 'wrongShore'); f.m.x = 12; f.m.z = 4; f.invuln = 0; const ev = run(f, 6.6); expect(b(ev, 'lanternsBurst')).toBe(1); expect(f.hazards.length + n(ev, 'zone')).toBeGreaterThan(0); });
-  it('Cold Hands: patches of still water that grab, and any spell burns a path', () => {
-    const a = go(4, 'coldHands'); a.f.invuln = 0; const ev = run(a.f, 4.5); expect(b(ev, 'hands')).toBe(1); expect(n(ev, 'zone')).toBe(5);
-    const t = go(4, 'coldHands'); t.f.fire = 100; run(t.f, 1.1); const zs = t.f.hazards.filter(h => h.mode === 'coldHands'); expect(zs.length).toBe(5); t.f.m.x = zs[0].x; t.f.m.z = zs[0].z + 6; t.f.m.yaw = Math.PI; const ev2 = run(t.f, 1.2, i => i === 0 ? tap('skill2') : []); void ev2;
+  it('Cold Hands: the drowned grab under you, then across your way, then close a ring of arms; standing still is caught, a spell burns a path', () => {
+    const a = go(4, 'coldHands'); a.f.invuln = 0; const ev = run(a.f, 4.5); expect(b(ev, 'hands')).toBe(3); expect(n(ev, 'zone')).toBe(5); expect((a.f.king as River).ring).not.toBeNull(); expect(n(ev, 'hurt')).toBeGreaterThanOrEqual(1);
+    const t = go(4, 'coldHands'); t.f.fire = 100; run(t.f, 1.1); const zs = t.f.hazards.filter(h => h.mode === 'coldHands'); expect(zs.length).toBe(2); expect(Math.hypot(zs[0].x - t.f.m.x, zs[0].z - t.f.m.z)).toBeLessThan(0.1);
+  });
+  it('Cold Hands: a hero who keeps moving and jumps the ring gets out', () => {
+    const t = go(4, 'coldHands'); let jumped = false; const ev = run(t.f, 4.6, () => { const r = (t.f.king as River).ring; if (r && !jumped && Math.abs(Math.hypot(t.f.m.x - r.x, t.f.m.z - r.z) - r.R) < 1.0) { jumped = true; return tap('jump'); } return []; }, i => [Math.sin(i / 25), Math.cos(i / 25)]);
+    expect(n(ev, 'hurt')).toBeLessThanOrEqual(1);
   });
 });
 

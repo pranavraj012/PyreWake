@@ -7,11 +7,11 @@ export type RiverStyle = 'pole' | 'chain' | 'lantern' | 'bare' | 'last';
 interface Option { seq: string[]; w: number; near: number; far: number; below?: number; need?: (k: River) => boolean }
 const POLE: Option[] = [
   { seq: ['lowWater'], w: 3, near: 0, far: 7 }, { seq: ['sounding'], w: 2.5, near: 0, far: 10 }, { seq: ['pushOff'], w: 4, near: 6, far: 30 }, { seq: ['pushOff'], w: 1, near: 0, far: 6 }, { seq: ['turnBoat'], w: 2.5, near: 0, far: 5.2 },
-  { seq: ['lowWater', 'turnBoat'], w: 2, near: 0, far: 5, below: 0.9 }, { seq: ['sounding', 'lowWater'], w: 2, near: 1, far: 7, below: 0.85 },
+  { seq: ['lowWater', 'turnBoat'], w: 2, near: 0, far: 5, below: 0.9 }, { seq: ['coldHands'], w: 1.6, near: 3, far: 30, below: 0.8 }, { seq: ['sounding', 'lowWater'], w: 2, near: 1, far: 7, below: 0.85 },
 ];
 const CHAIN: Option[] = [
-  { seq: ['cast'], w: 4, near: 3.5, far: 16, need: k => !k.tauts }, { seq: ['haulIn'], w: 7, near: 0, far: 30, need: k => k.tauts }, { seq: ['wheelIron'], w: 3, near: 1.5, far: 12, need: k => !k.tauts }, { seq: ['dragDeep'], w: 2.5, near: 2, far: 14, need: k => !k.tauts },
-  { seq: ['lowWater'], w: 1.5, near: 0, far: 5 }, { seq: ['turnBoat'], w: 1.2, near: 0, far: 4 }, { seq: ['wheelIron', 'cast'], w: 1.5, near: 2, far: 12, below: 0.5, need: k => !k.tauts },
+  { seq: ['cast'], w: 4, near: 3.5, far: 16, need: k => !k.tauts }, { seq: ['haulIn'], w: 7, near: 0, far: 30, need: k => k.tauts }, { seq: ['wheelIron'], w: 3, near: 1.5, far: 7, need: k => !k.tauts }, { seq: ['dragDeep'], w: 2.5, near: 2, far: 12, need: k => !k.tauts },
+  { seq: ['lowWater'], w: 1.5, near: 0, far: 5 }, { seq: ['turnBoat'], w: 1.2, near: 0, far: 4 }, { seq: ['coldHands'], w: 2, near: 3, far: 30 }, { seq: ['wheelIron', 'cast'], w: 1.5, near: 2, far: 7, below: 0.5, need: k => !k.tauts },
 ];
 const LANTERN: Option[] = [
   { seq: ['gather'], w: 6, near: 0, far: 30, need: k => k.dark <= 0 && k.lanterns.length === 0 }, { seq: ['wrongShore'], w: 3.5, near: 0, far: 30, need: k => k.lanterns.length === 0 }, { seq: ['coldHands'], w: 3, near: 0, far: 30 },
@@ -19,7 +19,7 @@ const LANTERN: Option[] = [
   { seq: ['lowWater', 'turnBoat'], w: 2, near: 0, far: 5, below: 0.2 },
 ];
 const BARE: Option[] = [
-  { seq: ['thrust'], w: 3, near: 0, far: 6.2 }, { seq: ['flurry'], w: 3, near: 0, far: 4.8 }, { seq: ['reap'], w: 2.2, near: 0, far: 5.4 }, { seq: ['vault'], w: 2.4, near: 5, far: 30 }, { seq: ['skim'], w: 3.2, near: 6, far: 18 }, { seq: ['lamps'], w: 2.4, near: 3.5, far: 30 },
+  { seq: ['thrust'], w: 3, near: 0, far: 6.2 }, { seq: ['flurry'], w: 3, near: 0, far: 4.8 }, { seq: ['reap'], w: 2.2, near: 0, far: 5.4 }, { seq: ['vault'], w: 2.4, near: 5, far: 30 }, { seq: ['skim'], w: 3.2, near: 6, far: 12.5 }, { seq: ['lamps'], w: 2.4, near: 3.5, far: 12 },
   { seq: ['flurry', 'thrust'], w: 1.6, near: 0, far: 4.8, below: 0.75 }, { seq: ['reap', 'vault'], w: 1.2, near: 0, far: 5.4, below: 0.6 },
 ];
 /** Below 40%: everything at once. */

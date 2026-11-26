@@ -27,7 +27,7 @@ await go('wheelIron', () => at('wheelIron', 5, [1.3, 2.1]));
 await go('dragDeep', () => at('dragDeep', 5, [1.0, 1.65]));
 await go('gather', () => at('gather', 5, [1.3, 2.0]));
 await go('wrongShore', () => at('wrongShore', 6, [2.0, 5.0]));
-await go('coldHands', () => at('coldHands', 4, [1.9]));
+await go('coldHands', () => at('coldHands', 4, [1.6, 2.6, 3.2, 3.7]));
 await go('chain', async () => { await boss('cast', 6); await p.waitForTimeout(100); await p.evaluate(() => { __m.x = 8; }); await until(() => __king.mt > 1.5 && __king.chain); await shot('chain_taut'); await p.evaluate(() => { const c = __king.chain; __m.revive(c.x * 0.5 + 1.2, -4 + c.z * 0.5, -Math.PI / 2); __m.begin('light1'); }); await p.waitForTimeout(250); await shot('chain_cut'); });
 await go('snap', () => at('snap', 3, [0.8], 'snap'));
 await go('fall', () => at('fall', 3, [1.2, 4.0], 'fall'));

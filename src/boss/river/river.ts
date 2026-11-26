@@ -88,8 +88,7 @@ export class River implements Boss {
       if (m === 'cast' && p < 1.06 && mt >= 1.06) this.castNow = true;
       if (m === 'gather' && p < 1.0 && mt >= 1.0) { this.dark = 9.5; this.say('dark'); }
       if (m === 'wrongShore') { if (p < 1.2 && mt >= 1.2) this.conjure(); if (p < s[0].t[0] && mt >= s[0].t[0]) this.burstNow = true; }
-      if (m === 'coldHands' && p < 1.0 && mt >= 1.0) this.handsNow = true;
-      if (m === 'lamps' && mt > 1.0 && mt < 4.6) { this.spin += 1.6 * dt; this.coinAcc += 7 * dt; while (this.coinAcc >= 1) { this.coinAcc -= 1; const k = this.serial + Math.floor(mt * 7), a = this.spin + (k % 4) * 1.571, sp = 5 + (k % 3) * 0.6; this.coins.push({ x: this.x + Math.sin(a) * 1.6, z: this.z + Math.cos(a) * 1.6, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, life: 4, back: false }); } }
+      if (m === 'lamps' && mt > 1.0 && mt < 4.6) { this.spin += 1.6 * dt; this.coinAcc += 7 * dt; while (this.coinAcc >= 1) { this.coinAcc -= 1; const k = this.serial + Math.floor(mt * 7), a = Math.atan2(this.px - this.x, this.pz - this.z) + [-0.34, -0.12, 0.12, 0.34][k % 4] + Math.sin(mt * 3) * 0.08, sp = 6.4 + (k % 3) * 0.5; this.coins.push({ x: this.x + Math.sin(a) * 1.6, z: this.z + Math.cos(a) * 1.6, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, life: 4, back: false }); } }
       if (mt >= c.dur) { if (m === 'wrongShore') this.lanterns = []; this.end(m); }
     }
   }
@@ -117,7 +116,7 @@ export class River implements Boss {
     // --- you jumped something
     if (f.leapT !== this.seenLeap && f.time - f.leapT < 0.2) { this.seenLeap = f.leapT; if (this.mode === 'wake' || this.mode === 'breach') this.jumped = true; if (this.form === 1 && this.mode === 'lowWater' && this.mt > 0.8 && this.mt < 1.6) { this.exposed = 2.4; this.bonus = 1.7; f.raise({ k: 'b', e: 'pole', x: this.x, z: this.z }); this.set('reel'); f.brain.broken(); } }
     if (f.ev.some(e => e.k === 'rites')) this.boil = 6;
-    if (this.form === 1) this.tickFerry(f, dt, m); else this.tickWeight(f, dt, m);
+    if (this.form === 1) this.tickFerry(f, dt, m); else this.tickWeight(f, dt, m); this.tickRing(f, dt, m);
     if (f.ev.some(e => e.k === 'break') && this.mode === 'reel') this.exposed = Math.max(this.exposed, 1.2);
   }
   private tickFerry(f: Fight, dt: number, m: Fight['m']) {
@@ -138,7 +137,15 @@ export class River implements Boss {
       if (ch.hp <= 0) { this.chain = null; this.set('snap'); this.exposed = 4.4; this.bonus = 1.45; f.brain.broken(); f.raise({ k: 'b', e: 'snap', x: this.x, z: this.z }); }
     }
     // a wide strike of the anchor along the chain's own line is dodged like any other; spells and the rush clear patches of hands
-    if (this.handsNow) { this.handsNow = false; for (let i = 0; i < 5; i++) { const a = (this.serial * 1.3 + i * 1.257) % 6.283, R = 1.6 + (i * 1.7 + this.serial) % 4.4, x = m.x + Math.sin(a) * R, z = m.z + Math.cos(a) * R, q = Math.hypot(x, z), k = q > 17 ? 17 / q : 1; this.hands.push(f.addZone({ shape: 'circle', x: x * k, z: z * k, r: 1.25, delay: 1.5 + i * 0.12, dmg: 10, down: false, mode: 'coldHands' })); } f.raise({ k: 'b', e: 'hands' }); }
+    // the drowned reach for you: under your feet, then across the way you are going, then all round you, closing
+    if (this.mode === 'coldHands') {
+      const sp = Math.hypot(m.vx, m.vz), dir = sp > 0.5 ? { x: m.vx / sp, z: m.vz / sp } : { x: Math.sin(this.yaw), z: Math.cos(this.yaw) }, inR = (x: number, z: number) => { const q = Math.hypot(x, z), k = q > 17 ? 17 / q : 1; return { x: x * k, z: z * k }; };
+      const grab = (x: number, z: number, delay: number) => { const p = inR(x, z); this.hands.push(f.addZone({ shape: 'circle', x: p.x, z: p.z, r: 1.3, delay, dmg: 10, down: false, mode: 'coldHands' })); };
+      const lead = Math.min(2.4, sp * 0.8), mt = this.mt, pv = this.prev;
+      if (pv < 1.0 && mt >= 1.0) { grab(m.x, m.z, 1.0); grab(m.x + dir.x * (1.4 + lead), m.z + dir.z * (1.4 + lead), 1.15); f.raise({ k: 'b', e: 'hands' }); }
+      if (pv < 2.0 && mt >= 2.0) { grab(m.x + dir.x * lead, m.z + dir.z * lead, 0.9); grab(m.x + dir.z * 2.1, m.z - dir.x * 2.1, 1.0); grab(m.x - dir.z * 2.1, m.z + dir.x * 2.1, 1.0); f.raise({ k: 'b', e: 'hands' }); }
+      if (pv < 2.9 && mt >= 2.9 && !this.ring) { const p = inR(m.x, m.z); this.ring = { x: p.x, z: p.z, R: 4.4, arms: Array.from({ length: 16 }, () => true), hit: false, t: 0 }; f.raise({ k: 'b', e: 'hands' }); }
+    }
     this.hands = this.hands.filter(h => h.t < h.delay + 0.5 && h.max !== -1);
     if (this.mode === 'coldHands') for (const h of f.hazards) if (h.mode === 'coldHands' && h.t < h.delay && h.max !== -1) {
       if (f.shots.some(s => Math.hypot(s.x - h.x, s.z - h.z) < s.r + h.r + 0.4) || (m.clip?.name === 'rush' && Math.hypot(m.x - h.x, m.z - h.z) < h.r + 1.3)) { h.max = -1; f.raise({ k: 'b', e: 'burn', x: h.x, z: h.z }); }
@@ -156,6 +163,18 @@ export class River implements Boss {
   private touchLine(f: Fight, c: Chain) {
     const m = f.m, ax = this.x, az = this.z, vx = c.x - ax, vz = c.z - az, L = vx * vx + vz * vz || 1, u = Math.max(0.08, Math.min(1, ((m.x - ax) * vx + (m.z - az) * vz) / L));
     return this.touch(f, 'chain', ax + vx * u, az + vz * u, 0.55);
+  }
+  /** The closing ring of drowned arms: cut one and that place in it is open; jump or dodge through, or be held. */
+  private tickRing(f: Fight, dt: number, m: Fight['m']) {
+    // the closing ring of arms
+    const r = this.ring; if (r) {
+      r.t += dt; r.R = Math.max(1.0, r.R - 2.9 * dt); const N = r.arms.length;
+      for (let i = 0; i < N; i++) if (r.arms[i] && this.touch(f, 'a' + i + '/' + Math.round(r.R * 2), r.x + Math.sin(i / N * 6.283) * r.R, r.z + Math.cos(i / N * 6.283) * r.R, 0.7)) { r.arms[i] = false; f.fire = Math.min(D.fireMax, f.fire + 1.5); f.raise({ k: 'b', e: 'arm', n: i, x: r.x, z: r.z }); }
+      const dx = m.x - r.x, dz = m.z - r.z, d = Math.hypot(dx, dz);
+      if (!r.hit && !m.dead && Math.abs(d - r.R) < 0.55) { const i = (Math.round(Math.atan2(dx, dz) / 6.283 * N) + N) % N; if (r.arms[i]) { if (m.over) { r.hit = true; f.leapt(); } else if (m.safe > 0) { r.hit = true; f.evade(); } else if (f.invuln <= 0) { r.hit = true; this.strike(f, 15, true, r.x + Math.sin(i / N * 6.283) * r.R, r.z + Math.cos(i / N * 6.283) * r.R, 'holdOn'); } } }
+      if (r.R <= 1.0 && !r.hit) { r.hit = true; f.raise({ k: 'b', e: 'clench', x: r.x, z: r.z }); if (d < 1.7 && !m.over && !m.safe) this.strike(f, 18, true, r.x, r.z, 'holdOn'); }
+      if (r.R <= 1.0 && r.t > 4.5) this.ring = null;
+    }
   }
   private tickWeight(f: Fight, dt: number, m: Fight['m']) {
     // coins: spat in spirals; your blade turns them back
@@ -177,15 +196,6 @@ export class River implements Boss {
         if (w.gaps.some(g => Math.abs(g.s - sd) < g.w / 2)) { /* through the door */ } else if (m.over) { w.hit = true; f.leapt(); } else if (m.safe > 0) { w.hit = true; f.evade(); } else if (f.invuln <= 0) { w.hit = true; this.strike(f, 17, true, w.x + sx * w.d, w.z + sz * w.d, 'tide'); }
       }
       if (w.d > 36) this.wave = null;
-    }
-    // the closing ring of arms
-    const r = this.ring; if (r) {
-      r.t += dt; r.R = Math.max(1.0, r.R - 2.9 * dt); const N = r.arms.length;
-      for (let i = 0; i < N; i++) if (r.arms[i] && this.touch(f, 'a' + i + '/' + Math.round(r.R * 2), r.x + Math.sin(i / N * 6.283) * r.R, r.z + Math.cos(i / N * 6.283) * r.R, 0.7)) { r.arms[i] = false; f.fire = Math.min(D.fireMax, f.fire + 1.5); f.raise({ k: 'b', e: 'arm', n: i, x: r.x, z: r.z }); }
-      const dx = m.x - r.x, dz = m.z - r.z, d = Math.hypot(dx, dz);
-      if (!r.hit && !m.dead && Math.abs(d - r.R) < 0.55) { const i = (Math.round(Math.atan2(dx, dz) / 6.283 * N) + N) % N; if (r.arms[i]) { if (m.over) { r.hit = true; f.leapt(); } else if (m.safe > 0) { r.hit = true; f.evade(); } else if (f.invuln <= 0) { r.hit = true; this.strike(f, 15, true, r.x + Math.sin(i / N * 6.283) * r.R, r.z + Math.cos(i / N * 6.283) * r.R, 'holdOn'); } } }
-      if (r.R <= 1.0 && !r.hit) { r.hit = true; f.raise({ k: 'b', e: 'clench', x: r.x, z: r.z }); if (d < 1.7 && !m.over && !m.safe) this.strike(f, 18, true, r.x, r.z, 'holdOn'); }
-      if (r.R <= 1.0 && r.t > 4.5) this.ring = null;
     }
     // the undertow: everything loose goes toward it
     if (this.pull > 0.01) { const dx = this.x - m.x, dz = this.z - m.z, d = Math.hypot(dx, dz); if (d > 3) { const s = 2.5 * this.pull * dt; m.x += dx / d * s; m.z += dz / d * s; } }
