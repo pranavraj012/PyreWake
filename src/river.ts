@@ -61,7 +61,7 @@ export async function bootRiver(c: Ctx) {
   const moment = new Moment(), qte = new Prompt(app), rSpecs = riverMoments(sim, m); let staged: 'drag' | 'chain' | 'lantern' | null = null, qteFor: string | null = null;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [v1, v2], court: ghats }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = [RIVER_NAMES.r1, RIVER_NAMES.r2]; hud.winTitle = RIVER_NAMES.won; onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
-  const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
+  const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd, prompt: qte }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
   turn.onEnd = () => follow.snap(m, sim); const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
   hud.onRestart = () => { moment.stop(); staged = null; qte.hide(); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'weight' : 'row'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
@@ -87,7 +87,7 @@ export async function bootRiver(c: Ctx) {
     if (menu.open) { /* the hero kneels at the water */ }
     else if (intro.active) { if (intro.t > 0.6 && ev.some(e => !e.up)) intro.skip(); else mz = intro.step(dt, t); ev = []; }
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
-    if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
+    if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active) { ending.press(ev, t); if (ending.waiting) ev = []; }
     // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
     qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.takeReward()) qte.hide();
     if (moment.active) { ev = []; mx = mz = 0; }
@@ -98,7 +98,7 @@ export async function bootRiver(c: Ctx) {
     if (sim.held === 'drag' && sim.stage >= 0.55 && sim.stage < 0.62) fx.sparks.emit(new THREE.Vector3(m.x, 0.2, m.z), new THREE.Vector3(0, 1, 0), 40, 4, 1.2, 0.5, t);
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
-    turn.step(dt, t); ending.step(dt, t); rd.step(sd, dt, t); if (!intro.active) dir.mono = Math.max(turn.mono, 0);
+    turn.step(dt, t); ending.step(dt, t, input.lastDevice); rd.step(sd, dt, t); if (!intro.active) dir.mono = Math.max(turn.mono, 0);
     if (!menu.open && !intro.active && !moment.active && !qte.on) prompts.step(sd, fight); else if (moment.active || qte.on) prompts.current = null;
     ghats.ruin.step(sd, t, [{ x: m.x, z: m.z, r: m.y > 0.6 ? -9 : 0.35, push: 1 + m.speed * 0.25 }, { x: sim.x, z: sim.z, r: sim.y > 0.6 ? -9 : 0.8, push: 3.2 }]); follow.blockers = m.blockers;
     dir.step(sd, dt, t);
