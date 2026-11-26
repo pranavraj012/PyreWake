@@ -9,6 +9,12 @@ import { fileURLToPath } from 'node:url';
 /** Files whose text the owner has not approved yet (repo-relative, forward slashes). Remove an entry once its file is rewritten. */
 export const ALLOWLIST = ['src/game/riverScript.ts', 'src/game/hoursScript.ts'];
 
+/** Owner decision: narration takes -s for he, she and it (he takes). Set to 'eth' to flip narration to -eth (he taketh); the check is a note, so flipping never fails the build. Speech in quotes is never checked. */
+export const NARRATION_3S = 's';
+const PRONOUNS3 = new Set(['he', 'she', 'it']);
+/** True for the -s form of a verb in BASE_VERBS (takes, reaches). */
+const isS3 = w => [...BASE_VERBS].some(b => w === b + 's' || w === b + 'es');
+
 const VOWEL = /^[aeiou]/i;
 const SENTENCE_END = new Set(['.', '!', '?', '"', ';', ':']);
 const OBJECT_PREPS = new Set(['to', 'for', 'with', 'of', 'from', 'by', 'at', 'on', 'in', 'upon', 'unto', 'about', 'against', 'into', 'among', 'between', 'betwixt', 'except', 'toward', 'towards', 'behind', 'before', 'after', 'beneath', 'beside', 'under', 'over', 'through', 'without']);
@@ -71,15 +77,16 @@ export function tokenize(text) {
 }
 
 /** Checks one literal's text. Returns findings without file names. */
-export function lintLiteral(text) {
+export function lintLiteral(text, mode = NARRATION_3S) {
   const toks = tokenize(text), found = [];
+  let inQuote = false;
   const add = (level, rule, match, message) => found.push({ level, rule, match, message });
   const word = i => (toks[i] && toks[i].w) || '';
   const isPunct = i => !toks[i] || SENTENCE_END.has(toks[i].p);
 
   let oldCount = 0;
   toks.forEach((t, i) => {
-    if (t.p) return;
+    if (t.p !== undefined) { if (t.p === '"') inQuote = !inQuote; else if (t.p === '“') inQuote = true; else if (t.p === '”') inQuote = false; return; }
     const w = t.w, prev = i > 0 ? toks[i - 1] : undefined;
     if (OLD_WORDS.has(w)) oldCount++;
 
@@ -114,6 +121,11 @@ export function lintLiteral(text) {
 
     if (CONTRACTIONS.has(w)) add('note', 'contraction', w, 'Write the contraction out (do not, it is).');
     if (w === 'you' && (SUBJECT_FOLLOWERS.has(word(i + 1)) || BASE_VERBS.has(word(i + 1)) || i === 0)) add('note', 'you-subject', `you ${word(i + 1)}`.trim(), 'You as subject is modern: thou (one person) or ye (several).');
+    if (!inQuote && PRONOUNS3.has(w)) {
+      const n = word(i + 1);
+      if (mode === 's' && /eth$/.test(n)) add('note', 'third-person-form', `${w} ${n}`, 'Narration takes -s for he, she and it (he takes).');
+      if (mode === 'eth' && n && isS3(n)) add('note', 'third-person-form', `${w} ${n}`, 'Narration takes -eth for he, she and it (he taketh).');
+    }
     if (w === 'forsooth') add('note', 'forsooth', w, 'Comic in this register: avoid.');
   });
   if (oldCount > 2) add('note', 'old-words', `${oldCount} old words`, 'More than two old words in one line.');
@@ -121,10 +133,10 @@ export function lintLiteral(text) {
 }
 
 /** Lints one source file's text. */
-export function lintText(src, file = '<text>') {
+export function lintText(src, file = '<text>', mode = NARRATION_3S) {
   const out = [];
   for (const lit of stringLiterals(src)) {
-    for (const f of lintLiteral(lit.text)) out.push({ file, line: lit.line, ...f });
+    for (const f of lintLiteral(lit.text, mode)) out.push({ file, line: lit.line, ...f });
   }
   return out;
 }

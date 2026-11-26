@@ -62,6 +62,22 @@ describe('banned modern words and notes', () => {
   });
 });
 
+describe('narration takes -s for he, she and it (one constant, easy to flip)', () => {
+  const third = (s, mode) => lintLiteral(s, mode).filter(f => f.rule === 'third-person-form').map(f => f.match);
+  it('in the default -s mode, flags -eth in narration but not in speech', () => {
+    expect(third('He taketh it.')).toEqual(['he taketh']);
+    expect(third('He takes it.')).toEqual([]);
+    expect(third('"He taketh it."')).toEqual([]);
+  });
+  it('flips to -eth with the mode argument, and flags -s instead', () => {
+    expect(third('He takes it.', 'eth')).toEqual(['he takes']);
+    expect(third('He taketh it.', 'eth')).toEqual([]);
+  });
+  it('never fails the build', () => {
+    expect(lintLiteral('He taketh it.').filter(f => f.level === 'error')).toEqual([]);
+  });
+});
+
 describe('the story scripts', () => {
   const r = lintRepo();
 
