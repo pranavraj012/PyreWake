@@ -29,7 +29,8 @@ import { SisterView } from './boss/hours/sisterView.ts';
 import { PallView } from './boss/hours/pallView.ts';
 import { HoursDirector } from './boss/hours/hoursDirector.ts';
 import { HOURS_NAMES } from './game/hoursScript.ts';
-import { Grapple } from './game/grapple.ts';
+import { Moment, Prompt, type MomentSpec } from './game/moment.ts';
+import { GRIP, PIERCE, gripLift, gripTumble } from './boss/hours/sister.ts';
 import { HoursIntro, HoursTurn, HoursEnding } from './game/hoursScenes.ts';
 import type { Ctx } from './core/boot.ts';
 
@@ -64,17 +65,40 @@ export async function bootHours(c: Ctx) {
   light(0);
   const cloth = surface(tex, tier, { world: false, ash: 0.1, side: THREE.DoubleSide }), hd = new HoursDirector(dir, fight, house, v1, v2, post, hud, light, { cot: gCot, scythe: gScythe, cloth, scene }); hud.names = [HOURS_NAMES.r1, HOURS_NAMES.r2]; hud.winTitle = HOURS_NAMES.won;
   onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
-  // her arms can catch you: a close scene, and a mash to tear free (src/game/grapple.ts)
-  const grapple = new Grapple(app); hd.onGrab = () => { grapple.start({ from: 0.55, per: 0.085, drain: 0.28, text: 'Tear free', frame: (gt, eye, at) => { const hx = m.x, hz = m.z, dx = hx - sim.x, dz = hz - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, lift = Math.min(1, gt / 0.6), sw = 2.3 + 0.25 * Math.sin(gt * 0.8); eye.set(hx + ux * 4.4 + uz * sw, 1.15 + 0.35 * lift, hz + uz * 4.4 - ux * sw); at.set(hx * 0.55 + sim.x * 0.45, 2.5 + 0.7 * lift, hz * 0.55 + sim.z * 0.45); return 52 - 4 * lift; } }, input.lastDevice); };
-  hd.onFree = () => { grapple.stop(); pv.lift = 0; follow.snap(m, sim); };
+  // staged moments (src/game/moment.ts): her grab always plays out to the end; the climb is the hero's, offered as a press while she kneels
+  const moment = new Moment(), qte = new Prompt(app), climbFrom = new THREE.Vector3(); let staged: 'hurl' | 'climb' | null = null;
+  const toHer = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1; return [dx / d, dz / d] as const; };
+  const hurl: MomentSpec = {
+    frame: (t, eye, at) => { const [ux, uz] = toHer(), y = gripLift(t) + 1.0;
+      if (t < GRIP.throw) { const l = Math.min(1, t / 0.6); eye.set(m.x + ux * 4.4 + uz * 2.3, 1.15 + 0.35 * l, m.z + uz * 4.4 - ux * 2.3); at.set(m.x * 0.55 + sim.x * 0.45, 2.5 + 0.7 * l, m.z * 0.55 + sim.z * 0.45); return 52 - 4 * l; }
+      if (t < GRIP.impact) { eye.set(m.x + ux * 7.5 + uz * 3.2, 0.9, m.z + uz * 7.5 - ux * 3.2); at.set(m.x, y, m.z); return 56; }
+      eye.set(m.x + ux * 4.6 + uz * 2.6, 2.6, m.z + uz * 4.6 - ux * 2.6); at.set(m.x, 0.5, m.z); return 46; },
+    hero: (t, o) => o.set(0, gripLift(t), 0), tumble: gripTumble, rate: t => t > GRIP.impact - 0.2 && t < GRIP.impact + 0.15 ? 0.3 : 1,
+  };
+  /** Up her: a run at her knee, a bound up the length of her arm, the cut across her face, and down again behind the blade. */
+  const climbAt = (t: number, o: THREE.Vector3) => { const [ux, uz] = toHer(), face = new THREE.Vector3(sim.x + ux * 1.1, 2.9, sim.z + uz * 1.1), base = new THREE.Vector3(sim.x + ux * 2.0, 0, sim.z + uz * 2.0), E2 = (a: number, b: number) => { const u = Math.max(0, Math.min(1, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
+    const p = t < 0.5 ? climbFrom.clone().lerp(base, E2(0, 0.5)) : t < 1.35 ? base.clone().lerp(face, E2(0.5, 1.35)).add(new THREE.Vector3(0, Math.sin(E2(0.5, 1.35) * Math.PI) * 0.8, 0)) : t < 1.7 ? face.clone() : face.clone().lerp(climbFrom, E2(1.7, 2.5)).add(new THREE.Vector3(0, Math.sin(E2(1.7, 2.5) * Math.PI) * 1.6, 0));
+    o.set(p.x - m.x, p.y, p.z - m.z); };
+  const climb: MomentSpec = {
+    frame: (t, eye, at) => { const [ux, uz] = toHer(), h = new THREE.Vector3(); climbAt(t, h); h.add(new THREE.Vector3(m.x, 1.0, m.z));
+      if (t < 0.5) { eye.set(climbFrom.x + ux * 3.2 + uz * 1.2, 1.0, climbFrom.z + uz * 3.2 - ux * 1.2); at.set(sim.x, 2.4, sim.z); return 48; }
+      if (t < 1.4) { eye.set(sim.x + ux * 5.5 + uz * 5.0, 1.2, sim.z + uz * 5.5 - ux * 5.0); at.copy(h); return 50; }
+      if (t < 1.8) { eye.set(sim.x + ux * 2.6 + uz * 2.4, 4.2, sim.z + uz * 2.6 - ux * 2.4); at.set(sim.x + ux * 0.6, 3.4, sim.z + uz * 0.6); return 40; }
+      eye.set(sim.x + ux * 8 + uz * 3, 2.2, sim.z + uz * 8 - ux * 3); at.set(sim.x, 2.6, sim.z); return 48; },
+    hero: climbAt, tumble: t => t > 1.7 && t < 2.5 ? (t - 1.7) * 7.85 : 0, rate: t => t > PIERCE.hit - 0.12 && t < PIERCE.hit + 0.25 ? 0.25 : 1,
+  };
+  hd.onGrab = () => { staged = 'hurl'; moment.start(hurl); };
+  hd.onFree = () => { if (staged === 'hurl') { moment.stop(); staged = null; follow.snap(m, sim); } };
+  hd.onOpen = () => qte.show('attack', 'Climb her', PIERCE.window, input.lastDevice);
+  hd.onStrike = () => m.begin('flick');
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, house, hd }, intro = new HoursIntro(kit), turn = new HoursTurn(kit), ending = new HoursEnding(kit);
   dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 4 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
-  turn.onEnd = () => follow.snap(m, sim); const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
-  hud.onRestart = () => { grapple.stop(); pv.lift = 0; ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
+  turn.onEnd = () => { follow.snap(m, sim); hd.teach(); }; const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
+  hud.onRestart = () => { moment.stop(); staged = null; qte.hide(); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
   menu.fights([['The Hanged King', () => { location.search = ''; }], ['The Ferryman', () => { location.search = '?boss=2'; }], ['The Sister of Hours', null]]);
-  const toMenu = () => { grapple.stop(); pv.lift = 0; hud.setPaused(false); hud.verse(''); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); intro.rest(); };
+  const toMenu = () => { moment.stop(); staged = null; qte.hide(); hud.setPaused(false); hud.verse(''); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); intro.rest(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen; hud.next = ''; hud.onSkip = () => { };
   const busy = () => menu.open || intro.active || turn.active || ending.active || fight.phase === 'won';
   document.addEventListener('visibilitychange', () => { if (document.hidden && !busy() && !SHOT) hud.setPaused(true); });
@@ -92,18 +116,21 @@ export async function bootHours(c: Ctx) {
     if (padNav(input)) ev = ev.filter(e => e.a === 'pause' && !menu.open);
     if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && !intro.active && fight.phase !== 'won') hud.setPaused(!hud.paused);
     if (hud.paused) return;
-    const pace = turn.active ? turn.rate : 1; t += dt * pace; FOG.uFogP.value.w = SHARED.uTime.value = t;
+    const pace = turn.active ? turn.rate : moment.active ? moment.rate(sim.mt) : 1; t += dt * pace; FOG.uFogP.value.w = SHARED.uTime.value = t;
     if (menu.open) { /* the hero waits at the gate */ }
     else if (intro.active) { if (intro.t > 0.6 && ev.some(e => !e.up)) intro.skip(); else mz = intro.step(dt, t); ev = []; }
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
-    if (grapple.active) { grapple.press(ev); grapple.step(dt); sim.freed = grapple.won ? 1 : grapple.prog; pv.lift = 2.1 * Math.min(1, grapple.t / 0.6); ev = []; mx = mz = 0; }
+    // a staged moment: the fight goes on beneath it, but the hero is the scene's
+    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.climb()) { qte.hide(); climbFrom.set(m.x, 0, m.z); staged = 'climb'; moment.start(climb); }
+    if (staged === 'climb' && sim.mode !== 'pierced') { moment.stop(); staged = null; follow.snap(m, sim); }
+    if (moment.active) { ev = []; mx = mz = 0; } pv.tumble = moment.hero(sim.mt, pv.offset);
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
     if (still) { /* tools/hours.mjs films a move held at an exact moment */ const fz = (window as unknown as { __freezeAt?: number }).__freezeAt; if (fz !== undefined && sim.mt >= fz) sim.mt = sim.prev = fz; }
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
     turn.step(dt, t); ending.step(dt, t); hd.step(sd, dt, t); if (!intro.active) dir.mono = Math.max(turn.mono, 0);
-    if (!menu.open && !intro.active && !grapple.active) prompts.step(sd, fight); else if (grapple.active) prompts.current = null;
+    if (!menu.open && !intro.active && !moment.active && !qte.on) prompts.step(sd, fight); else if (moment.active || qte.on) prompts.current = null;
     house.ruin.step(sd, t, [{ x: m.x, z: m.z, r: m.y > 0.6 ? -9 : 0.35, push: 1 + m.speed * 0.25 }, { x: sim.x, z: sim.z, r: sim.y > 0.6 ? -9 : sim.r, push: 3.2 }]); follow.blockers = m.blockers;
     dir.step(sd, dt, t);
   };
@@ -119,7 +146,7 @@ export async function bootHours(c: Ctx) {
     if (busy() && fight.phase !== 'won' || menu.open) follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6);
     const SC = (window as unknown as { __shotCam?: [number[], number[], number] }).__shotCam ?? (SHOT ? SHOTS[SHOT] : undefined); if (SC) { const [pp, ll, ff] = SC; cam.position.set(pp[0], pp[1], pp[2]); cam.lookAt(ll[0], ll[1], ll[2]); cam.fov = ff * (cam.aspect > 1.9 ? 0.92 : 1); cam.updateProjectionMatrix(); }
     else if (menu.open) menuCam(cam, t, m.x, m.z);
-    else if (grapple.active && grapple.camera(cam, Math.min(ms / 1000, 0.05))) { /* the grapple's close shot */ }
+    else if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.mt)) { /* a staged moment's shot */ }
     else if (turn.active) turn.camera(cam, t);
     else if (ending.active) ending.camera(cam, t);
     else if (intro.active) intro.camera(cam, t, c.baseFov());

@@ -56,10 +56,8 @@ describe('the Sister of Hours and the Pall', () => {
   it('Between Beds: she cannot be hit inside the smoke, and comes out within six metres of you', () => {
     const { f, k } = go(8, 'betweenBeds'); run(f, 0.8); expect(k.vulnerable).toBe(false); run(f, 0.7); expect(k.vulnerable).toBe(true); expect(Math.hypot(k.x - f.m.x, k.z - f.m.z)).toBeLessThan(6);
   });
-  it('The Gathering: caught, you are held and it costs a great deal; torn free, far less, and she reels', () => {
-    const lost = go(5, 'gather', 2); run(lost.f, 6); expect(100 - lost.f.hp).toBeGreaterThan(30);
-    const won = go(5, 'gather', 2); let held = false; run(won.f, 6, () => { if (won.k.mode === 'grip') { held = true; won.k.freed = 1; } return []; });
-    expect(held).toBe(true); expect(100 - won.f.hp).toBeLessThan(20); expect(100 - won.f.hp).toBeGreaterThan(0);
+  it('The Gathering: caught, the Weight of Hours always plays out and costs a great deal', () => {
+    const { f, k } = go(5, 'gather', 2); let held = false; run(f, 7, () => { if (k.mode === 'grip') held = true; return []; }); expect(held).toBe(true); expect(100 - f.hp).toBeGreaterThan(30);
   });
   it('a linen arm left on the floor can be cut', () => {
     const { f, k } = go(4, 'gather', 2, 0.6); f.invuln = 3; run(f, 1.2); expect(k.laid.length).toBe(1);

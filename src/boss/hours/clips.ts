@@ -83,7 +83,10 @@ pall('longCount', 6.8, [pa(0.6, { ra: 18, re: -8, rl: 0.5, la: -18, le: -8, ll: 
 /** The Gathering: one arm drawn back like a whip and sent out straight at you. */
 pall('gather', 2.6, [pa(0.5, { ra: -110, re: 30, rl: 1, hw: -30, sw: -34, hp: -4 }), pa(0.95, { ra: 0, re: 0, rl: 1, hw: 18, sw: 22, hp: 16, sp: 16, np: -16 }), pa(1.8, { ra: -10, re: -30, rl: 0.8, hw: 8, sw: 10 })]);
 /** She has you: lifted in the linen, close to her face. */
-pall('grip', 3.6, [pa(0.4, { ra: -20, re: 30, rl: 0.9, la: 20, le: 30, ll: 0.9, np: -24, sp: 14, hp: 8 }), pa(3.2, { ra: -20, re: 34, rl: 0.9, la: 20, le: 34, ll: 0.9, np: -28, sp: 16, hp: 10 })]);
+pall('grip', 4.6, [pa(0.4, { ra: -20, re: 30, rl: 0.9, la: 20, le: 30, ll: 0.9, np: -24, sp: 14, hp: 8 }), pa(2.3, { ra: -20, re: 34, rl: 0.9, la: 20, le: 34, ll: 0.9, np: -28, sp: 16, hp: 8 }),
+  pa(2.9, { ra: -40, re: 84, la: 40, le: 84, rl: 1, ll: 1, np: 30, sp: -16, hp: -10 }), pa(3.2, { ra: -40, re: 86, la: 40, le: 86, np: 34, sp: -18, hp: -12 }), pa(3.5, { hy: -0.3, ra: -30, re: -40, la: 30, le: -40, rl: 1, ll: 1, np: -36, sp: 34, hp: 30 }), pa(4.2, { hy: -0.28, ra: -30, re: -44, la: 30, le: -44, np: -30, sp: 30, hp: 28 })]);
+/** Cut across the face from above: thrown back, the arms gone slack. */
+pall('pierced', 3.0, [pa(0, { hy: -0.5, hp: 30, sp: 34, np: -40, ra: -30, re: -70, la: 30, le: -70 }), pa(1.5, { hy: -0.48, hp: 28, sp: 30, np: -20, ra: -30, re: -70, la: 30, le: -70 }), pa(1.65, { hy: -0.4, hp: -8, sp: -20, np: 40, ra: -70, re: 20, la: 70, le: 20, rl: 1, ll: 1 }), pa(2.6, { hy: -0.45, hp: 10, sp: 10, np: 0 })]);
 pall('sag', 3.0, [pa(0.4, { hy: -0.5, hp: 30, sp: 34, np: -40, ra: -30, re: -70, la: 30, le: -70 }), pa(2.5, { hy: -0.5, hp: 30, sp: 34, np: -40, ra: -30, re: -70, la: 30, le: -70 })]);
 pall('reel2', 1.4, [pa(0.3, { hp: -16, sp: -20, np: 24, ra: -60, re: 10, la: 60, le: 10 })]);
 pall('rise', 3.0, [pa(0, { hy: -0.7, hp: 40, sp: 40, np: -50, ra: -20, re: -80, la: 20, le: -80 }), pa(1.6, { hy: -0.3, hp: 10, sp: 6, np: 10, ra: -70, re: 40, la: 70, le: 40, rl: 1, ll: 1 })]);

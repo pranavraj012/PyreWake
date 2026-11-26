@@ -11,7 +11,7 @@ import type { Fx } from '../../render/impact.ts';
 import type { BossView } from '../view.ts';
 import { HOURS_CLIPS as K, PSTAND } from './clips.ts';
 import { ARMS, ARM_LEN, ARM_ROWS, PALL_BONES, PALL_HOVER, PALL_SCALE, SKIRT, armRest, robeAt } from './frame.ts';
-import { GRIP, type Sister } from './sister.ts';
+import { GRIP, gripLift, type Sister } from './sister.ts';
 import { glow } from './glow.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -133,9 +133,12 @@ void main(){ if (abs(vM - 40.) > .5) discard; float t = uT.w; vec3 q = vP * vec3
       } else if (m === 'gather' && k === 1) {
         if (mt < 0.9) { const u = E(0.2, 0.8, mt); tip = R.clone().add(V(0, 3.6 * u + 0.6, 0)).addScaledVector(dirW(F + Math.PI - 0.5), 2.4 * u); c1 = R.clone().add(V(0, 1.6, 0)); c2 = tip.clone().add(V(0, -1, 0)); rate = 7; }
         else { const d = dirW(F); tip = base.clone().addScaledVector(d, 11.5); tip.y = 1.0; c1 = R.clone().addScaledVector(d, 2); c2 = base.clone().addScaledVector(d, 7).add(V(0, 1.0, 0)); rate = 30; wave = 0.02; }
-      } else if (m === 'grip' && k <= 2) {
-        // three arms round the hero, lifting: wound about him, the first across his chest
-        const h = V(px, 1.6 + 2.1 * E(0, 0.6, mt), pz), a = t * (1.6 + k) + k * 2.1; tip = h.clone().add(V(Math.sin(a) * 0.45, 0.3 * k - 0.3, Math.cos(a) * 0.45)); c1 = R.clone().add(V(0, 1.2, 0)).addScaledVector(dirW(F), 1.2); c2 = h.clone().add(V(0, 1.4, 0)); rate = 9; wave = 0.08;
+      } else if (m === 'grip') {
+        // the Weight of Hours: three arms wound round him at her face; then all six carry him up, and bring him down
+        const h = V(px, gripLift(mt) + 0.9, pz), a = t * (1.6 + k) + k * 2.1;
+        if (mt < GRIP.throw) { if (k <= 2) { tip = h.clone().add(V(Math.sin(a) * 0.45, 0.3 * k - 0.3, Math.cos(a) * 0.45)); c1 = R.clone().add(V(0, 1.2, 0)).addScaledVector(dirW(F), 1.2); c2 = h.clone().add(V(0, 1.4, 0)); rate = 9; wave = 0.08; } }
+        else if (mt < GRIP.impact + 0.05) { tip = h.clone().add(V(Math.sin(a) * 0.5, -0.2 + 0.2 * row, Math.cos(a) * 0.5)); c1 = R.clone().add(V(0, 2.5, 0)).addScaledVector(dirW(F + (k - 2.5) * 0.3), 1.5); c2 = h.clone().add(V(0, -1.2, 0)).addScaledVector(dirW(F + Math.PI), 1.2); rate = 30; wave = 0.05; }
+        else { const b = F + (k - 2.5) * 0.38, d = dirW(b); tip = V(px, 0.06, pz).addScaledVector(d, 1.4); c1 = R.clone().addScaledVector(dirW(F), 1.5).add(V(0, 0.8, 0)); c2 = V(px, 0.3, pz).addScaledVector(d, -0.5); rate = 16; wave = 0.04; }
       } else if (m === 'hemLash') {
         const wrap = E(0.2, 0.7, mt) * (1 - E(0.75, 0.95, mt)), out = E(0.75, 1.0, mt) * (1 - E(1.3, 1.8, mt)), a = F + k * Math.PI / 3 + 6.283 * E(0.75, 1.3, mt);
         if (out > 0.01) { tip = base.clone().addScaledVector(dirW(a), 1.4 + 3.6 * out); tip.y = 0.7; c1 = R.clone().addScaledVector(dirW(a - 0.5), 1.2); c2 = base.clone().addScaledVector(dirW(a - 0.25), 3).add(V(0, 0.9, 0)); rate = 24; wave = 0.05; }
@@ -154,7 +157,7 @@ void main(){ if (abs(vM - 40.) > .5) discard; float t = uT.w; vec3 q = vP * vec3
         const a = F + Math.PI + (k - 2.5) * 0.32; tip = base.clone().addScaledVector(dirW(a), 6.2); tip.y = 2.2 + row * 0.8; c1 = R.clone().addScaledVector(dirW(a), 1.5).add(V(0, 0.8, 0)); c2 = base.clone().addScaledVector(dirW(a), 4).add(V(0, 2.4, 0)); rate = 5; wave = 0.6;
       } else if (m === 'longCount') {
         const a = F + k * Math.PI / 3, rise = E(0.3, 1.6, mt) * (1 - E(6.0, 6.4, mt)); if (rise > 0.01) { tip = base.clone().addScaledVector(dirW(a + 1.2), 0.7).add(V(0, 5.6 + row * 0.5, 0)); c1 = R.clone().addScaledVector(dirW(a), 1.8).add(V(0, 0.5, 0)); c2 = base.clone().addScaledVector(dirW(a + 0.6), 1.8).add(V(0, 5.2, 0)); rate = 2.5 * rise + 1; wave = 0.2; }
-      } else if (m === 'sag' || m === 'die' || m === 'reel2') {
+      } else if (m === 'sag' || m === 'die' || m === 'reel2' || m === 'pierced') {
         const a = F + Math.PI * 0.5 * side + (row - 1) * 0.5; tip = base.clone().addScaledVector(dirW(a), 3.2); tip.y = 0.06; c1 = R.clone().addScaledVector(dirW(a), 0.8); c2 = base.clone().addScaledVector(dirW(a), 1.8).add(V(0, 0.1, 0)); rate = 3; wave = 0.06;
       }
       // a cut arm burns back to the shoulder and grows again

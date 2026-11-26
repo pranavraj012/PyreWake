@@ -136,8 +136,8 @@ kbd { font: 600 12px/1 "Segoe UI", system-ui, sans-serif; color: #efe6d6; backgr
 #menu .spells button kbd { grid-column: 1; grid-row: 1; min-width: 18px; color: #1b1310; background: #e08a3c; border-radius: 3px; padding: 0 5px; font: 600 12px system-ui; text-align: center; } #menu .spells button kbd:empty { visibility: hidden; }
 #menu .spells button.on { border-color: #e08a3c; background: #2a1a10; } #menu .spells button:focus-visible, #menu .spells button:hover { border-color: #e08a3ccc; outline: none; }
 @media (max-height: 480px) { #menu .spells .list { gap: 4px; } #menu .spells button { padding: 5px 8px; } #menu .spells button span { font-size: 11px; } #menu .spells p { font-size: 12px; margin-bottom: 4px; } }
-/* a grapple: mash to tear free */
-.grapple { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0; transition: opacity .15s; pointer-events: none; z-index: 6; }
-.grapple.on { opacity: 1; } .grapple kbd { font-size: 30px; padding: 14px 26px; color: #fff; border-color: #ff6a3a; box-shadow: 0 0 30px #ff5a1e88; transition: transform .05s; }
-.grapple .gbar { width: 260px; height: 8px; border-radius: 4px; background: #1a1512cc; border: 1px solid #a8997f88; overflow: hidden; } .grapple .gbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff7a1e, #ffd08a); }
-.grapple p { margin: 0; font: 600 15px/1.2 "Segoe UI", system-ui, sans-serif; color: #f4e6d0; text-shadow: 0 1px 4px #000; letter-spacing: .04em; } .grapple.won kbd { border-color: #ffd08a; box-shadow: 0 0 44px #ffc06aaa; }
+/* a quick-time press: the key, the time left, what it does */
+.qte { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0; transition: opacity .12s; pointer-events: none; z-index: 6; }
+.qte.on { opacity: 1; } .qte kbd { font-size: 30px; padding: 14px 26px; color: #fff; border-color: #ffb468; box-shadow: 0 0 34px #ff7a1e99, inset 0 0 14px #ff7a1e44; animation: beat .5s infinite alternate; }
+.qte .gbar { width: 220px; height: 6px; border-radius: 3px; background: #1a1512cc; border: 1px solid #a8997f88; overflow: hidden; } .qte .gbar i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #ff7a1e, #ffd08a); }
+.qte p { margin: 0; font: 600 16px/1.2 "Segoe UI", system-ui, sans-serif; color: #f4e6d0; text-shadow: 0 1px 4px #000; letter-spacing: .05em; }

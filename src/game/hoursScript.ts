@@ -44,4 +44,4 @@ export const HOURS_ENDING = {
 
 /** In the fight: the count, spoken as breath. */
 export const HOURS_COUNT = ['Seven...', 'six...', 'five...', 'four...', 'three...', 'two...', 'one...'];
-export const HOURS_CALLS = { lost: 'She lost count', burn: 'The linen burns', tear: 'Torn', stake: 'The scythe stands', stakeBreak: 'Shattered', sunk: 'The sun sinks', held: 'She has you', torn: 'Torn free', cut: 'Linen cut', sever: 'She reels', risen: 'The sun climbs' };
+export const HOURS_CALLS = { lost: 'She lost count', burn: 'The linen burns', tear: 'Torn', stake: 'The scythe stands', stakeBreak: 'Shattered', sunk: 'The sun sinks', held: 'The Weight of Hours', cut: 'Linen cut', sever: 'She kneels', pierce: 'Cut across the face', cutHint: 'Cut the linen on the floor', goal: 'Strike her. Cut the linen she lays down.', goalSub: 'Two arms cut and she falls to her knees: climb her.', risen: 'The sun climbs' };

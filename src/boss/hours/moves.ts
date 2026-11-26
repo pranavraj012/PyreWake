@@ -5,7 +5,7 @@ import type { Strike, Zone } from '../moves2.ts';
 const D = Math.PI / 180;
 const line = (len: number, half: number, delay: number, yaw = 0): Zone => ({ shape: 'line', at: 'self', len, half, delay, yaw });
 export type HoursMode = 'idle' | 'stalk' | 'strafe' | 'blink' | 'reap' | 'harvest' | 'hourWheel' | 'binding' | 'cleanSheet' | 'lieDown' | 'betweenBeds' | 'sevenBreaths' | 'lostCount' | 'burnt'
-  | 'hourHand' | 'drawSheet' | 'wardStands' | 'noon' | 'lastBreath' | 'hemLash' | 'longCount' | 'gather' | 'grip' | 'sag' | 'reel' | 'reel2' | 'kneel' | 'fall' | 'rise' | 'die';
+  | 'hourHand' | 'drawSheet' | 'wardStands' | 'noon' | 'lastBreath' | 'hemLash' | 'longCount' | 'gather' | 'grip' | 'pierced' | 'sag' | 'reel' | 'reel2' | 'kneel' | 'fall' | 'rise' | 'die';
 
 export const HOURS_ATTACKS: Record<string, Strike[]> = {
   // --- the Scythe
