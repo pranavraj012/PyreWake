@@ -3,6 +3,7 @@ import { clip, makePose, type Clip } from '../anim/pose.ts';
 import { addArts } from './khandaArts.ts';
 import { addChains } from './khandaChains.ts';
 import { GUARD, addFinishers } from './khandaFinishers.ts';
+import { addSpells } from './khandaSpells.ts';
 import type { Weapon } from './weapon.ts';
 
 /** Unhurried: side-on, weight on the back leg, blade tip resting on the stone behind. */
@@ -96,7 +97,7 @@ def('flick', { dur: 1.0, free: 0.0, blend: 0.14, fx: [{ t: 0.27, kind: 'flick' }
   { t: 0.42, ra: -70, re: -50, ba: -108, be: -42, sw: -10 },
   { t: 0.72, ra: -66, re: -60, ba: -116, be: -38, np: 8 }, { t: 1.0, ra: -62, re: -66, rl: 0.93, ba: -128, be: -33, sw: 6, sp: -3, np: 9 } ] });
 
-addFinishers(def); addArts(def); addChains(def);
+addFinishers(def); addArts(def); addChains(def); addSpells(def);
 const COMBO = ['light1', 'light2', 'light3', 'light4', 'light5'];
 export const KHANDA: Weapon = {
   id: 'khanda', name: 'Khanda', geo: 'khanda', blade: [0.42, 1.0], reach: 1.95, arc: 75, damage: 13, trail: [1.5, 0.5, 0.12],

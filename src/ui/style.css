@@ -129,3 +129,10 @@ kbd { font: 600 12px/1 "Segoe UI", system-ui, sans-serif; color: #efe6d6; backgr
 
 /* --- controller --- */
 .padmode .pause button:focus, .padmode .win button:focus { outline: 2px solid #ffdcae; outline-offset: 2px; } .padmode #menu nav button:focus { color: #ffdcae; border-color: #ff8a2e; padding-left: 20px; } .padmode input:focus { outline: 1px solid #ffb468; } .hush { display: none; margin: 14px 0 0; font-size: 14px; color: #b9ad9c; } .silent.padmode .hush { display: block; }
+
+#menu .spells { max-width: min(560px, 92vw); max-height: 86vh; overflow-y: auto; } #menu .spells p { margin: 0 0 10px; color: #b9ad9c; font-size: 14px; }
+#menu .spells .list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } #menu .spells button { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; gap: 2px 10px; text-align: left; background: #14100e; border: 1px solid #a8997f44; color: #b9ad9c; padding: 9px 11px; cursor: pointer; font: 400 13px system-ui; min-height: 44px; }
+#menu .spells button b { font: 500 15px Georgia, serif; color: #e9dcc6; grid-column: 2; } #menu .spells button span { grid-column: 1 / 4; grid-row: 2; font-size: 12px; line-height: 1.35; } #menu .spells button em { font-style: normal; color: #e08a3c; font-size: 12px; grid-column: 3; grid-row: 1; }
+#menu .spells button kbd { grid-column: 1; grid-row: 1; min-width: 18px; color: #1b1310; background: #e08a3c; border-radius: 3px; padding: 0 5px; font: 600 12px system-ui; text-align: center; } #menu .spells button kbd:empty { visibility: hidden; }
+#menu .spells button.on { border-color: #e08a3c; background: #2a1a10; } #menu .spells button:focus-visible, #menu .spells button:hover { border-color: #e08a3ccc; outline: none; }
+@media (max-height: 480px) { #menu .spells .list { gap: 4px; } #menu .spells button { padding: 5px 8px; } #menu .spells button span { font-size: 11px; } #menu .spells p { font-size: 12px; margin-bottom: 4px; } }

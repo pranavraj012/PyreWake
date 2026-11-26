@@ -31,4 +31,12 @@ export const MATS: MatDef[] = [
   m(21, 1, 0.35, [0.17, 0.16, 0.152], { keep: 0.35, rough: 0.97, bump: 1.2, edge: 0.0, grime: 0.4 }),  // ash ground
   m(22, 3, 2.2, [0.12, 0.02, 0.008], { keep: 0.2, rough: 0.8, bump: 1.4, edge: 0, grime: 0, ember: 4 }),  // living fire: the One Beneath's core
   m(23, 5, 4.5, [0.03, 0.026, 0.024], { keep: 0.15, rough: 0.96, bump: 1.4, edge: 0.5, grime: 0.6, ember: 0.9 }),   // scorched cloth hem
+  m(24, 2, 1.1, [0.085, 0.066, 0.05], { keep: 0.22, rough: 0.58, bump: 1.7, edge: 0.4, grime: 1.2 }),    // wet timber
+  m(25, 1, 0.9, [0.14, 0.06, 0.035], { keep: 0.1, rough: 0.9, bump: 0.9, edge: 0.4, grime: 0.7 }),       // clay of the lamps
+  m(26, 5, 2.6, [0.145, 0.125, 0.092], { keep: 0.15, rough: 0.96, bump: 1.5, edge: 0.3, grime: 1.0 }),    // wet hemp net
+  m(27, 4, 2.2, [0.075, 0.085, 0.07], { keep: 0.1, rough: 0.5, bump: 0.5, edge: 0.15, grime: 0.9 }),     // old wet skin
+  m(28, 2, 3.2, [0.026, 0.021, 0.015], { keep: 0.08, rough: 0.86, bump: 1.6, edge: 0.2, grime: 1.1 }),     // wet reed hat
+  m(29, 6, 3, [0.36, 0.25, 0.1], { keep: 0.2, rough: 0.32, roughTex: 0.4, metal: 1, bump: 0.5, edge: 0.8, grime: 0.9 }), // tarnished fare coins
+  m(30, 5, 3.4, [0.017, 0.018, 0.021], { keep: 0.1, rough: 0.62, roughTex: 0.5, bump: 1.4, edge: 0.25, grime: 0.5 }),   // soaked black shroud
+  m(31, 4, 2.6, [0.115, 0.125, 0.12], { keep: 0.08, rough: 0.42, roughTex: 0.45, bump: 0.45, edge: 0.12, grime: 0.85 }),   // drowned skin
 ];

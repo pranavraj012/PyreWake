@@ -5,6 +5,7 @@ export const D = {
   dodgeSafe: 0.32, parry: 0.18, perfect: 0.2, hurtSafe: 0.9,
   gain: { hit: 3.9, parry: 22, perfect: 12, block: 4 },
   rush: { cost: 40, dmg: 110, delay: 0.98, width: 1.9 }, sunder: { cost: 50, dmg: 170 }, flare: { dmg: 22 }, rites: { dmg: 650 },
+  /** The newer fire arts: Pyre Brand ring then eruption, Ashen Step's burst, each turn of the Funeral Wheel, each ember of Ashfall (seven). */ spell: { brand: [45, 150] as [number, number], step: 40, wheel: 20, fall: 26 },
   /** Unhurt hits needed for each aura step. */ aura: [6, 14, 26, 42],
   /** Ultimate charge per point of damage. */ wakeGain: 0.05, /** Spells barely feed Last Rites: it has to be earned with the blade. */ spellWake: 0.15, /** Share of the King's health by which Last Rites is in your hands whatever happened. */ gift: 0.5,
   /** The closing blow of a multi-hit attack hits this much harder. */ lastHit: { reckon: 4.2, alt5: 1.7, execute: 1.9, riposteB: 2.6 } as Record<string, number>,

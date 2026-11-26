@@ -5,7 +5,7 @@ import sharp from 'sharp';
 import fs from 'node:fs';
 const which = process.argv[2] ?? 'player', yaw = +(process.argv.find(a => a.startsWith('--yaw='))?.slice(6) ?? (which === 'king' ? 0.6 : 2.4)), want = process.argv[3]?.startsWith('--') ? null : process.argv[3]?.split(',');
 const DUR = { idle: 3, ready: 2, walk: 0.94, run: 0.67, sprint: 0.6, stalk: 3, crawl: 2.2, hang: 4.5, slam: 3.3, sweep: 3.2, grab: 3.5, reel: 1.5, kneel: 3.4, fall: 6.6, guard: 1, guardwalk: 1.2 };
-const W = 300, H = 300, NF = 8; fs.mkdirSync('shots_out', { recursive: true });
+const W = 300, H = 300, NF = +(process.argv.find(a => a.startsWith("--nf="))?.slice(5) ?? 8); fs.mkdirSync('shots_out', { recursive: true });
 const srv = await createServer({ server: { port: 5195 }, logLevel: 'error' }); await srv.listen();
 const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--force-high-performance-gpu'] });
 const p = await b.newPage({ viewport: { width: W * 2, height: H * 2 } }); p.on('pageerror', e => console.log(e.message)); p.on('console', m => m.type() === 'error' && console.log(m.text()));
@@ -17,8 +17,8 @@ for (const n of want ?? all) {
   const comp = [], len = Math.max(dur, 0.5), real = DUR[n] ? len : await p.evaluate(() => window.__m.clip?.dur ?? 1);
   for (let f = 0; f < NF; f++) {
     await p.evaluate(s => window.__bench.advance(s), f === 0 ? 1 / 60 : real / (NF - 1)); const fr = await p.evaluate(() => window.__frames); await p.waitForFunction(f => window.__frames > f + 2, fr);
-    comp.push({ input: await sharp(await p.screenshot({ type: 'png' })).resize(W, H).toBuffer(), left: (f % 4) * W, top: Math.floor(f / 4) * H });
+    comp.push({ input: await sharp(await p.screenshot({ type: 'png' })).resize(W, H).toBuffer(), left: (f % 8) * W, top: Math.floor(f / 8) * H });
   }
-  await sharp({ create: { width: W * 4, height: H * 2, channels: 3, background: '#000' } }).composite(comp).jpeg({ quality: 85 }).toFile(`shots_out/sheet_${n}.jpg`); console.log('sheet', n, real.toFixed(2) + 's');
+  await sharp({ create: { width: W * 8, height: H * Math.ceil(NF / 8), channels: 3, background: '#000' } }).composite(comp).jpeg({ quality: 85 }).toFile(`shots_out/sheet_${n}.jpg`); console.log('sheet', n, real.toFixed(2) + 's');
 }
 await b.close(); await srv.close(); process.exit(0);

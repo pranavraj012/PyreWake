@@ -13,12 +13,12 @@ import type { Motor } from './motor.ts';
 import { Stride } from './stride.ts';
 import type { Weapon } from '../weapons/weapon.ts';
 
-const DEG = Math.PI / 180, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const mix = (a: number, b: number, t: number) => a + (b - a) * t, DEG = Math.PI / 180, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /** Unhurried and level: weight low, eyes ahead, the blade carried rather than swung. */
-const WALKP = makePose({ hy: -0.05, hp: 5, sp: 6, np: -8, ra: -96, re: -66, rl: 0.94, ba: -156, be: -30, la: 26, le: -74, ll: 0.9, xl: 10, flz: 0.02, frz: 0.02, frw: -7, flw: 7 });
+const WALKP = makePose({ hy: -0.02, hp: 5, sp: 6, np: -8, ra: -96, re: -66, rl: 0.94, ba: -156, be: -30, la: 26, le: -74, ll: 0.9, xl: 10, flz: 0.02, frz: 0.02, frw: -7, flw: 7 });
 /** Driving forward off the ball of the foot, sword hand low behind, blade trailing along the line of travel. */
-const RUNP = makePose({ hy: -0.1, hp: 12, sp: 11, np: -18, ra: -128, re: -60, rl: 0.84, ba: -170, be: -12, la: 30, le: -46, ll: 0.66, xl: 14, flz: 0.04, frz: 0.04, frw: -3, flw: 3 });
+const RUNP = makePose({ hy: -0.06, hp: 12, sp: 11, np: -18, ra: -128, re: -60, rl: 0.84, ba: -170, be: -12, la: 30, le: -46, ll: 0.66, xl: 14, flz: 0.04, frz: 0.04, frw: -3, flw: 3 });
 
 const FEET = CH.map(c => /^f[lr]/.test(c)), LOWER = CH.map(c => /^h/.test(c));
 
@@ -28,7 +28,7 @@ export class PlayerView {
   pose: Pose = new Float32Array(N); private src = new Float32Array(N); private tmp = new Float32Array(N); private inert = new Inertial(); private source = ''; private wasGait = false;
   private yawPrev = 0; private lean = 0; private drop = 0; ember = 0.35; /** 0-1, from the fire meter: the arms answer. */ fireK = 0; /** Aura step 0-4, eased. */ aura = { value: 0 }; auraStep = 0; /** Length of the fire beyond the steel (Last Rites; a lick of it at full aura). */ private long = 0; blaze = new Blaze(); shake = 0; private ghostT = 0; steps = 0; private time = 0; private stepped = false;
   /** Dissolve 0-1 and flash, shared with the body and weapon materials. */ dis = { value: 0 }; flash = { value: new THREE.Vector4(1, 0.3, 0.1, 0) }; flashAt = { value: new THREE.Vector4(0, 0, 0, 1) }; private guardK = 0; boomAt = V(); boomK = 0;
-  glow: THREE.PointLight | null = null; tip = V(); private tipPrev = V(); base = V(); tipVel = V(1, 0, 0); tipSpeed = 0; eyeW = V();
+  glow: THREE.PointLight | null = null; private weaponQ = new THREE.Quaternion(); tip = V(); private tipPrev = V(); base = V(); tipVel = V(1, 0, 0); tipSpeed = 0; eyeW = V();
 
   constructor(scene: THREE.Scene, geo: THREE.BufferGeometry, geoLo: THREE.BufferGeometry, khanda: THREE.BufferGeometry, mat: THREE.Material, held: THREE.Material, depth: { skin: THREE.Material; still: THREE.Material }, fx: Fx, ghostN: number, arm: Weapon) {
     this.arm = arm; this.fx = fx;
@@ -36,7 +36,7 @@ export class PlayerView {
     this.mesh.castShadow = this.mesh.receiveShadow = true; this.mesh.customDepthMaterial = depth.skin; this.mesh.frustumCulled = false; scene.add(this.group); this.shadow = this.mesh;
     this.weapon = new THREE.Mesh(khanda, held); this.weapon.castShadow = this.weapon.receiveShadow = true; this.weapon.customDepthMaterial = depth.still;
     const A = HUMAN_SPEC.armDir, g = HUMAN_SPEC.grip; this.weapon.position.set(-A[0] * g[0] - A[1] * g[1], A[1] * g[0] - A[0] * g[1], 0); this.weapon.rotation.set(Math.PI / 2, Math.atan2(A[1], -A[0]), 0);
-    this.rig.bones[this.rig.i('hand.R')].add(this.weapon); this.weapon.add(this.blaze.mesh); this.blaze.mesh.position.y = arm.blade[0] - 0.2;
+    this.weaponQ.copy(this.weapon.quaternion); this.rig.bones[this.rig.i('hand.R')].add(this.weapon); this.weapon.add(this.blaze.mesh); this.blaze.mesh.position.y = arm.blade[0] - 0.2;
     this.blade = new Ribbon(96, 0.2, new THREE.Color(...arm.trail), 0); this.eye = new Ribbon(96, 0.34, new THREE.Color(1.6, 0.5, 0.1), 1);
     scene.add(this.blade.mesh, this.eye.mesh);
     this.ghosts = new Ghosts(scene, geoLo, this.rig.skeleton, ghostN);
@@ -65,11 +65,15 @@ export class PlayerView {
     add('hr', this.lean * mv); add('sr', this.lean * 0.6 * mv);
     // arms swing fore and aft from the shoulder, elbows bending more as the pace rises
     const arm = (th: number, out_: number) => { const d = V(out_, -Math.cos(th * DEG), Math.sin(th * DEG)).normalize(); return [Math.atan2(d.x, d.z) / DEG, Math.asin(d.y) / DEG]; };
-    const thL = -c * (20 + 34 * run) + 6 * run, [laz, lel] = arm(thL, 0.22 - 0.3 * run * Math.max(0, Math.sin(thL * DEG)));
-    set('la', laz, w); set('le', lel + 30 * run * w, w); set('ll', 0.9 - 0.26 * run, w); set('xl', 10 + 10 * run, w);
-    // the sword hand pumps against the free one; the blade hangs back and down, tip near the stone
-    const thR = c * (8 + 10 * run) - 22 - 8 * run, [raz, rel] = arm(thR, -0.18);
-    set('ra', raz, w); set('re', rel + 8 * run, w); set('rl', 0.88 - 0.1 * run, w); set('ba', -170 + c * 5 * w, w); set('be', -30 + 6 * run + Math.sin(2 * T * ph) * 3 * w - 4 * spr, w);
+    // turning: the body banks into the turn and the outside arm swings wide for balance
+    const bank = Math.max(-1, Math.min(1, this.lean / 12)) * mv, outL = Math.max(0, -bank) * 0.3, outR = Math.max(0, bank) * 0.22;
+    // the free hand runs a real path from the shoulder: up and in toward the chest going forward, elbow closing; down by the hip going back, elbow opening
+    const fwd = Math.max(0, -c), bwd = Math.max(0, c), hx = (0.05 - 0.13 * run * fwd + 0.04 * bwd) + outL * 0.25, hy = mix(-0.42, -0.2, run) * fwd + mix(-0.47, -0.42, run) * bwd + mix(-0.47, -0.36, run) * (1 - fwd - bwd), hz = 0.08 + (0.12 + 0.06 * run) * fwd - (0.06 + 0.03 * run) * bwd;
+    const chest = (out[IX.hw] + out[IX.sw]) * w, hl = Math.hypot(hx, hy, hz); set('la', Math.atan2(hx, hz) / DEG + chest, w); set('le', Math.asin(hy / hl) / DEG + 16 * outL, w); set('ll', Math.min(0.97, hl / this.body.armLen), w); set('xl', 8 + 6 * run, w);
+    // the sword hand stays in front of the hip and pumps a little against the free one; the blade hangs back and down, tip near the stone
+    const thR = c * (4 + 3 * run) + 4 - 6 * run, [raz, rel] = arm(thR, -0.3 - outR);
+    set('ra', raz + chest * 0.6, w); set('re', rel + 6 * run + 10 * outR, w); set('rl', 0.9 - 0.08 * run, w); set('xr', -8, w); set('ba', -148 + c * 2 * w, w); set('be', -22 + 4 * run + Math.sin(2 * T * ph) * 1.5 * w - 3 * spr, w);
+    add('sr', bank * 6); add('nr', -bank * 5);
     // guard: the upper body belongs to the weapon, the hips keep walking
     this.guardK += ((m.guarding ? 1 : 0) - this.guardK) * Math.min(1, dt * (m.guarding ? 26 : 12)); const g = this.guardK;
     if (g > 0.005) { const G = this.arm.guard; for (let i = 0; i < N; i++) { if (FEET[i] && mv > 0.3) continue; const k = LOWER[i] ? g * (1 - 0.55 * mv) : g; out[i] += (G[i] - out[i]) * k; } add('sp', br * 0.8 * g); }
@@ -108,9 +112,11 @@ export class PlayerView {
     }
     this.wasGait = gaiting;
     // never let the hips outrun the planted feet
-    let over = 0; for (const f of [L, R]) { const reach = 0.83, hipY = 0.92 + p[IX.hy], d = Math.hypot(f.x, f.z, hipY - f.y); if (d > reach) over = Math.max(over, Math.min(0.14, (d - reach) * 0.9)); }
+    // a foot in the air that the leg cannot reach is drawn in toward the hip (the knee folds); only a foot bearing weight may pull the hips down
+    let over = 0; [L, R].forEach((f, k) => { const reach = 0.83, hipY = 0.92 + p[IX.hy], hx = k ? -0.095 : 0.095, d = Math.hypot(f.x - hx, f.z, hipY - f.y);
+      if (d <= reach) return; if (gaiting && !this.stride.stance[k]) { const q = (reach * 0.995) / d; f.set(hx + (f.x - hx) * q, hipY - (hipY - f.y) * q, f.z * q); } else over = Math.max(over, Math.min(0.14, (d - reach) * 0.9)); });
     this.drop += (over - this.drop) * Math.min(1, dt * 22); p[IX.hy] -= this.drop;
-    this.body.solve(p);
+    this.body.solve(p); this.weapon.quaternion.copy(this.body.gripAdj).multiply(this.weaponQ);
     const sp = Math.hypot(m.vx, m.vz); this.chains.update(root, dt, t, 1.1, -0.5, sp * 0.05); this.rig.apply(); this.group.updateMatrixWorld(true);
 
     // --- trails and embers
@@ -123,7 +129,7 @@ export class PlayerView {
     // the blade tip scraping stone
     if (!hot && this.tip.y < 0.09 && this.tipSpeed > 0.7 && Math.random() < Math.min(0.75, this.tipSpeed * 0.16)) this.fx.sparks.emit(V(this.tip.x, 0.03, this.tip.z), V(-m.vx * 0.1, 0.5, -m.vz * 0.1), 2, 1.5 + this.tipSpeed * 0.25, 1.2, 0.45, t);
     if (hot && this.tipSpeed > 12 && Math.random() < 0.8) this.fx.sparks.emit(this.tip, V(0, 0.3, 0), 2, 0.9, 1.6, -0.9, t);
-    this.aura.value += (this.auraStep - this.aura.value) * Math.min(1, dt * 3); const rites = inClip && m.clip!.name === 'rites', wantLong = rites && m.t > 0.4 && m.t < 3.6 ? (m.t < 1.4 ? sst(0.4, 0.8, m.t) * 0.6 : m.t < 1.95 ? 0.6 + sst(1.4, 1.75, m.t) * 3.4 : m.t < 2.9 ? 2.2 : 2.6 * sst(3.5, 2.95, m.t)) : this.auraStep >= 4 ? 1.1 : 0; this.long += (wantLong - this.long) * Math.min(1, dt * 18); this.blaze.set(Math.max(0.2, this.long), rites ? Math.min(1, this.long) : Math.min(0.3, this.long * 0.3));
+    this.aura.value += (this.auraStep - this.aura.value) * Math.min(1, dt * 3); const rites = inClip && m.clip!.name === 'rites', wantLong = inClip && m.clip!.name === 'pyreWheel' && m.t > 0.12 && m.t < 0.95 ? 0.9 : rites && m.t > 0.4 && m.t < 3.6 ? (m.t < 1.4 ? sst(0.4, 0.8, m.t) * 0.6 : m.t < 1.95 ? 0.6 + sst(1.4, 1.75, m.t) * 3.4 : m.t < 2.9 ? 2.2 : 2.6 * sst(3.5, 2.95, m.t)) : this.auraStep >= 4 ? 1.1 : 0; this.long += (wantLong - this.long) * Math.min(1, dt * 18); this.blaze.set(Math.max(0.2, this.long), rites ? Math.min(1, this.long) : Math.min(0.3, this.long * 0.3));
     this.auraFx(m, t, dt, sp);
     const charging = inClip && m.clip!.name === this.arm.charge ? Math.min(1, m.t / 1.2) : 0, want = 0.35 + this.fireK * 0.75 + this.aura.value * 0.16 + charging * 1.1 + (hot ? 0.35 : 0) + (m.calm < 2 ? 0.15 : 0);
     this.ember += (want - this.ember) * Math.min(1, dt * 5); SHARED.uEmber.value = this.ember;
@@ -163,11 +169,15 @@ export class PlayerView {
       if (e === 'fx:throw' || e === 'fx:sunder') { const big = e === 'fx:sunder'; this.shake = big ? 0.5 : 0.2; this.ember = 1.6; const f = V(Math.sin(m.yaw), 0, Math.cos(m.yaw)); this.fx.sparks.emit(V(m.x + f.x, 1.2, m.z + f.z), f, big ? 70 : 24, 5, 1.2, 0.6, t); if (big) this.fx.bursts.add('flare', V(m.x + f.x, 1.4, m.z + f.z), 3, 0.25, t); }
       if (e === 'fx:rekindle') { this.shake = 0.8; this.ember = 2; this.flash.value.set(1, 0.36, 0.07, 1.2); this.fx.bursts.add('ground', V(m.x, 0.06, m.z), 10, 0.7, t); this.fx.bursts.add('flare', V(m.x, 1.2, m.z), 6, 0.35, t); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283; this.fx.bursts.add('pillar', V(m.x + Math.cos(a) * 1.4, 0, m.z + Math.sin(a) * 1.4), 2.6, 0.8, t + 0.03); } this.fx.sparks.emit(V(m.x, 1.2, m.z), V(0, 0.4, 0), 120, 5, 2.4, -1.6, t); this.boomAt.set(m.x, 1.6, m.z); this.boomK = 1; }
       if (e === 'fx:rites') { this.shake = 1; this.ember = 2; }
+      if (e === 'fx:blink') { this.ghosts.snap(t); this.ghostT = 0.2; }
+      if (e === 'fx:stepCut') { this.shake = 0.7; this.ember = 1.9; const g = V(this.tip.x, 0.05, this.tip.z); this.fx.bursts.add('ground', g, 4, 0.5, t); this.fx.sparks.emit(g, V(0, 1, 0), 60, 4.5, 2, 0.8, t); this.fx.puffs.emit(g, 8, 2, 1.1, t); }
+      if (e === 'fx:wheelFire') { this.ember = 1.9; this.ghosts.snap(t); this.fx.bursts.add('ring', V(m.x, 1.0, m.z), 5.2, 0.32, t, 0, 1.6, 0.6, 0.15); }
+      if (e === 'fx:ashfall') { this.ember = 2; const q = V(); this.rig.bones[this.rig.i('hand.L')].localToWorld(q); this.fx.bursts.add('flare', q, 2.4, 0.4, t); this.fx.sparks.emit(q, V(0, 1, 0), 60, 7, 1.4, -0.6, t); this.boomAt.copy(q); this.boomK = Math.max(this.boomK, 0.4); }
       if (e === 'fx:scrape') this.fx.sparks.emit(V(this.tip.x, 0.03, this.tip.z), V(Math.sin(m.yaw) * 0.7, 0.6, Math.cos(m.yaw) * 0.7), 10, 3, 0.9, 0.5, t);
     }
     // Cinder Rush: body to ash and back, a burning wall where it passed
     const rush = inClip && m.clip!.name === 'rush', dead = inClip && m.clip!.name === 'die';
-    const gone = rites && m.t > 1.9 && m.t < 2.98, u = (m.t - 2.0) / 0.14, dw = rush ? sst(0.05, 0.12, m.t) * sst(0.5, 0.34, m.t) : dead ? sst(1.5, 2.9, m.t) : gone ? (m.t < 2.0 ? sst(1.9, 1.96, m.t) : m.t > 2.84 ? sst(2.96, 2.91, m.t) : sst(0.55, 0.95, u - Math.floor(u)) * 0.9) : 0; this.dis.value = rush || dead || gone ? dw : Math.max(0, this.dis.value - dt * 6); this.shadow.castShadow = this.dis.value < 0.5;
+    const step = inClip && m.clip!.name === 'ashstep', gone = rites && m.t > 1.9 && m.t < 2.98, u = (m.t - 2.0) / 0.14, dw = rush ? sst(0.05, 0.12, m.t) * sst(0.5, 0.34, m.t) : dead ? sst(1.5, 2.9, m.t) : gone ? (m.t < 2.0 ? sst(1.9, 1.96, m.t) : m.t > 2.84 ? sst(2.96, 2.91, m.t) : sst(0.55, 0.95, u - Math.floor(u)) * 0.9) : 0; this.dis.value = rush || dead || gone ? dw : step ? sst(0.08, 0.15, m.t) * sst(0.36, 0.28, m.t) : Math.max(0, this.dis.value - dt * 6); this.shadow.castShadow = this.dis.value < 0.5;
     const on = rush && m.t > 0.06 && m.t < 0.42; if (on) { for (let d = m.speed * dt; d > 0; d -= 0.42) { const sx = m.vx / (m.speed || 1), sz = m.vz / (m.speed || 1); this.fx.bursts.add('pillar', V(m.x - sx * d, -0.04, m.z - sz * d), 1.1 + Math.random() * 0.5, 1.0 + Math.random() * 0.25, t); } }
     if (on) { for (let i = 0; i < 3; i++) this.fx.sparks.emit(V(m.x - m.vx * dt * i / 3, 0.2 + Math.random() * 1.5, m.z - m.vz * dt * i / 3), V(0, 0.5, 0), 5, 1.2, 1.6, -1.7, t); }
     if (dead && m.t > 1.4 && m.t < 3) this.fx.sparks.emit(V(m.x, 0.3 + Math.random() * 1.0, m.z), V(0.2, 0.7, 0), 2, 0.7, 1.4, -2, t);

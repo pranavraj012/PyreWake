@@ -2,7 +2,7 @@
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 const BUDGET = { phone: { draws: 120, tris: 250e3 }, mid: { draws: 180, tris: 450e3 }, high: { draws: 300, tris: 900e3 } };
-const srv = await createServer({ server: { port: 5198 }, logLevel: 'error' }); await srv.listen();
+const srv = await createServer({ server: { port: +(process.env.PORT ?? 5198) }, logLevel: 'error' }); await srv.listen();
 const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--force-high-performance-gpu'] });
 let bad = 0; const check = (ok, msg) => { if (!ok) bad++; console.log(ok ? 'ok  ' : 'FAIL', msg); };
 for (const tier of ['phone', 'mid', 'high']) {
@@ -11,7 +11,7 @@ for (const tier of ['phone', 'mid', 'high']) {
   p.on('response', async r => { try { if (/baked|\.js|\.css/.test(r.url())) bytes += (await r.body()).length; } catch { } });
   p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
   const cdp = await ctx.newCDPSession(p); const t0 = Date.now();
-  await p.goto(`http://localhost:5198/?nointro&tier=${tier}${phone ? '&touch' : ''}`);
+  await p.goto(`http://localhost:${process.env.PORT ?? 5198}/?nointro&tier=${tier}${process.env.Q ? "&" + process.env.Q : ""}${phone ? '&touch' : ''}`);
   await p.waitForFunction(() => window.__frames > 30, null, { timeout: 60000 }); const load = Date.now() - t0;
   if (phone) await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   const before = await p.evaluate(() => window.__pos);

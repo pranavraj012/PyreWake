@@ -2,11 +2,11 @@
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 const phone = process.argv.includes('--phone'), q = process.argv.find(a => a.startsWith('--q='))?.slice(4) ?? '', secs = +(process.argv.find(a => a.startsWith('--secs='))?.slice(7) ?? 90);
-const srv = await createServer({ server: { port: 5192 }, logLevel: 'error' }); await srv.listen();
+const srv = await createServer({ server: { port: +(process.env.PORT ?? 5192) }, logLevel: 'error' }); await srv.listen();
 const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--force-high-performance-gpu', '--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage(phone ? { viewport: { width: 844, height: 390 }, deviceScaleFactor: 1.5 } : { viewport: { width: 1600, height: 900 } }), errs = [];
 p.on('pageerror', e => errs.push(e.message)); p.on('console', m => (m.type() === 'error' || /THREE|WebGL/.test(m.text())) && errs.push(m.text().slice(0, 300)));
-await p.goto(`http://localhost:5192/?nointro&tier=${phone ? 'phone' : 'high'}&${q}`); await p.waitForFunction(() => window.__frames > 60, null, { timeout: 60000 });
+await p.goto(`http://localhost:${process.env.PORT ?? 5192}/?nointro&tier=${phone ? 'phone' : 'high'}&${q}`); await p.waitForFunction(() => window.__frames > 60, null, { timeout: 60000 });
 const r = await p.evaluate(secs => new Promise(res => {
   const key = (t, c) => dispatchEvent(new KeyboardEvent(t, { code: c, key: c })), tap = c => { key('keydown', c); setTimeout(() => key('keyup', c), 60); };
   const st = performance.now(), long = []; new PerformanceObserver(l => { for (const e of l.getEntries()) long.push([+((e.startTime - st) / 1000).toFixed(1), Math.round(e.duration)]); }).observe({ entryTypes: ['longtask'] }); const hitch = [], clips = {}, modes = {}, mem = []; let last = st, n = 0, tris = 0, calls = 0, pos = [0, 0], still = 0, stuck = 0, dead = 0, wasDead = false, next = 0, w = false, cue = 0, act = false, serial = -1, far = 0, lastMem = 0, cpu = [], lv = [], apk = 0, camIn = 0, camLow = 9;

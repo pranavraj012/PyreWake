@@ -1,7 +1,7 @@
 // The Pyrekeeper.
 import { HUMAN, boneIndex, ARM_DIR } from '../../src/anim/skeletons.ts';
 import { CLOTHS, clothWeights } from '../../src/anim/cloth.ts';
-import { Field, add, any, ball, belly, box, clamp, cone, curve, ell, fbm, lerp3, mix, mul, noise, ridged, smax, sstep, tube, type V3 } from '../sdf.ts';
+import { Field, add, any, ball, belly, box, clamp, cone, curve, ell, fbm, lerp3, mix, mul, noise, ridged, smax, sstep, sub, tube, type V3 } from '../sdf.ts';
 import { bakeAO, decimate, merge, meshField, type Baked, type Mesh } from '../mesher.ts';
 import { sheet } from '../sheet.ts';
 
@@ -109,9 +109,9 @@ export async function player(): Promise<Mesh> {
     const e = mir(at('foreArm.L'), s), w = mir(at('hand.L'), s), d = mir(D, s), n: V3 = [-0.766 * s, -0.643, 0];
     arms.bone = b['foreArm.' + S];
     const P = (al: number, nn: number, zz: number, o: V3 = w): V3 => [o[0] + d[0] * al + n[0] * nn, o[1] + d[1] * al + n[1] * nn, o[2] + zz];
-    arms.put(cone(e, w, 0.036, 0.023)).put(belly(P(-0.02, 0.012, 0.012, e), P(-0.04, 0.004, 0.008), 0.02, 0.041, 0.014, 0.28)).put(belly(P(0, -0.014, 0.008, e), P(-0.06, -0.004, 0), 0.018, 0.035, 0.013, 0.3)).put(belly(P(-0.03, -0.004, 0.026, e), P(-0.05, 0.0, 0.02), 0.014, 0.03, 0.01, 0.25));
+    arms.put(cone(e, w, 0.036, 0.024)).put(belly(P(-0.02, 0.012, 0.012, e), P(-0.04, 0.004, 0.008), 0.02, 0.041, 0.014, 0.28)).put(belly(P(0, -0.014, 0.008, e), P(-0.06, -0.004, 0), 0.018, 0.035, 0.013, 0.3)).put(belly(P(-0.03, -0.004, 0.026, e), P(-0.05, 0.0, 0.02), 0.014, 0.03, 0.01, 0.25));
     arms.bone = b['hand.' + S];
-    arms.put(ell(P(0.005, 0, 0), [0.027, 0.027, 0.03]), { k: 0.02 });
+    arms.put(ell(P(0.012, 0, 0), [0.025, 0.021, 0.028]), { k: 0.02 }).put(ell(P(0.05, -0.002, 0.004), [0.034, 0.02, 0.038]), { k: 0.02 });
     arms.put(cone(P(0.02, 0, 0.016), P(0.085, -0.004, 0.026), 0.018, 0.016)).put(cone(P(0.02, 0, -0.012), P(0.082, -0.004, -0.028), 0.018, 0.015)).put(cone(P(0.03, 0, 0), P(0.085, -0.004, 0), 0.019, 0.016));
     for (let i = 0; i < 4; i++) {
       const z = 0.031 - i * 0.021, r = [0.0105, 0.011, 0.0105, 0.0092][i], L = [0.94, 1, 0.95, 0.82][i];
@@ -158,7 +158,7 @@ export async function player(): Promise<Mesh> {
     lea.put(box([f[0] + 0.004 * s, 0.012, 0.045], [0.041, 0.012, 0.135], 0.012), { k: 0.008 });
     lea.bone = b['foreArm.' + S];
     const e = mir(at('foreArm.L'), s), d = mir(D, s);
-    for (const q of [0.05, 0.2]) lea.put(cone(add(e, mul(d, q)), add(e, mul(d, q + 0.018)), 0.05 - q * 0.085, 0.049 - q * 0.085), { k: 0.003 });
+    const wl = Math.hypot(...sub(mir(at('hand.L'), s), e)), ar = (q: number) => 0.036 - 0.016 * Math.min(1, q / wl) + 0.0045; for (const q of [0.05, 0.19]) lea.put(cone(add(e, mul(d, q)), add(e, mul(d, q + 0.02)), ar(q), ar(q + 0.02)), { k: 0.003 });
   }
   const ring = (y: number, rx: number, rz: number, tilt: number, z = 0) => { const p: V3[] = []; for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2; p.push([Math.sin(a) * rx, y + tilt * Math.sin(a), z + Math.cos(a) * rz]); } return p; };
   const strap = (pts: V3[], hh: number, th: number, bone: number) => { const s = tube(pts, () => th); lea.put(any((x, y, z) => { let m = 1e9; for (const o of [-1, -0.33, 0.33, 1]) m = Math.min(m, s[0](x, y + o * hh, z)); return m; }, s[1], s[2] + hh), { bone, k: 0.004 }); };

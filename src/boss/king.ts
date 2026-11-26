@@ -8,7 +8,7 @@ export type KingMode = 'idle' | 'stalk' | 'strafe' | 'crawl' | 'hang' | 'slam' |
   | 'flurry' | 'cross' | 'skewer' | 'rupture' | 'rain' | 'wheel' | 'hop' | 'reel2' | 'rise2' | 'die2';
 export const KING_MODES: KingMode[] = ['idle', 'stalk', 'strafe', 'slam', 'sweep', 'drag', 'leap', 'grab', 'reel', 'kneel', 'fall', 'crawl', 'pounce', 'rake', 'hang', 'hangSwing', 'hangSwipe', 'crash'];
 export const BENEATH_MODES: KingMode[] = ['idle', 'strafe', 'flurry', 'cross', 'skewer', 'rupture', 'rain', 'wheel', 'hop', 'reel2', 'kneel', 'rise2', 'die2'];
-export const isAttack = (m: KingMode) => m in ATTACKS;
+export const isAttack = (m: string) => m in ATTACKS;
 const sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }, wrap = (a: number) => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;
 /** Pivot height of the hang, and how far below it the head swings. */
 export const ROPE = 10.6, HEAD_DROP = 8.9;
@@ -33,6 +33,8 @@ export class King {
   /** True from the start of an attack until its last blow has landed: it can't be interrupted. */
   get committed() { const s = this.strikes; return s.length > 0 && this.mt < s[s.length - 1].t[1]; }
   get helpless() { return this.mode === 'kneel' || this.mode === 'crash' || this.mode === 'reel' || this.mode === 'reel2'; }
+  get attacking() { return isAttack(this.mode); } get vulnerable() { return true; } get dmgMul() { return 1; } get hp(): [number, number] { return [D.boss.hp1, D.boss.hp2]; }
+  get reelMode() { return this.form === 2 ? 'reel2' : 'reel'; } get kneelMode() { return 'kneel'; } get downMode() { return this.hanging ? 'crash' : 'fall'; } get dieMode() { return 'die2'; } get reeling() { return this.mode === 'reel' || this.mode === 'reel2'; } get holdKneel() { return 1.6; } get holdDie() { return 5.3; }
   /** Its attack is broken: whatever it was doing stops here. From a leap, it falls. */
   break() { const y = this.y; this.set(this.form === 2 ? 'reel2' : 'reel'); this.y = y; this.vy = 0; }
   turn(step: number, to: number) { const d = wrap(to - this.yaw); this.yaw += Math.max(-step, Math.min(step, d)); return d; }

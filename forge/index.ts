@@ -34,15 +34,26 @@ const JOBS: Record<string, () => Promise<Mesh>> = {
   roots2: async () => (await import('./models/arena.ts')).rootClump(3),
   shroud: async () => (await import('./models/arena.ts')).shroud(),
   pyre: async () => (await import('./models/arena.ts')).pyre(),
+  ferryman: async () => (await import('./models/river.ts')).ferryman(),
+  ferryman2: async () => (await import('./models/river.ts')).ferryman(true),
+  pole: async () => (await import('./models/river.ts')).pole(),
+  anchor: async () => (await import('./models/river.ts')).anchor(),
+  lantern: async () => (await import('./models/river.ts')).lantern(),
+  boat: async () => (await import('./models/river.ts')).boat(),
+  boatBits: async () => (await import('./models/river.ts')).boatBits(),
+  arm: async () => (await import('./models/river.ts')).arm(),
+  drowned: async () => (await import('./models/river.ts')).drowned(),
+  hull: async () => (await import('./models/river.ts')).hull(),
+  section: async () => (await import('./models/river.ts')).section(),
 };
 
 const OUT = 'public/baked';
 fs.mkdirSync(OUT, { recursive: true });
 if (process.argv[2] === '--one') {
   const n = process.argv[3], t = Date.now(), m = await JOBS[n](), s = packMesh(m, `${OUT}/${n}.bin`);
-  packMesh(await decimate(m, Math.round(m.idx.length / 3 * (n === 'player' || n === 'king' || n === 'beneath' ? 0.29 : n.startsWith('block') ? 0.36 : 0.45))), `${OUT}/${n}.lo.bin`);
+  packMesh(await decimate(m, Math.round(m.idx.length / 3 * (n === 'player' || n === 'king' || n === 'beneath' || (n === 'ferryman' || n === 'ferryman2') ? 0.29 : n.startsWith('block') ? 0.36 : 0.45))), `${OUT}/${n}.lo.bin`);
   // afterimages and shadow stand-ins
-  const xs = n === 'player' || n === 'king' || n === 'beneath' ? 4500 : n.startsWith('pillar') && !n.endsWith('Bits') ? 260 : n === 'stele' ? 160 : 0; if (xs) packMesh(await decimate(m, xs), `${OUT}/${n}.xs.bin`);
+  const xs = n === 'player' || n === 'king' || n === 'beneath' || (n === 'ferryman' || n === 'ferryman2') ? 4500 : n.startsWith('pillar') && !n.endsWith('Bits') ? 260 : n === 'stele' ? 160 : n === 'boat' ? 300 : 0; if (xs) packMesh(await decimate(m, xs), `${OUT}/${n}.xs.bin`);
   console.log(`${n.padEnd(9)} ${String(s.tris).padStart(6)} tris  ${String(s.kb).padStart(5)} KB  ${((Date.now() - t) / 1000).toFixed(1)}s`);
 } else if (process.argv[2] === 'textures') {
   await (await import('./textures.ts')).bakeTextures('assets_src', OUT + '/tex');

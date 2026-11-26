@@ -11,7 +11,7 @@ const seeded = (s: number) => () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imu
 
 type P2 = [number, number];
 /** Worn floor slabs. Some are split into shards that have settled at different angles. */
-function slabs(r: () => number, lo: boolean) {
+export function slabs(r: () => number, lo: boolean) {
   const pos: number[] = [], nrm: number[] = [], info: number[] = [], idx: number[] = [];
   const poly = (p: P2[], y: number, tilt: number) => {
     const n = p.length, cx = p.reduce((a, q) => a + q[0], 0) / n, cz = p.reduce((a, q) => a + q[1], 0) / n, tx = (r() - 0.5) * tilt, tz = (r() - 0.5) * tilt, b = 0.016 + r() * 0.014;

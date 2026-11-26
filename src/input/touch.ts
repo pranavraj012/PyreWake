@@ -1,5 +1,6 @@
 // On-screen joystick and buttons (multi-touch, safe-area aware).
 import type { Action, Input } from './input.ts';
+import type { Spell } from '../combat/spells.ts';
 
 export const ICON: Record<string, string> = {
   attack: '<path d="M5 19 17 5l2-1-1 2L7 18z M4 16l4 4"/>',
@@ -14,6 +15,8 @@ export const ICON: Record<string, string> = {
 };
 const LABEL: Partial<Record<Action, string>> = { attack: 'Attack', dodge: 'Dodge', jump: 'Jump', guard: 'Guard', heal: 'Heal', skill1: 'Rush', skill2: 'Sunder', ultimate: 'Rites' };
 
+/** The spell buttons show whatever is carried. */
+export function spellButtons(a: Spell, b: Spell) { for (const [k, s] of [['skill1', a], ['skill2', b]] as const) { ICON[k] = s.icon; LABEL[k] = s.short; const e = document.querySelector(`.tb-${k}`); if (e) { e.querySelector('svg')!.innerHTML = s.icon; const i = e.querySelector('i'); if (i) i.textContent = s.short; } } }
 export function mountTouch(root: HTMLElement, input: Input) {
   const ui = document.createElement('div'); ui.id = 'touch';
   ui.innerHTML = `<div class="pad-l"><div class="base"><div class="knob"></div></div></div><div class="pad-r"></div>` +

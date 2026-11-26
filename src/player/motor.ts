@@ -1,4 +1,5 @@
 // Player state machine and movement. No rendering imports: runs headless in tests.
+import { DEFAULT_SPELLS, SPELLS, type SpellId } from '../combat/spells.ts';
 import { moveAt, type Clip } from '../anim/pose.ts';
 import { D } from '../combat/difficulty.ts';
 import { KHANDA } from '../weapons/khanda.ts';
@@ -25,6 +26,7 @@ export class Motor {
   /** Seconds left in which Attack answers a parry or a perfect dodge. */ reckoning = 0; private guardedT = 9;
   /** Height off the floor, and climb rate. */ y = 0; vy = 0; private airV = { x: 0, z: 0 }; private airCuts = 0; /** Seconds in which a plunge hits harder, for having leapt over something. */ sky = 0; /** Seconds until the long answer to a perfect defence returns. */ flourish = 0; private rip = 0;
   private which = 0; private deep = 0; private chain: string[]; private at: Record<string, number> = {}; private rites = { a: 0, n: 0, x: 0, z: 0 };
+  /** The two fire arts carried, for the two spell buttons. */ spells: [SpellId, SpellId] = [...DEFAULT_SPELLS];
   rushFrom = { x: 0, z: 0 }; private rushDist = 6; private gap = 0;
   private buf: { a: string; t: number } | null = null; private lastMove = 0; private comboT = 0;
   events: string[] = []; started = 0; arena = 21.4; blockers: Blocker[] = []; target: Blocker | null = null;
@@ -105,9 +107,17 @@ export class Motor {
     }
     this.safe = D.dodgeSafe; this.dodgeAge = 0; this.didFlick = false; this.guarding = false;
   }
-  private rush(mx: number, mz: number) {
+  private casting(name: string) { return name === 'rush' || this.spells.some(s => SPELLS[s].clip === name); }
+  /** Fire art in slot `i`. */
+  private cast(i: 0 | 1, mx: number, mz: number) {
+    const s = SPELLS[this.spells[i]]; if (s.id === 'rush') { this.rush(mx, mz, i); return; }
+    this.art(s.clip, mx, mz); this.events.push('use:skill' + (i + 1), 'cast:' + s.id); if (s.id === 'ashstep' || s.id === 'wheel') this.safe = s.id === 'ashstep' ? 0.55 : 0.3;
+  }
+  /** Ashen Step: from where you stood to its far side, facing it. */
+  private blink() { const t = this.target; if (!t || this.targetDist > 14) return; const a = Math.atan2(this.x - t.x, this.z - t.z) + Math.PI, R = t.r + 1.35; this.x = t.x + Math.sin(a) * R; this.z = t.z + Math.cos(a) * R; const q = Math.hypot(this.x, this.z), lim = this.arena - 0.6; if (q > lim) { this.x *= lim / q; this.z *= lim / q; } this.yaw = this.toTarget(); this.moveYaw = this.yaw; this.events.push('about'); }
+  private rush(mx: number, mz: number, slot = 0) {
     const near = this.target && this.targetDist < 9; if (near) this.yaw = this.toTarget(); else if (Math.hypot(mx, mz) > 0.2) this.yaw = Math.atan2(mx, mz);
-    this.rushDist = near ? Math.max(4.2, this.targetDist + 2.9) : 7; this.rushFrom = { x: this.x, z: this.z }; this.moveYaw = this.yaw; this.safe = 0.75; this.combo = 0; this.didFlick = false; this.guarding = false; this.begin('rush'); this.events.push('use:skill1');
+    this.rushDist = near ? Math.max(4.2, this.targetDist + 2.9) : 7; this.rushFrom = { x: this.x, z: this.z }; this.moveYaw = this.yaw; this.safe = 0.75; this.combo = 0; this.didFlick = false; this.guarding = false; this.begin('rush'); this.events.push('use:skill' + (slot + 1), 'cast:rush');
   }
   /** Struck. `from` is the world yaw pointing at whatever did it. */
   hurt(from: number, down: boolean) { this.yaw = from; this.moveYaw = from; this.buf = null; this.hold = -1; this.combo = 0; this.guarding = false; this.didFlick = false; this.begin(down ? 'down' : 'hurt'); }
@@ -138,7 +148,7 @@ export class Motor {
 
     if (this.state === 'clip' && this.clip) {
       const c = this.clip; const t0 = this.t; this.t += dt; this.calm = /flick|clench/.test(c.name) ? this.calm + dt : 0; this.guarding = false;
-      for (const f of c.fx ?? []) if (f.t > t0 && f.t <= this.t) { this.events.push('fx:' + f.kind); if (f.kind === 'rcut') this.ritesStep(false); if (f.kind === 'rlast') this.ritesStep(true); }
+      for (const f of c.fx ?? []) if (f.t > t0 && f.t <= this.t) { this.events.push('fx:' + f.kind); if (f.kind === 'rcut') this.ritesStep(false); if (f.kind === 'rlast') this.ritesStep(true); if (f.kind === 'blink') this.blink(); }
       for (const h of c.hits ?? (c.hit ? [c.hit] : [])) { const s = Math.max(0.005, h[0] - 0.075); if (t0 < s && this.t >= s) this.events.push('swing'); }
       if (c.name === 'rush' && this.t >= 0.6 && this.t - dt < 0.6) { this.yaw = wrap(this.yaw + Math.PI); this.events.push('about'); }
       const scale = c.name === 'rush' ? this.rushDist : 1, m = moveAt(c, this.t) * scale; let d = m - this.lastMove; this.lastMove = m;
@@ -163,9 +173,9 @@ export class Motor {
       else if (scripted) { if (this.buf && this.t < 1) this.buf = null; }
       else if (this.buf?.a === 'dodge' && !early && !(reacting && !open) && !(c.name === 'reckon' && this.t < 0.95) && !(c.name === 'rush' && this.t < 0.45)) { this.buf = null; this.dodge(mx, mz); }
       else if (this.buf?.a === 'jump' && !early && !(reacting && !open) && !(c.name === 'reckon' && this.t < 0.95) && c.name !== 'rush' && (open || struck || isDodge(c))) { this.buf = null; this.jump(mx, mz); }
-      else if (this.buf?.a === 'skill1' && !early && !(reacting && !open) && c.name !== 'rush') { this.buf = null; this.rush(mx, mz); }
+      else if (this.buf?.a === 'skill1' && !early && !(reacting && !open) && !this.casting(c.name)) { this.buf = null; this.cast(0, mx, mz); }
       else if (this.buf?.a === 'ultimate' && !early && !(reacting && !open)) { this.buf = null; this.safe = 4; this.art('rites', mx, mz); this.events.push('use:ultimate'); }
-      else if (this.buf?.a === 'skill2' && !early && !(reacting && !open) && c.name !== 'sunder' && c.name !== 'rush') { this.buf = null; this.art('sunder', mx, mz); this.events.push('use:skill2'); }
+      else if (this.buf?.a === 'skill2' && !early && !(reacting && !open) && !this.casting(c.name)) { this.buf = null; this.cast(1, mx, mz); }
       else if (this.buf?.a === 'heal' && (open || struck) && c.name !== 'heal') { this.buf = null; this.begin('heal'); }
       // holding the very first press turns the opening cut into a charge
       else if (idx === 0 && this.hold > HOLD && this.t <= c.hit![0] + 0.03) { this.buf = null; this.combo = 0; this.faceTarget(mx, mz); this.begin(W.charge); }
@@ -179,9 +189,9 @@ export class Motor {
       this.guarding = this.guardHeld || this.guardT < D.parry; if (this.guarding) this.guardedT = 0; // a quick tap still parries
       if (this.buf?.a === 'dodge') { this.buf = null; this.dodge(mx, mz); }
       else if (this.buf?.a === 'jump') { this.buf = null; this.jump(mx, mz); }
-      else if (this.buf?.a === 'skill1') { this.buf = null; this.rush(mx, mz); }
+      else if (this.buf?.a === 'skill1') { this.buf = null; this.cast(0, mx, mz); }
       else if (this.buf?.a === 'ultimate') { this.buf = null; this.safe = 4; this.art('rites', mx, mz); this.events.push('use:ultimate'); }
-      else if (this.buf?.a === 'skill2') { this.buf = null; this.art('sunder', mx, mz); this.events.push('use:skill2'); }
+      else if (this.buf?.a === 'skill2') { this.buf = null; this.cast(1, mx, mz); }
       else if (this.buf?.a === 'heal') { this.buf = null; this.guarding = false; this.begin('heal'); }
       else if (this.hold > HOLD) { this.buf = null; this.guarding = false; this.faceTarget(mx, mz); this.begin(W.charge); }
       else if (this.buf?.a === 'attack' && (this.hold < 0 || this.buf.t > 0.1)) { this.buf = null; this.guarding = false; this.attack(mx, mz); }
