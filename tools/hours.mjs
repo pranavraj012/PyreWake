@@ -15,10 +15,11 @@ const cams = JSON.parse(process.env.CAMS ?? 'null') ?? [['front', [0, H, -4 + 5 
 if (!mode) {
   for (const [n, pos, look, fov] of cams) { await p.evaluate(c => { window.__shotCam = c; }, [pos, look, fov]); await p.waitForTimeout(900); tiles.push(await sharp(await p.screenshot({ type: 'jpeg', quality: 90 })).resize(480, 480).toBuffer()); }
 } else {
-  const cam = cams[+(process.env.CAM ?? 1)]; await p.evaluate(c => { window.__shotCam = c; }, [cam[1], cam[2], cam[3]]);
-  for (const t of ts.map(Number)) { await p.evaluate(([md, tt]) => { __f.passive = false; __f.invuln = 99; __king.x = 0; __king.z = -4; __king.yaw = 0; __king.set(md); window.__holdT = tt; }, [mode, t]);
-    // step the real loop until the move reaches t, then hold it there
-    await p.waitForFunction(tt => __king.mt >= tt || __king.mode !== window.__mode0, t, { timeout: 20000 }).catch(() => { }); await p.evaluate(() => { __f.passive = true; }); await p.waitForTimeout(250);
+  const cam = process.env.CAMS1 ? JSON.parse(process.env.CAMS1) : cams[+(process.env.CAM ?? 1)]; await p.evaluate(c => { window.__shotCam = c; }, [cam[1], cam[2], cam[3]]);
+  for (const t of ts.map(Number)) {
+    await p.evaluate(tt => { window.__T = tt; }, t);
+    await p.evaluate(([md]) => { __f.invuln = 99; __f.hazards.length = 0; window.__freezeAt = undefined; __king.x = 0; __king.z = -4; __king.yaw = 0; __m.revive(+(window.HX ?? 0.5), +(window.HZ ?? 3), Math.PI); __king.set(md); window.__freezeAt = window.__T; }, [mode]);
+    await p.waitForFunction(tt => __king.mt >= tt || __king.mode === 'idle', t, { timeout: 30000, polling: 'raf' }).catch(() => { }); await p.waitForTimeout(400);
     tiles.push(await sharp(await p.screenshot({ type: 'jpeg', quality: 90 })).resize(480, 480).composite([{ input: Buffer.from(`<svg width="480" height="40"><text x="10" y="28" font-size="22" fill="white">${mode} ${t}</text></svg>`), top: 0, left: 0 }]).toBuffer()); }
 }
 const cols = Math.min(5, tiles.length), rows = Math.ceil(tiles.length / cols), out = `shots_out/hours_${form}${mode ? '_' + mode : ''}.jpg`;
