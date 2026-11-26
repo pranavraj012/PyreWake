@@ -53,3 +53,6 @@ export const RIVER_ENDING = {
 
 // The presses the Ferryman's staged moments offer the hero. Cue prompts stay plain, as STYLE.md asks.
 export const RIVER_PRESS = { chain: 'Run the chain', lantern: 'Strike the lantern' } as const;
+
+// The call-outs in the river fight. Cues ("Cut them free", "Cut him", "Up the pole") are instructions and stay plain.
+export const RIVER_CALLS = { paid: 'Every one of them has paid', leapt: 'Jumped', souls: 'Cut them free', snapped: 'Chain broken', hauled: 'Hauled', cut: 'Cut him', pole: 'Up the pole', real: 'The real one' } as const;

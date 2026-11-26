@@ -9,6 +9,7 @@ import type { PlayerView } from '../player/view.ts';
 import type { MomentSpec } from './moment.ts';
 import type { Fx } from '../render/impact.ts';
 import type { Hud } from '../ui/hud.ts';
+import { KING_LINES, KING_STORY, KING_TITLES } from './kingScript.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 export interface SceneKit { f: Fight; pv: PlayerView; k1: KingView; k2: KingView; fx: Fx; hud: Hud }
@@ -25,14 +26,7 @@ export class Lens {
 export class Cues { private done = new Set<string>(); /** Skipped: what was still to come never happens. */ off = false; at(now: number, t: number, id: string, f: () => void) { if (now >= t && !this.done.has(id)) { this.done.add(id); if (!this.off) f(); } } clear() { this.done.clear(); this.off = false; } }
 
 // ---------------------------------------------------------------- why
-export const STORY = [
-  'In this land the dead are burned before dark, or they do not stay dead.',
-  'Keepers tend the pyres from dusk to dusk, and give every name to the fire.',
-  'The King feared the fire. He had himself hanged from the oldest tree, where no flame could reach him.',
-  'He never died. Night fell on the day he should have burned, and it has not lifted since.',
-  'The keepers went up to the tree, one by one. None came back to tend the fires.',
-  'Thou art the last keeper of the pyres. Burn the King, and let the morning in.',
-];
+export const STORY = KING_STORY;
 /** Which line is which: the camera and the fires follow the telling. */
 const FIRE = 0, KEEP = 1, KING = 2, NIGHT = 3, GONE = 4, YOU = 5;
 const LINE = 6.4;
@@ -88,10 +82,10 @@ export class Intro {
   step(dt: number, time: number): number {
     const { f, fx, hud, pv } = this.kit, m = f.m, k = f.king, c = this.c; this.t += dt; const real = this.t, t = at0(real); this.lens.trauma *= Math.exp(-dt * 2.6);
     if (t < 11.0) this.kneel();
-    c.at(real, 5.0, 'v0', () => hud.verse('Every keeper who came before thee lies in this court.')); c.at(real, 9.0, 'v0x', () => hud.verse(''));
-    c.at(real, 9.6, 'v1', () => hud.verse('He waits on his knees beneath the tree, as if he were the one at prayer.')); c.at(real, 14.4, 'v1x', () => hud.verse(''));
+    c.at(real, 5.0, 'v0', () => hud.verse(KING_LINES.keepers)); c.at(real, 9.0, 'v0x', () => hud.verse(''));
+    c.at(real, 9.6, 'v1', () => hud.verse(KING_LINES.kneel)); c.at(real, 14.4, 'v1x', () => hud.verse(''));
     c.at(t, 0.1, 'wind', () => sound.play('doom', { gain: 0.6 }));
-    c.at(t, 1.3, 'place', () => hud.say('The Charnel Court', 2.6, 'place'));
+    c.at(t, 1.3, 'place', () => hud.say(KING_TITLES.court, 2.6, 'place'));
     c.at(t, 3.2, 'b0', () => sound.play('kBreath', { gain: 0.5, wet: 0.9, x: 0, z: -4, bus: 'voice' }));
     for (let i = 0; i < 3; i++) c.at(t, 4.5 + i * 0.75, 's' + i, () => sound.play('scrape', { x: m.x, z: m.z, gain: 0.5, rate: 0.8 }));
     c.at(t, 6.9, 'eye', () => { pv.ember = 1.9; sound.play('flare', { gain: 0.6 }); sound.play('heart', { gain: 0.8 }); });
@@ -102,7 +96,7 @@ export class Intro {
     // each joint is drawn in before it lands
     for (const [n, at] of [11.2, 11.72, 12.32].entries()) { c.at(t, at - 0.42, 'r' + n, () => sound.play('rise' + n, { gain: 0.95, x: 0, z: -4 })); c.at(t, at, 'j' + n, () => { this.lens.trauma = 0.55 + n * 0.1; fx.puffs.emit(V(0, 0, -4), 6, 2, 1.1, time); }); }
     c.at(t, 11.9, 'swell', () => sound.play('swell', { gain: 0.8 }));
-    c.at(t, 12.75, 'roar', () => { sound.play('kScreech', { gain: 0.95, bus: 'voice' }); sound.play('braam', { gain: 0.85 }); sound.duck(0.4, 0.8); this.lens.trauma = 0.9; hud.say('The Hanged King', 2.0, 'title'); fx.puffs.emit(V(0, 0, -4), 18, 3, 1.6, time); fx.bursts.add('ground', V(0, 0.06, -4), 9, 0.9, time, 0, 0.7, 0.3, 0.1); });
+    c.at(t, 12.75, 'roar', () => { sound.play('kScreech', { gain: 0.95, bus: 'voice' }); sound.play('braam', { gain: 0.85 }); sound.duck(0.4, 0.8); this.lens.trauma = 0.9; hud.say(KING_TITLES.hanged, 2.0, 'title'); fx.puffs.emit(V(0, 0, -4), 18, 3, 1.6, time); fx.bursts.add('ground', V(0, 0.06, -4), 9, 0.9, time, 0, 0.7, 0.3, 0.1); });
     if (t > 12.75 && t < 14) this.lens.trauma = Math.max(this.lens.trauma, 0.7 * (1 - E(13, 14, t)));
     c.at(t, 14.5, 'ready', () => { m.begin('flick'); sound.play('sheathe', { gain: 0.7 }); });
     c.at(t, 14.85, 'burn', () => { pv.ember = 2; sound.play('aura1', { gain: 0.8 }); pv.boomAt.set(m.x, 1.3, m.z); pv.boomK = 0.4; for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283; fx.bursts.add('pillar', V(m.x + Math.cos(a) * 0.9, 0, m.z + Math.sin(a) * 0.9), 1.1, 0.7, time + i * 0.015); } fx.sparks.emit(V(m.x, 1, m.z), V(0, 0.6, 0), 60, 3, 2.2, -1.8, time); });
@@ -134,9 +128,9 @@ export class Ending {
   private place() { this.c.at(99, 0, 'place', () => { const { f, pv, k2 } = this.kit, m = f.m, k = f.king; k.x = 0; k.z = -11; k.yaw = 0; k2.settle(); m.revive(0, -7, 0); pv.reset(); }); }
   step(dt: number, time: number) {
     if (!this.active) return; const { f, pv, fx, hud } = this.kit, m = f.m, c = this.c; this.t += dt; const real = this.t, t = at1(real); this.lens.trauma *= Math.exp(-dt * 2.4);
-    c.at(real, 4.4, 'e0', () => hud.verse('He burns at last, a hundred years late.')); c.at(real, 6.5, 'e0x', () => hud.verse(''));
-    c.at(real, 9.0, 'e1', () => hud.verse('The night lifts from the court, as it should have on the day he died.')); c.at(real, 13.4, 'e1x', () => hud.verse(''));
-    c.at(real, 14.2, 'e2', () => hud.verse('The keepers who lie here are only the dead now. Thou givest each name to the fire.')); c.at(real, 18.7, 'e2x', () => hud.verse(''));
+    c.at(real, 4.4, 'e0', () => hud.verse(KING_LINES.burns)); c.at(real, 6.5, 'e0x', () => hud.verse(''));
+    c.at(real, 9.0, 'e1', () => hud.verse(KING_LINES.night)); c.at(real, 13.4, 'e1x', () => hud.verse(''));
+    c.at(real, 14.2, 'e2', () => hud.verse(KING_LINES.lastKeepers)); c.at(real, 18.7, 'e2x', () => hud.verse(''));
     this.clear = E(6.2, 11.5, t); this.dawn = E(9.5, 15, t);
     c.at(t, 0.05, 'hush', () => { sound.duck(0.05, 2.2); });
     c.at(t, 3.6, 'crack', () => sound.play('tear', { gain: 0.6, wet: 0.7 }));
@@ -150,7 +144,7 @@ export class Ending {
     c.at(t, 11.5, 'eye', () => { sound.play('heart', { gain: 0.6 }); });
     if (t > 11.6 && t < 14.2) pv.ember = Math.max(0.2, pv.ember - dt * 0.6);
     c.at(t, 14.2, 'rest', () => { m.begin('flick'); sound.play('whooshH', { gain: 0.5 }); });
-    c.at(t, 14.9, 'title', () => { hud.say('Morning, at Last', 3.6, 'victory', 'The dead lie still. The fire remembers their names.'); sound.play('uiGo', { gain: 0.6 }); });
+    c.at(t, 14.9, 'title', () => { hud.say(KING_TITLES.dawn, 3.6, 'victory', KING_TITLES.dawnSub); sound.play('uiGo', { gain: 0.6 }); });
     if (real >= END_LEN && !this.over) { this.over = true; this.clear = 1; this.dawn = 1; document.body.classList.remove('cine'); hud.won(f); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {

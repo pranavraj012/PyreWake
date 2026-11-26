@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { sound } from '../audio/sound.ts';
 import type { Fight } from '../combat/fight.ts';
 import { Lens, type SceneKit } from './scenes.ts';
+import { KING_LINES, KING_TITLES } from './kingScript.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 export const TURN_LEN = 27.6;
@@ -32,7 +33,7 @@ export class Turn {
     // --- it looks, and sounds, exactly like the end
     this.dawn = 0.6 * E(2.8, 5, t) * (1 - E(7.1, 7.5, t));
     this.at(2.6, 'relocate', () => { k.x = 0; k.z = -3; k.yaw = 0; k.set('fall'); k.mt = k.prev = 2.6; m.revive(0, 1.6, 0); pv.reset(); k1.settle(); sound.score?.set('won'); });
-    this.at(3.3, 'title', () => { hud.say('The Long Night Breaks', 3.3, 'victory', 'The King has fallen, and the sky goes grey.'); sound.play('uiGo', { gain: 0.5, wet: 0.5 }); });
+    this.at(3.3, 'title', () => { hud.say(KING_TITLES.fall, 3.3, 'victory', KING_TITLES.fallen); sound.play('uiGo', { gain: 0.5, wet: 0.5 }); });
     f.sceneMove.z = t > 2.7 && t < 7.2 ? 0.4 : 0; f.sceneMove.x = 0;
     this.at(5.5, 'lift', () => { k.set('hang'); k.ht = 0; k.dir = 0; sound.play('creak', { ...here, gain: 0.35 }); }); // behind him, out of his sight
 
@@ -40,7 +41,7 @@ export class Turn {
     this.at(7.2, 'stop', () => { sound.tracks?.stopTape(1.3); sound.score?.set('scene'); sound.play('drop', { gain: 0.9 }); pv.ember = 1.8; });
     for (const [i, at] of [7.7, 8.15, 8.6].entries()) this.at(at, 'out' + i, () => { sound.play('vanish', { gain: 0.65, rate: 0.62 - i * 0.07, x: (i - 1) * 9, z: -8 }); L.trauma = Math.max(L.trauma, 0.22); });
     this.flame = t < 7.7 ? 1 : t < BURST ? [0.62, 0.3, 0.03][t < 8.15 ? 0 : t < 8.6 ? 1 : 2] : 1 + 0.9 * Math.exp(-(t - BURST) * 0.5); this.dim = t > 7.7 && t < BURST ? 1 - 0.48 * E(7.7, 9, t) : 1;
-    this.at(8.4, 'v0', () => hud.verse('The fires go out. Behind thee, the rope is creaking again.')); this.at(12.0, 'v0x', () => hud.verse(''));
+    this.at(8.4, 'v0', () => hud.verse(KING_LINES.fires)); this.at(12.0, 'v0x', () => hud.verse(''));
     this.at(8.0, 'whisper', () => sound.play('whisper', { gain: 1 })); this.at(8.9, 'creak', () => sound.play('creak', { ...here, gain: 0.9 }));
     for (const [i, at] of [8.5, 9.3, 10.0, 10.6, 11.1, 11.5, 11.85].entries()) this.at(at, 'h' + i, () => sound.play('heart', { gain: 0.8 + i * 0.05 }));
     if (t > 9.2 && t < 10.5) m.yaw += (Math.PI - m.yaw) * Math.min(1, dt * 6);
@@ -59,7 +60,7 @@ export class Turn {
       this.become(); this.mono = 1; this.flash = 1.4; const c = V(0, 2, -3); for (let i = 0; i < 6; i++) fx.bursts.add('fire', c.clone().add(V((Math.random() - 0.5) * 2, Math.random() * 1.6 - 0.4, 0)), 4, 1.0, time + i * 0.03, i); fx.bursts.add('flare', c, 12, 0.5, time); fx.bursts.add('ring', c, 9, 0.7, time, 0, 1.6, 1.0, 0.5); fx.bursts.add('ground', V(0, 0.06, -3), 16, 1.0, time); fx.sparks.emit(c, V(0, 0.4, 0.3), 200, 8, 2.2, 1, time); fx.sparks.emit(c, V(0, 0.2, 0), 80, 3, 2.4, -2, time); fx.gore.emit(c, V(0, 0.3, 0.4), 120, 7, 2, 1.2, time); fx.puffs.emit(V(0, 0, -3), 18, 3.8, 1.9, time);
       pv.boomAt.set(0, 2, -3); pv.boomK = 1.4; L.trauma = 1; sound.play('boom', { gain: 1 }); sound.play('break', { gain: 0.8 }); sound.play('braam', { gain: 0.95 }); m.moveYaw = m.yaw; m.begin('down');
     });
-    this.at(BURST + 1.3, 'verse', () => hud.verse('He was only what it wore.')); this.at(ROAR - 0.7, 'verseOff', () => hud.verse(''));
+    this.at(BURST + 1.3, 'verse', () => hud.verse(KING_LINES.wore)); this.at(ROAR - 0.7, 'verseOff', () => hud.verse(''));
     this.at(BURST + 1.25, 'br', () => sound.play('kBreath', { ...here, bus: 'voice', gain: 1.5, rate: 0.7 }));
     // --- one pair of arms after another. The sound starts before the joint does: it has to be drawn in first.
     ARMS.forEach((at, i) => {
@@ -67,7 +68,7 @@ export class Turn {
       this.at(at, 'arm' + i, () => { L.trauma = Math.max(L.trauma, 0.6 + i * 0.14); this.flash = Math.max(this.flash, 0.08 + i * 0.04); this.ring = i + 1; this.wreck(3 + i); fx.sparks.emit(V(0, 1.3, -3), V(0, 0.6, 0), 40, 4, 2.4, -1, time); fx.puffs.emit(V(0, 0, -3), 8, 2.4, 1.2, time); fx.bursts.add('ground', V(0, 0.06, -3), 5 + i * 3, 0.7, time); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283 + i * 0.4, r = 3.4 + i * 1.7; fx.bursts.add('pillar', V(Math.cos(a) * r, 0, -3 + Math.sin(a) * r), 2.2 + i * 0.5, 0.8, time + q * 0.012); } });
     });
     this.at(ROAR - 0.75, 'breathIn', () => sound.play('swell', { gain: 1 }));
-    this.at(ROAR, 'roar', () => { sound.play('bRoar', { bus: 'voice', gain: 1.1, ...here }); sound.play('braam', { gain: 0.8 }); sound.play('doom', { gain: 1 }); sound.score?.set('reveal'); hud.say('The One Beneath', 3.8, 'title'); this.flash = 0.5; });
+    this.at(ROAR, 'roar', () => { sound.play('bRoar', { bus: 'voice', gain: 1.1, ...here }); sound.play('braam', { gain: 0.8 }); sound.play('doom', { gain: 1 }); sound.score?.set('reveal'); hud.say(KING_TITLES.beneath, 3.8, 'title'); this.flash = 0.5; });
     this.at(ROAR + 0.15, 'shock', () => { fx.bursts.add('ground', V(0, 0.06, -3), 30, 1.3, time); for (let w = 0; w < 2; w++) for (let i = 0; i < 9; i++) { const a = Math.PI + (i - 0.5) / 8 * Math.PI; fx.bursts.add('pillar', V(Math.cos(a) * (4 + w * 3), 0, -3.4 + Math.sin(a) * (4 + w * 3)), 2.8 + w, 0.9, time + 0.05 + w * 0.12); } fx.sparks.emit(V(0, 1.5, -3), V(0, 0.5, 0), 180, 9, 2.4, -2.4, time); fx.puffs.emit(V(0, 0, -1), 16, 4, 1.8, time); sound.play('fire', { gain: 1 }); sound.play('erupt', { gain: 0.7 }); m.moveYaw = m.yaw; m.begin('block'); });
     if (t > ROAR && t < ROAR + 2.4) L.trauma = Math.max(L.trauma, 0.75 * (1 - E(ROAR + 1, ROAR + 2.4, t)));
     this.at(TURN_LEN - 2.7, 'draw', () => { m.begin('flick'); sound.play('sheathe', { gain: 0.7 }); pv.ember = 1.8; });
