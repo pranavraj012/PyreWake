@@ -31,7 +31,9 @@ export class Lessons {
   }
   /** After the fight has stepped. `real` is wall time, `sim` what the fight saw of it. */
   step(real: number, sim: number) {
-    if (!this.active) return; const { f } = this, k = f.king; this.now += real; this.mono += ((this.frozen ? 0.55 : 0) - this.mono) * Math.min(1, real * 10); if (this.frozen) return;
+    if (!this.active) return; const { f } = this, k = f.king; this.now += real; this.mono += ((this.frozen ? 0.55 : 0) - this.mono) * Math.min(1, real * 10);
+    // a staged moment (a grab that has seized the hero) plays out on its own: the lesson neither moves the King nor judges the press until it ends
+    if (this.frozen || k.staging) return;
     this.got.push(...f.ev); this.clips.push(...f.m.events); void sim;
     // nobody is hurt in here
     f.bossHp = f.maxHp; if (this.card?.id !== 'heal') f.hp = Math.max(f.hp, 60); f.flame = true; if (k.hanging || k.crawling) k.set('idle');
