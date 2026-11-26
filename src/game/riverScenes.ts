@@ -123,7 +123,7 @@ export class RiverTurn {
     c.at(t, 11.0, 'net', () => { sound.play('snap', { gain: 0.9, wet: 0.6 }); sound.play('wave', { gain: 0.7, wet: 0.7 }); this.lens.trauma = 0.8; ghats.ripple(0, -5, 3, time); fx.puffs.emit(V(0, 0.4, -5), 24, 4, 2, time); for (let i = 0; i < 40; i++) fx.sparks.emit(V((Math.random() - 0.5) * 1.6, 1 + Math.random() * 2.4, -5 + (Math.random() - 0.5) * 1.6), V((Math.random() - 0.5), 0.6, (Math.random() - 0.5)), 2, 4, 1.6, 0.9, time); });
     c.at(t, 12.1, 'rise', () => { sound.play('wRoar', { gain: 0.9, wet: 0.7, bus: 'voice' }); sound.play('braam', { gain: 0.9 }); sound.duck(0.35, 1.2); this.lens.trauma = 1; ghats.lamps(0.6); ghats.ripple(0, -5, 4, time); fx.sparks.emit(V(0, 2, -5), V(0, 1.5, 0), 120, 7, 2, -1.2, time); });
     c.at(t, 15.6, 'lamps', () => { sound.play('aura2', { gain: 0.8, wet: 0.7 }); });
-    c.at(t, 17.2, 'title', () => { hud.say('The Unburdened', 2.8, 'title', 'Nothing left to carry. Nothing left to lose.'); sound.play('boom', { gain: 0.8 }); });
+    c.at(t, 17.2, 'title', () => { hud.say('The Unburdened', 2.8, 'title', 'Every fare he ever took has come up out of the river to him.'); sound.play('boom', { gain: 0.8 }); });
     this.mono = t < 2 ? 0.0 : t < 9.6 ? 0.55 * E(1.5, 4, t) : 0.4 * (1 - E(12.1, 16, t));
     if (t >= TURN_LEN) { this.stop(); hud.verse(''); f.beginRound2(); k.set('riseW'); k.mt = k.prev = 3.2; this.onEnd(); }
   }

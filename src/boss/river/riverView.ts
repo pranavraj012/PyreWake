@@ -21,7 +21,7 @@ export class RiverView implements BossView {
   group = new THREE.Group(); form: 1 | 2; sim: River; rig = new Rig(KING); body: Body; mesh: THREE.SkinnedMesh; cleaver: THREE.Mesh; man = new THREE.Group(); fxv: RiverFx; light: THREE.PointLight | null = null;
   wounds = { w: { value: Array.from({ length: 5 }, () => new THREE.Vector4()) }, n: { value: Array.from({ length: 5 }, () => new THREE.Vector3(0, 1, 0)) } }; private wi = 0; ember = { value: 0.8 }; flash = { value: new THREE.Vector4(1, 0.4, 0.1, 0) }; flashAt = { value: new THREE.Vector4(0, 0, 0, 1) }; dissolve = { value: 0 };
   pose: Pose = new Float32Array(N); private src = new Float32Array(N); private inert = new Inertial(); private last = ''; footing = new Footing(); gait2 = new Gait([0, 0.5]); private vel = V(); private rootM = new THREE.Matrix4(); private head = { w: 0 }; private visible = true; private orbit: THREE.Sprite[] = []; private lantern: THREE.Mesh; private sections: THREE.Mesh[] = []; private hull: THREE.Mesh | null = null;
-  shake = 0; steps = 0; fxFired: string[] = []; private fl = [0, 0, 0, 0]; private fv = [0, 0, 0, 0]; private jit = 0; private fx: Fx; private surf = 1; private lampK = 1; private scene: THREE.Scene; /** The ending: he is an old man in a boat, and the dead stand about. */ private old = false; private boatT = 0; private boatM: THREE.Mesh; private water: { ripple(x: number, z: number, a: number, t: number): void } | null = null; private hands = [V(), V()]; private glow: THREE.Sprite; private eyeM: THREE.Mesh[] = [];
+  shake = 0; steps = 0; fxFired: string[] = []; private fl = [0, 0, 0, 0]; private fv = [0, 0, 0, 0]; private jit = 0; private fx: Fx; private surf = 1; private lampK = 1; private scene: THREE.Scene; /** The ending: he is an old man in a boat, and the dead stand about. */ private old = false; private boatT = 0; private boatM: THREE.Mesh; private water: { ripple(x: number, z: number, a: number, t: number): void } | null = null; private hands = [V(), V()]; private glow: THREE.Sprite; private eyeM: THREE.Mesh[] = []; private heart: THREE.Sprite[] = [];
   /** Between the eyes, in the world. */ eyeAt(out: THREE.Vector3) { const a = this.eyeM[0].getWorldPosition(V()), b = this.eyeM[1].getWorldPosition(V()); return out.copy(a).add(b).multiplyScalar(0.5); }
   /** The eyes under the hat, 0 shut to 1 burning. */ eyes(k: number) { for (const e of this.eyeM) { e.visible = k > 0.02; e.scale.set(1, Math.max(0.05, k), 1); } }
   constructor(scene: THREE.Scene, g: RiverGeo, m: RiverMats, depth: { skin: THREE.Material; still: THREE.Material }, fx: Fx, sim: River, form: 1 | 2) {
@@ -35,6 +35,8 @@ export class RiverView implements BossView {
     const eye = new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 3.6, 4.2), fog: false }), h = KING.find(b => b.name === 'head')!.pos; for (const s of [1, -1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.017, 8, 6), eye); e.position.set(0.047 * s - h[0], 3.594 - h[1], 0.29 - h[2]); this.rig.bones[this.rig.i('head')].add(e); this.eyeM.push(e); const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: eyeTex, color: new THREE.Color(0.55, 0.7, 0.95), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); gl.scale.setScalar(0.13); gl.position.z = 0.03; e.add(gl); }
     this.fxv = new RiverFx(g, m.held, m.skin); scene.add(this.fxv.group); this.boatM = new THREE.Mesh(g.boat, m.wood); this.boatM.visible = false; this.boatM.castShadow = this.boatM.receiveShadow = true; this.boatM.scale.setScalar(1.05); scene.add(this.boatM);
     // round 2: the lamps of the river have come to him and turn about him
+    // round 2: a cold light where his heart was, showing at the open front of the coin cloak
+    if (form === 2) { const ch = KING.find(b => b.name === 'chest')!.pos; for (const [sc, col, z] of [[0.42, new THREE.Color(0.16, 0.34, 0.8), 0.24], [0.16, new THREE.Color(0.7, 0.85, 1.2), 0.26]] as const) { const g2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: eyeTex, color: col, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); g2.scale.setScalar(sc); g2.position.set(0, 2.62 - ch[1], z - ch[2]); this.rig.bones[this.rig.i('chest')].add(g2); this.heart.push(g2); } }
     if (form === 2) for (let k = 0; k < 7; k++) { const q = new THREE.Sprite((this.glow.material as THREE.SpriteMaterial).clone()); q.scale.setScalar(0.55); scene.add(q); this.orbit.push(q); }
   }
   standing(on: boolean) { this.fxv.crowd = on; }
@@ -92,7 +94,16 @@ export class RiverView implements BossView {
       this.gait2.update(dt, this.vel, this.form === 2 ? 2.9 : 2.3, this.form === 2 ? 0.42 : 0.6, this.form === 2 ? 0.34 : 0.26, rest, 24); lim.footL.copy(this.gait2.pos[0]).applyMatrix4(inv); lim.footR.copy(this.gait2.pos[1]).applyMatrix4(inv); this.footing.adopt(this.gait2.pos[0], this.gait2.pos[1]); p[IX.flp] = this.gait2.pitch[0]; p[IX.frp] = this.gait2.pitch[1];
       this.steps += this.gait2.landed.length; for (const i of this.gait2.landed) { this.fx.puffs.emit(this.gait2.pos[i], 2, 0.7, 0.8, t); this.shake = 0.1; this.water?.ripple(this.gait2.pos[i].x, this.gait2.pos[i].z, 0.45, t); }
     } else { this.body.footTargets(p, lim.footL, lim.footR); { this.footing.stepTime = this.form === 2 ? 0.2 : 0.34; this.footing.lift = 0.2; this.footing.slack = 0.3; this.footing.update(lim.footL, lim.footR, rm, dt, p[IX.air], 0.14); this.steps += this.footing.events.length; for (const i of this.footing.events) { this.shake = 0.1; this.water?.ripple(this.footing.world[i].x, this.footing.world[i].z, 0.45, t); } } }
-    lim.handL = lim.handR = null; this.body.solve(p);
+    lim.handL = lim.handR = null;
+    // --- the pole goes for you: in the last moments of a thrust or a stab, arm and pole turn to where the blow lands
+    const aim = this.aimFor(S0, px, pz);
+    if (aim > 0.01) {
+      this.body.solve(p); const r = this.rig, tg = this.aimAt.clone().applyMatrix4(inv), d = tg.clone().sub(r.pos[r.i('hand.R')]).normalize(), a = tg.clone().sub(r.pos[r.i('upperArm.R')]).normalize();
+      const ang = (from: number, to: number, k: number) => { let e = to - from; e -= Math.round(e / 360) * 360; return from + e * k; };
+      p[IX.ba] = ang(p[IX.ba], Math.atan2(d.x, d.z) / 0.01745, aim); p[IX.be] += (Math.asin(Math.max(-1, Math.min(1, d.y))) / 0.01745 - p[IX.be]) * aim;
+      p[IX.ra] = ang(p[IX.ra], Math.atan2(a.x, a.z) / 0.01745, aim * 0.75); p[IX.re] += (Math.asin(Math.max(-1, Math.min(1, a.y))) / 0.01745 - p[IX.re]) * aim * 0.75; p[IX.rl] += (0.96 - p[IX.rl]) * aim * 0.6;
+    }
+    this.body.solve(p);
     // --- hands close on the pole or the anchor
     const anchored = CHAIN_MODES.includes(m) || !!S0.chain, grip = 1; this.cleaver.visible = this.form === 2 || !anchored;
     for (let i = 0; i < 4; i++) { const w = Math.sin(t * 2.1 + i * 1.3) * 0.06; this.rig.euler(`f${i}a.L`, -0.1 + i * 0.07, 0, -0.3 - w).euler(`f${i}b.L`, 0, 0, -0.4 + w); this.rig.euler(`f${i}a.R`, (i * 0.07 - 0.1) * (1 - grip), 0, 0.35 + grip).euler(`f${i}b.R`, 0, 0, 0.5 + grip); }
@@ -106,6 +117,21 @@ export class RiverView implements BossView {
       if (f.kind === 'slam') { this.shake = 0.8; tip.y = 0.1; this.fx.sparks.emit(tip, V(0, 0.8, 0), 40, 5, 2, 0.8, t); this.fx.puffs.emit(tip, 8, 2.2, 1.0, t); this.water?.ripple(tip.x, tip.z, 1.6, t); } else if (f.kind === 'thud') { this.shake = 0.5; this.fx.puffs.emit(V(S0.x, 0, S0.z), 10, 2, 1.1, t); this.water?.ripple(S0.x, S0.z, 1.2, t); } else if (f.kind === 'launch') { this.shake = 0.3; this.fx.puffs.emit(V(S0.x, 0, S0.z), 10, 2, 1, t); this.water?.ripple(S0.x, S0.z, 1.6, t); } else if (f.kind === 'sweep') { tip.y = 0.15; this.water?.ripple(tip.x, tip.z, 0.8, t); }
     }
     this.shake *= Math.exp(-dt * 6); for (const w of this.wounds.w.value) w.w *= Math.exp(-dt * 0.09); this.ember.value += ((S0.committed ? 1.4 : 0.8) - this.ember.value) * Math.min(1, dt * 4);
+  }
+  private aimAt = V(); private aimLock = new Map<object, THREE.Vector3>(); private aimSerial = -1;
+  /** How much the pole is aimed (0-1) this frame, and where (`aimAt`): your chest for a thrust, the marked spot for a stab. */
+  private aimFor(S0: River, px: number, pz: number) {
+    if (S0.serial !== this.aimSerial) { this.aimSerial = S0.serial; this.aimLock.clear(); }
+    const mt = S0.mt;
+    for (const q of S0.strikes) {
+      if (q.mark !== 'cleaver' || !(q.box || q.down) || q.zones?.some(z => z.at === 'mark')) continue;
+      if (mt < q.cue || mt > q.t[1] + 0.35) continue;
+      const stab = !q.box, ground = stab && q.zones?.some(z => z.at === 'player');
+      if (!this.aimLock.has(q) && (ground ? mt >= q.cue : mt >= q.t[0] - 0.14)) this.aimLock.set(q, V(px, ground ? 0.12 : q.low ? 0.5 : 1.05, pz));
+      const lock = this.aimLock.get(q); if (lock) this.aimAt.copy(lock); else this.aimAt.set(px, q.low ? 0.5 : 1.05, pz);
+      return sst(q.t[0] - 0.3, q.t[0] - 0.02, mt) * (1 - sst(q.t[1] + 0.03, q.t[1] + 0.35, mt));
+    }
+    return 0;
   }
   private oldMan(dt: number, px: number, pz: number, t: number) {
     this.boatT += dt; const u = sst(0, 3.2, this.boatT), p = this.pose, g = this.group, rig = this.rig, lim = this.body.limbs, y = LEVEL - 1.5 + 1.55 * u + Math.sin(t * 1.1) * 0.03;

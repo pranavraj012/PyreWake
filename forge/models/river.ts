@@ -75,17 +75,17 @@ export async function ferryman(bare = false): Promise<Mesh> {
   }
   wrap.displace((x, y, z) => 0.002 * noise(x * 80, y * 80, z * 80), 0.003);
   // --- a hemp cord at the waist
-  { const pts: V3[] = []; for (let i = 0; i <= 40; i++) { const a = i / 40 * 6.283; pts.push([Math.sin(a) * (bare ? 0.165 : 0.245), 2.04 + 0.03 * Math.sin(a * 2), -0.05 + Math.cos(a) * (bare ? 0.125 : 0.19)]); } rope.put(tube(pts, () => 0.018), { bone: b.spine1 }); rope.put(tube(curve([[0.1, 2.03, bare ? 0.07 : 0.13], [0.13, 1.85, bare ? 0.1 : 0.17], [0.11, 1.6, bare ? 0.11 : 0.19]], 14), () => 0.014), { bone: b.hips }); }
+  { const pts: V3[] = []; for (let i = 0; i <= 40; i++) { const a = i / 40 * 6.283; pts.push([Math.sin(a) * 0.245, 2.04 + 0.03 * Math.sin(a * 2), -0.05 + Math.cos(a) * 0.19]); } rope.put(tube(pts, () => 0.018), { bone: b.spine1 }); rope.put(tube(curve([[0.1, 2.03, 0.13], [0.13, 1.85, 0.17], [0.11, 1.6, 0.19]], 14), () => 0.014), { bone: b.hips }); }
   rope.displace((x, y, z) => 0.004 * Math.sin((x + y * 1.7 + z) * 140), 0.004);
   // --- the shroud: a robe to the water in both forms; in round 1 a mantle, wide sleeves and a cowl over it
-  cloth.bone = b.hips; cloth.put(cone([0, 2.2, -0.05], [0, 1.62, -0.05], bare ? 0.17 : 0.23, 0.3), { k: 0.1 }).put(ell([0, 1.0, -0.2], [0.34, 0.75, 0.1]), { k: 0.12 });
+  cloth.bone = b.hips; cloth.put(cone([0, 2.2, -0.05], [0, 1.62, -0.05], 0.23, 0.3), { k: 0.1 }).put(ell([0, 1.0, -0.2], [0.34, 0.75, 0.1]), { k: 0.12 });
   for (const [S, s] of SIDES) {
     const h = mir(at('thigh.L'), s), k = mir(at('shin.L'), s), f = mir(at('foot.L'), s);
     cloth.bone = b['thigh.' + S]; cloth.put(cone(add(h, [0.03 * s, 0.1, 0]), add(k, [0.05 * s, 0, 0.01]), 0.24, 0.27), { k: 0.1 });
     cloth.bone = b['shin.' + S]; cloth.put(cone(add(k, [0.05 * s, 0.05, 0.01]), add(f, [0.07 * s, -0.12, -0.02]), 0.27, 0.32), { k: 0.1 });
   }
+  cloth.put(ell([0, 2.46, -0.12], [0.235, 0.27, 0.19]), { bone: b.spine2, k: 0.1 }).put(ell([0, 2.15, -0.06], [0.21, 0.2, 0.16]), { bone: b.spine1, k: 0.1 });
   if (!bare) {
-    cloth.put(ell([0, 2.46, -0.12], [0.235, 0.27, 0.19]), { bone: b.spine2, k: 0.1 }).put(ell([0, 2.15, -0.06], [0.21, 0.2, 0.16]), { bone: b.spine1, k: 0.1 });
     cloth.bone = b.chest; cloth.put(ell([0, 2.93, -0.15], [0.38, 0.27, 0.25]), { k: 0.12 }).put(ell([0, 2.5, -0.36], [0.36, 0.55, 0.1], [0.08, 0, 0]), { k: 0.12 });
     cloth.put(ell([0, 3.14, -0.08], [0.25, 0.11, 0.23]), { k: 0.08 }).put(cone([0, 3.0, -0.12], [0, 3.4, 0.0], 0.085, 0.075), { op: 'sub', k: 0.03 });
     for (const [S, s] of SIDES) cloth.put(ell([0.4 * s, 2.92, -0.13], [0.17, 0.22, 0.2], [0, 0, 0.35 * s]), { bone: b['upperArm.' + S], k: 0.08 });
@@ -100,7 +100,7 @@ export async function ferryman(bare = false): Promise<Mesh> {
     });
   }
   // ragged at the hem, hanging in strips to the water; in round 2 torn off higher
-  cloth.put(any((x, y, z) => { const a = Math.atan2(x, z); return ((bare ? 0.55 : 0.16) + 0.16 * fbm(x * 4, 1.3, z * 4, 3) + 0.22 * Math.pow(Math.abs(Math.sin(a * 5.5 + 0.6 * noise(x * 3, 2, z * 3))), 6) * -1 + (bare ? 0.18 : 0.06) * ridged(x * 11, 2, z * 11, 2) - y) * 0.7; }), { op: 'int', k: 0.02 });
+  cloth.put(any((x, y, z) => { const a = Math.atan2(x, z); return (0.16 + 0.16 * fbm(x * 4, 1.3, z * 4, 3) + 0.22 * Math.pow(Math.abs(Math.sin(a * 5.5 + 0.6 * noise(x * 3, 2, z * 3))), 6) * -1 + 0.06 * ridged(x * 11, 2, z * 11, 2) - y) * 0.7; }), { op: 'int', k: 0.02 });
   cloth.displace((x, y, z) => { const a = Math.atan2(x, z); return 0.026 * fbm(x * 4.5, y * 4.5, z * 4.5, 3) - 0.022 * ridged(a * 4, y * 1.4, 1, 2) * sstep(2.2, 0.8, y) - 0.012 * ridged(x * 9, y * 9 + z * 5, z * 9, 2); }, 0.06);
   // --- the hat: steep woven reed, sagging with water, a torn notch; under it a veil of fare coins on black cords
   if (hat && coin) {
@@ -127,11 +127,34 @@ export async function ferryman(bare = false): Promise<Mesh> {
     for (let r = 0; r < 3; r++) { const pp: V3[] = []; for (let i = 0; i <= 26; i++) { const a = i / 26 * Math.PI * 2; pp.push([-0.33 + Math.sin(a) * 0.1, 1.9 + r * 0.045, -0.04 + Math.cos(a) * 0.12]); } link(pp, b.hips); }
     iron!.displace((x, y, z) => 0.009 * Math.sin((x * 1.5 + y * 2.3 + z * 1.9) * 110) * 0.7, 0.009);
   }
+  // --- round 2, the Coin-Mail: every fare he ever took has come up out of the river onto him. A cloak of black-gold scales to the water,
+  //     the coins fused over his face into a mask with two holes, and the hat broken open into a crown of reeds.
+  if (bare) {
+    const mail = F(0.03, 0.011, 29, 16000, 0.05), mask = F(0.008, 0.0055, 29, 4200), crown = F(0.01, 0.008, 28, 4800);
+    const byY = (y: number) => y > 2.62 ? b.chest : y > 2.28 ? b.spine2 : y > 1.95 ? b.spine1 : b.hips;
+    mail.put(ell([0, 2.97, -0.15], [0.4, 0.2, 0.27]), { bone: b.chest, k: 0.1 }).put(ell([0, 3.12, -0.1], [0.27, 0.13, 0.25]), { bone: b.chest, k: 0.08 }).put(cone([0, 2.98, -0.12], [0, 3.42, 0.0], 0.09, 0.08), { bone: b.chest, op: 'sub', k: 0.03 });
+    for (const [S, s2] of SIDES) mail.put(ell([0.42 * s2, 2.93, -0.13], [0.17, 0.16, 0.2], [0, 0, 0.5 * s2]), { bone: b['upperArm.' + S], k: 0.08 });
+    // the long cloak behind and round the sides, open at the front, in bands down the back so it follows the spine
+    const shell = (x: number, y: number, z: number) => { const k = Math.max(0, Math.min(1, (3.0 - y) / 2.85)), rx = 0.37 + 0.24 * k, rz = 0.24 + 0.1 * k, zc = -0.13 - 0.04 * k, e = Math.hypot(x / rx, (z - zc) / rz); return Math.max(Math.abs(e - 1) * rz * 0.85 - 0.018 - 0.008 * k, (z - zc) - rz * (0.15 - 0.1 * k) - 0.06 * Math.abs(Math.sin(y * 3.1))); };
+    for (let i = 0; i < 9; i++) { const y0 = 3.02 - i * 0.33, y1 = y0 - 0.4, bone = byY((y0 + y1) / 2); mail.put(any((x, y, z) => Math.max(shell(x, y, z), y - y0, y1 - y), [0, (y0 + y1) / 2, -0.15], 0.9), { bone, k: 0.06 }); }
+    mail.put(any((x, y, z) => (0.12 + 0.1 * fbm(x * 5, 2.2, z * 5, 2) + 0.12 * Math.pow(Math.abs(Math.sin(Math.atan2(x, z) * 6)), 5) - y) * 0.7), { op: 'int', k: 0.02 });
+    mail.displace((x, y, z) => { const S = 0.052, u = Math.atan2(x, z - 0.05) * 0.34, row = Math.floor(y / (S * 0.72)), cu = u / S + row * 0.5, fu = cu - Math.floor(cu) - 0.5, fv = y / (S * 0.72) - row - 0.35, d = Math.hypot(fu, fv * 0.9); return 0.009 * Math.max(0, 0.55 - d) - 0.004 * sstep(0.42, 0.5, d) + 0.004 * fbm(x * 9, y * 9, z * 9, 2); }, 0.011);
+    // the mask: coins grown together over the face, two holes, a seam where the mouth was
+    mask.bone = b.head; mask.put(any((x, y, z) => { const e = ell([0, 3.52, 0.19], [0.125, 0.19, 0.145])[0](x, y, z); return Math.max(Math.abs(e) - 0.011, 0.2 - z); }, [0, 3.52, 0.3], 0.25));
+    for (const [, s2] of SIDES) mask.put(ell([0.047 * s2, 3.594, 0.33], [0.024, 0.016, 0.06]), { op: 'sub', k: 0.006 });
+    mask.put(box([0, 3.43, 0.33], [0.05, 0.003, 0.05], 0.002), { op: 'sub', k: 0.004 });
+    mask.displace((x, y, z) => { const S = 0.034, row = Math.floor(y / (S * 0.8)), cu = x / S + row * 0.5, fu = cu - Math.floor(cu) - 0.5, fv = y / (S * 0.8) - row - 0.5, d = Math.hypot(fu, fv); return 0.004 * Math.max(0, 0.5 - d) - 0.002 * sstep(0.44, 0.5, d); }, 0.005);
+    // the crown: the hat split open at the top, its reeds standing up and out like a burst sheaf
+    const { c: C, tilt } = HAT, ct = Math.cos(tilt), st = Math.sin(tilt), R2 = 0.3; crown.bone = b.head;
+    crown.put(any((x, y, z) => { const dx = x - C[0], dy = y - C[1], dz = z - C[2], yy = dy * ct + dz * st, zz = dz * ct - dy * st, r = Math.hypot(dx, zz), a = Math.atan2(dx, zz), edge = R2 + 0.05 * Math.sin(a * 7) + 0.04 * noise(a * 3, 4, 1); return Math.max(Math.abs(yy - hatY(r) + 0.04) * 0.86 - 0.012, r - edge, 0.15 + 0.03 * Math.sin(a * 11) - r); }, [C[0], C[1] + 0.2, C[2]], 0.6));
+    const cr2 = rng(77); for (let i = 0; i < 19; i++) { const a = i / 19 * 6.283 + (cr2() - 0.5) * 0.3, r0 = 0.16, root = hatPt(Math.sin(a) * r0, hatY(r0) - 0.04, Math.cos(a) * r0), L = 0.16 + cr2() * 0.3, out = 0.9 + cr2() * 0.9, tip = add(root, [Math.sin(a) * L * out, L, Math.cos(a) * L * out * 0.8]); crown.put(cone(root, tip, 0.014, 0.003), { k: 0.008 }); }
+    crown.displace((x, y, z) => 0.002 * Math.abs(Math.sin(Math.atan2(x, z) * 90)) + 0.0015 * fbm(x * 30, y * 30, z * 30, 2), 0.004);
+  }
   const baked: Baked[] = parts.map(([f, voxel, mat, , soft]) => meshField(f, { voxel, mat, soft, smoothSkin: mat === 31 ? Math.round(0.05 / voxel) : mat === 30 ? Math.round(0.09 / voxel) : 0 })), samples = baked.map(q => q.sample), out: Mesh[] = [];
   for (let i = 0; i < baked.length; i++) { bakeAO(baked[i].mesh, samples, 0.3); out.push(await decimate(baked[i].mesh, parts[i][3])); }
   // --- long black hair, wet and hanging: down the back and over the shoulders, and in front of the face in a split curtain
   const hr = rng(9);
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < (bare ? 0 : 120); i++) {
     const front = i < 12, a = front ? (hr() < 0.5 ? -1 : 1) * (0.62 + hr() * 0.4) : (hr() - 0.5) * 4.4 + Math.PI, el = front ? 0.5 + hr() * 0.2 : 0.15 + hr() * 0.55;
     const root: V3 = [Math.sin(a) * 0.13 * Math.cos(el), 3.66 + 0.15 * Math.sin(el), 0.1 + Math.cos(a) * 0.165 * Math.cos(el)], L = front ? 0.3 + hr() * 0.2 : 0.6 + hr() * 0.55, p: V3[] = [root];
     let v: V3 = norm([Math.sin(a) * 0.6, 0.1, Math.cos(a) * 0.6]); const ph = hr() * 6;
