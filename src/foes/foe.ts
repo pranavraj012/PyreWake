@@ -60,7 +60,8 @@ export abstract class Foe {
   /** Strikes live this step (inside their hit window). */
   live: Strike[] = [];
 
-  constructor(readonly spec: FoeSpec, x = 0, z = 0) { this.x = x; this.z = z; this.life = spec.life; }
+  readonly spec: FoeSpec;
+  constructor(spec: FoeSpec, x = 0, z = 0) { this.spec = spec; this.x = x; this.z = z; this.life = spec.life; }
 
   get r() { return this.spec.r; }
   get fares() { return this.spec.fares; }
