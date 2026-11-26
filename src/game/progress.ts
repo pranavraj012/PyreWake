@@ -1,3 +1,4 @@
+import { SPELL_IDS, type SpellId } from '../combat/spells.ts';
 // Module B: the player's progress and the rules that change it.
 // Exported names and shapes are the published interface (modules E, G, I code against them); add, never rename.
 
@@ -13,6 +14,9 @@ export interface Progress {
 }
 
 export const WEAPON_KINDS: readonly WeaponKind[] = ['khanda', 'spear', 'chakram', 'whip'];
+
+/** Boss ids, as the codebase names them (the folders under src/boss/ and the fight modules). `burned` holds these. */
+export const BOSS = { king: 'king', ferryman: 'river', sister: 'hours' } as const;
 
 /** Tunable numbers, kept in one place for module M (balance). */
 export const RULES = {
@@ -33,6 +37,12 @@ export const RULES = {
   charmSlotsStart: 2,
   maxCharmSlots: 3,
   charmSlotPrice: { kauri: 250, iron: 2 },
+  /** Price of each charm you can buy by name. PLACEHOLDER numbers until module M balances them. */
+  charmPrice: {
+    ember: { kauri: 120, iron: 0 },
+    quick: { kauri: 110, iron: 0 },
+    perfect: { kauri: 160, iron: 1 },
+  } as Record<string, { kauri: number; iron: number }>,
   newWeaponPrice: {
     spear: { kauri: 150, iron: 2 },
     chakram: { kauri: 300, iron: 4 },
@@ -42,11 +52,14 @@ export const RULES = {
   recoverReach: 2,
 };
 
+/** The hero's three fire arts at the start; two are carried (equipped) into a fight. Last Rites is always the third. */
+export const STARTING_SPELLS: readonly string[] = ['rush', 'sunder', 'brand'];
+
 export function fresh(): Progress {
   return {
     kauri: 0, iron: 0, beads: 0,
     weapon: { kind: 'khanda', level: 0 }, weapons: ['khanda'],
-    flasks: { count: 3, strength: 0 }, spells: [], equipped: ['', ''], charms: [], worn: [],
+    flasks: { count: 3, strength: 0 }, spells: [...STARTING_SPELLS], equipped: [STARTING_SPELLS[0], STARTING_SPELLS[1]], charms: [], worn: [],
     shrines: [], at: { region: 'ashfields', shrine: '' }, burned: [],
     flags: {}, dropped: null,
   };
@@ -107,8 +120,14 @@ export function priceOf(upgrade: string, p: Progress): { kauri: number; iron: nu
   }
   if (upgrade.startsWith('spell:')) {
     const name = upgrade.slice('spell:'.length);
-    if (!name || p.spells.includes(name)) return null;
+    if (!SPELL_IDS.includes(name as SpellId) || p.spells.includes(name)) return null;
     return { kauri: RULES.spellPrice, iron: 0 };
+  }
+  if (upgrade.startsWith('charm:')) {
+    const name = upgrade.slice('charm:'.length);
+    const c = RULES.charmPrice[name];
+    if (!c || p.charms.includes(name)) return null;
+    return { ...c };
   }
   if (upgrade === 'charm-slot') {
     if (charmSlots(p) >= RULES.maxCharmSlots) return null;
@@ -143,6 +162,8 @@ export function buy(p: Progress, upgrade: string): BuyResult {
     p.flasks.strength += 1;
   } else if (upgrade.startsWith('spell:')) {
     p.spells.push(upgrade.slice('spell:'.length));
+  } else if (upgrade.startsWith('charm:')) {
+    p.charms.push(upgrade.slice('charm:'.length));
   } else if (upgrade === 'charm-slot') {
     p.flags.charmSlots = charmSlots(p) + 1;
   }

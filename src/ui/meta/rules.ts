@@ -1,55 +1,41 @@
 // Module I: the rules the meta screens follow (buying, equipping, wearing, travelling). No DOM here, so the tests can run them.
+// Prices, the buying itself, the life gift from beads and charm cords are module B's (priceOf, buy, turnInBeads, charmSlots);
+// this file adds the refusal reasons the screens show, and the rules B does not own (equipping spells, wearing charms, travel).
 // Every mutation takes a draft Progress, so the screens call these inside progress.change(...).
-import type { Progress, WeaponKind } from '../../game/progress.ts';
-
-export interface Price { kauri: number; iron: number }
-/** priceOf from module B: null when the upgrade cannot be bought now (unknown, or at its cap). */
-export type PriceFn = (id: string, p: Progress) => Price | null;
+import { type Progress, RULES, buy, charmSlots, priceOf, turnInBeads } from '../../game/progress.ts';
 
 export type Refusal = 'unknown' | 'kauri' | 'iron' | 'owned' | 'notowned' | 'slots' | 'nowhere' | 'same' | 'beads';
 export type Verdict = { ok: true } | { ok: false; why: Refusal };
 const OK: Verdict = { ok: true };
 const no = (why: Refusal): Verdict => ({ ok: false, why });
 
-/** Charm cords: two at first, a third when bought or found (flags.slot3). */
-export function charmSlots(p: Readonly<Progress>): number { return p.flags.slot3 ? 3 : 2; }
+/** Name-beads given for one life gift at the Ash-Reader (module B: three beads make one tenth more life). */
+export const BEADS_PER_LIFE = RULES.beadsPerLifeTenth;
 
-/** Name-beads given for one life gift at the Ash-Reader. */
-export const BEADS_PER_LIFE = 3;
-
-/** Already owned? Stackable upgrades (weapon levels, flasks) are never owned. */
+/** Already owned? Read from progress. Stacking upgrades (weapon levels, flasks, strength) are never owned. */
 export function isOwned(p: Readonly<Progress>, id: string): boolean {
-  if (id.startsWith('spell.')) return p.spells.includes(id.slice(6));
-  if (id === 'charm.slot') return !!p.flags.slot3;
-  if (id.startsWith('charm.')) return p.charms.includes(id.slice(6));
-  if (id.startsWith('weapon.') && id !== 'weapon.level') return p.weapons.includes(id.slice(7));
+  if (id.startsWith('weapon:')) return p.weapons.includes(id.slice('weapon:'.length));
+  if (id.startsWith('spell:')) return p.spells.includes(id.slice('spell:'.length));
+  if (id.startsWith('charm:')) return p.charms.includes(id.slice('charm:'.length));
+  if (id === 'charm-slot') return charmSlots(p) >= RULES.maxCharmSlots;
   return false;
 }
 
-/** Can this buy go through? Checks in the order a player would read them: sold at all, not owned, then the purse. */
-export function checkBuy(p: Readonly<Progress>, id: string, price: PriceFn): Verdict {
-  const c = price(id, p as Progress);
-  if (!c) return no('unknown');
+/** Can this buy go through? Checked in the order a player reads them: owned, sold at all, then the purse. */
+export function checkBuy(p: Readonly<Progress>, id: string): Verdict {
   if (isOwned(p, id)) return no('owned');
+  const c = priceOf(id, p as Progress);
+  if (!c) return no('unknown');
   if (p.kauri < c.kauri) return no('kauri');
   if (p.iron < c.iron) return no('iron');
   return OK;
 }
 
-/** Buy on a draft: takes the price and applies the effect. Refused drafts are left untouched. */
-export function applyBuy(p: Progress, id: string, price: PriceFn): Verdict {
-  const v = checkBuy(p, id, price);
+/** Buy on a draft: module B takes the price and applies the effect. Refused drafts are left untouched. */
+export function applyBuy(p: Progress, id: string): Verdict {
+  const v = checkBuy(p, id);
   if (!v.ok) return v;
-  const c = price(id, p)!;
-  p.kauri -= c.kauri; p.iron -= c.iron;
-  if (id === 'weapon.level') p.weapon = { kind: p.weapon.kind, level: p.weapon.level + 1 };
-  else if (id.startsWith('weapon.')) { const kind = id.slice(7) as WeaponKind; p.weapons = [...p.weapons, kind]; p.weapon = { kind, level: 0 }; }
-  else if (id === 'flask.count') p.flasks = { ...p.flasks, count: p.flasks.count + 1 };
-  else if (id === 'flask.strength') p.flasks = { ...p.flasks, strength: p.flasks.strength + 1 };
-  else if (id === 'charm.slot') p.flags.slot3 = true;
-  else if (id.startsWith('charm.')) p.charms = [...p.charms, id.slice(6)];
-  else if (id.startsWith('spell.')) p.spells = [...p.spells, id.slice(6)];
-  return OK;
+  return buy(p, id).ok ? OK : no('unknown');
 }
 
 /** Put a carried spell in slot 0 (first) or 1 (second). A spell already in the other slot moves over: two slots never hold the same art. */
@@ -93,11 +79,8 @@ export function travel(p: Progress, shrine: string, region: string): Verdict {
   return v;
 }
 
-/** Three Name-beads for one life gift (flags.lifeBeads counts the gifts; module B's stats() reads it). */
+/** Three Name-beads for one life gift: module B's turnInBeads does the taking and the giving. */
 export function giveBeads(p: Progress): Verdict {
   if (p.beads < BEADS_PER_LIFE) return no('beads');
-  p.beads -= BEADS_PER_LIFE;
-  const n = typeof p.flags.lifeBeads === 'number' ? p.flags.lifeBeads : 0;
-  p.flags.lifeBeads = n + 1;
-  return OK;
+  return turnInBeads(p) ? OK : no('beads');
 }

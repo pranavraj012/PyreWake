@@ -1,7 +1,7 @@
 // Inventory: the fire arts carried into a fight (two slots) and the charms worn on the cords.
-import { progress, type Progress } from '../../game/progress.ts';
+import { charmSlots, progress, type Progress } from '../../game/progress.ts';
 import { SPELLS, type SpellId } from '../../combat/spells.ts';
-import { charmSlots, checkWear, equipSpell, takeOff, wear } from './rules.ts';
+import { checkWear, equipSpell, takeOff, wear } from './rules.ts';
 import { ITEMS, UI } from './metaScript.ts';
 import { Sheet } from './sheet.ts';
 
@@ -29,7 +29,7 @@ export class Inventory extends Sheet {
   private charmRows(p: Readonly<Progress>): string {
     if (!p.charms.length) return `<p class="meta-hint">${UI.inventory.noCharms}</p>`;
     return p.charms.map(id => {
-      const it = ITEMS['charm.' + id] ?? { name: id, text: '' }, on = p.worn.includes(id);
+      const it = ITEMS['charm:' + id] ?? { name: id, text: '' }, on = p.worn.includes(id);
       return `<section class="meta-row"><div><h3>${it.name}</h3><p>${it.text}</p>${on ? `<span class="meta-tag">${UI.inventory.worn}</span>` : ''}</div>${on ? this.button('off', id, UI.inventory.off) : this.button('wear', id, UI.inventory.wear)}</section>`;
     }).join('');
   }

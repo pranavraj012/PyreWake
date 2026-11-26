@@ -1,6 +1,7 @@
 // Lohar, the Smith: found in the Gravedigger's pit in the Ashfields, and moves to the Last Pyre once the King is burned.
 import type { Person } from '../dialogue.ts';
 import { LOHAR as W } from '../peopleScript.ts';
+import { BOSS } from '../../game/progress.ts';
 
 const wares = { text: W.replies.wares, effects: [{ shop: 'lohar' as const }], next: null };
 
@@ -11,7 +12,7 @@ export const LOHAR: Person = {
   place: p => (p.flags['lohar.hub'] ? 'hub' : 'ashfields'),
   entries: [
     { when: { notFlag: 'lohar.met' }, start: 'meet' },
-    { when: { all: [{ burned: 'king' }, { notFlag: 'lohar.kingWord' }] }, start: 'kingWord' },
+    { when: { all: [{ burned: BOSS.king }, { notFlag: 'lohar.kingWord' }] }, start: 'kingWord' },
     { when: { flag: 'lohar.hub' }, start: 'atHub' },
     { when: { always: true }, start: 'pit' },
   ],

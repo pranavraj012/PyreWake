@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fresh, type Progress } from '../src/game/progress.ts';
+import { BOSS, fresh, type Progress } from '../src/game/progress.ts';
 import { apply, Dialogue, holds, startTalk, type Env, type Person } from '../src/story/dialogue.ts';
 import { AMMAJI } from '../src/story/people/ammaji.ts';
 import { LOHAR } from '../src/story/people/lohar.ts';
@@ -19,13 +19,13 @@ const answer = (d: Dialogue, text: string) => { const s = toReplies(d); const r 
 
 describe('conditions', () => {
   it('reads flags, burned bosses and counts', () => {
-    const { p } = world(q => { q.flags['x'] = true; q.flags['n'] = 2; q.burned.push('king'); q.beads = 3; });
+    const { p } = world(q => { q.flags['x'] = true; q.flags['n'] = 2; q.burned.push(BOSS.king); q.beads = 3; });
     expect(holds({ flag: 'x' }, p)).toBe(true);
     expect(holds({ flag: 'n', is: 2 }, p)).toBe(true);
     expect(holds({ flag: 'n', is: 3 }, p)).toBe(false);
     expect(holds({ notFlag: 'y' }, p)).toBe(true);
-    expect(holds({ burned: 'king' }, p)).toBe(true);
-    expect(holds({ burned: 'ferryman' }, p)).toBe(false);
+    expect(holds({ burned: BOSS.king }, p)).toBe(true);
+    expect(holds({ burned: BOSS.ferryman }, p)).toBe(false);
     expect(holds({ count: 'beads', atLeast: 3 }, p)).toBe(true);
     expect(holds({ count: 'kauri', atLeast: 1 }, p)).toBe(false);
   });
@@ -41,7 +41,7 @@ describe('conditions', () => {
 });
 
 describe('effects', () => {
-  it('sets flags, adds and spends kauri, iron, beads and flasks', () => {
+  it('sets flags, adds and spends kauri and iron, and turns in beads for life', () => {
     const { p, env } = world(q => { q.kauri = 5; q.iron = 1; });
     apply({ set: 'met' }, env); expect(p.flags['met']).toBe(true);
     apply({ set: 'mood', to: 'grim' }, env); expect(p.flags['mood']).toBe('grim');
@@ -49,7 +49,8 @@ describe('effects', () => {
     apply({ kauri: -9 }, env); expect(p.kauri).toBe(0);
     apply({ iron: 4 }, env); expect(p.iron).toBe(5);
     apply({ beads: 2 }, env); expect(p.beads).toBe(2);
-    apply({ flask: 1 }, env); expect(p.flasks.strength).toBe(1);
+    apply({ turnInBeads: true }, env); expect(p.beads).toBe(2); expect(p.flags.lifeTenths).toBeUndefined();
+    p.beads = 3; apply({ turnInBeads: true }, env); expect(p.beads).toBe(0); expect(p.flags.lifeTenths).toBe(1);
   });
 
   it('returns the shop an effect names instead of changing progress', () => {
@@ -87,7 +88,7 @@ describe('the runner', () => {
     const { p, env } = world(q => { q.beads = 3; });
     const conv = {
       nodes: {
-        a: { lines: ['a'], effects: [{ set: 'entered' }], choices: [{ text: 'pay', effects: [{ beads: -3 }, { flask: 1 }], next: null }] },
+        a: { lines: ['a'], effects: [{ set: 'entered' }], choices: [{ text: 'pay', effects: [{ turnInBeads: true as const }], next: null }] },
       },
     };
     const d = new Dialogue(conv, env, 'a');
@@ -95,7 +96,7 @@ describe('the runner', () => {
     expect(p.beads).toBe(3);
     d.choose(0);
     expect(p.beads).toBe(0);
-    expect(p.flasks.strength).toBe(1);
+    expect(p.flags.lifeTenths).toBe(1);
   });
 
   it('records a shop to open once the talk is over', () => {
@@ -132,7 +133,7 @@ describe('Ammaji', () => {
     expect(startTalk(AMMAJI, env).current()!.line).toBe(AW.hub[0]);
   });
 
-  it('offers the bead turn-in only with three beads, and gives flask strength for them', () => {
+  it('offers the bead turn-in only with three beads, and gives a tenth more life for them', () => {
     const { p, env } = world(q => { q.flags['ammaji.met'] = true; q.beads = 2; });
     const d = startTalk(AMMAJI, env);
     expect(toReplies(d).replies.map(r => r.text)).not.toContain(AW.replies.beads);
@@ -143,7 +144,8 @@ describe('Ammaji', () => {
     const e = startTalk(AMMAJI, env);
     answer(e, AW.replies.beads);
     expect(p.beads).toBe(0);
-    expect(p.flasks.strength).toBe(1);
+    expect(p.flags.lifeTenths).toBe(1);
+    expect(p.flasks.strength).toBe(0);
     expect(e.current()!.line).toBe(AW.beadsThanks[0]);
   });
 
@@ -156,7 +158,7 @@ describe('Ammaji', () => {
   });
 
   it('says a line once the King is burned, once, and then goes back to the hub', () => {
-    const { p, env } = world(q => { q.flags['ammaji.met'] = true; q.burned.push('king'); });
+    const { p, env } = world(q => { q.flags['ammaji.met'] = true; q.burned.push(BOSS.king); });
     const d = startTalk(AMMAJI, env);
     expect(d.current()!.line).toBe(AW.kingWord[0]);
     expect(p.flags['ammaji.kingWord']).toBe(true);
@@ -180,7 +182,7 @@ describe('Lohar', () => {
   });
 
   it('moves to the Last Pyre after the King, and says so once', () => {
-    const { p, env } = world(q => { q.flags['lohar.met'] = true; q.burned.push('king'); });
+    const { p, env } = world(q => { q.flags['lohar.met'] = true; q.burned.push(BOSS.king); });
     const d = startTalk(LOHAR, env);
     expect(d.current()!.line).toBe(LW.kingWord[0]);
     expect(p.flags['lohar.hub']).toBe(true);

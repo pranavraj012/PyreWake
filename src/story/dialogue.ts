@@ -1,7 +1,7 @@
 // Module G: the dialogue runner. A conversation is data: nodes of lines with a speaker, at most a few replies, and
-// conditions and effects that read and write module B's progress (flags, kauri, iron, beads, flasks). No DOM here:
+// conditions and effects that read and write module B's progress (flags, kauri, iron, beads, life). No DOM here:
 // the box is src/ui/talk.ts, and tests drive this file directly.
-import { progress, type Progress } from '../game/progress.ts';
+import { progress, turnInBeads, type Progress } from '../game/progress.ts';
 
 export type Scalar = number | boolean | string;
 
@@ -20,7 +20,7 @@ export type Cond =
 export type Effect =
   | { set: string; to?: Scalar }
   | { kauri: number } | { iron: number } | { beads: number }
-  | { flask: number }
+  | { turnInBeads: true }
   | { shop: string };
 
 export interface Choice { text: string; when?: Cond; effects?: Effect[]; next: string | null }
@@ -50,7 +50,7 @@ export function apply(e: Effect, env: Env): string | null {
     else if ('kauri' in e) p.kauri = Math.max(0, p.kauri + e.kauri);
     else if ('iron' in e) p.iron = Math.max(0, p.iron + e.iron);
     else if ('beads' in e) p.beads = Math.max(0, p.beads + e.beads);
-    else p.flasks.strength += e.flask;
+    else if ('turnInBeads' in e) turnInBeads(p);
   });
   return null;
 }

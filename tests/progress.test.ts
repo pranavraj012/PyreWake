@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   fresh, progress, replaceProgress, priceOf, stats, buy, die, recoverKauri, rest, turnInBeads,
-  equipWeapon, charmSlots, purchase, RULES, type Progress,
+  equipWeapon, charmSlots, purchase, RULES, lifeTenths, type Progress,
 } from '../src/game/progress';
 import { attachSaves, readFile, SAVE_KEY, SLOT_COUNT, type Saves, type SaveStore, encodeFile, checkProgress } from '../src/game/save';
 
@@ -276,5 +276,44 @@ describe('save file', () => {
     store.getItem = () => { throw new Error('blocked'); };
     const s = track(attachSaves(store));
     expect(s.notice.kind).toBe('unavailable');
+  });
+});
+
+describe('charms, spells by name, and the starting kit (module I buys through these)', () => {
+  it('starts with three fire arts, two of them equipped', () => {
+    const p = fresh();
+    expect(p.spells).toEqual(['rush', 'sunder', 'brand']);
+    expect(p.equipped).toEqual(['rush', 'sunder']);
+    expect(p.equipped.every(s => p.spells.includes(s))).toBe(true);
+  });
+
+  it('buys a named charm for its placeholder price, and not twice', () => {
+    const p = rich();
+    expect(priceOf('charm:ember', p)).toEqual(RULES.charmPrice.ember);
+    expect(buy(p, 'charm:ember')).toEqual({ ok: true, kauri: RULES.charmPrice.ember.kauri, iron: 0 });
+    expect(p.charms).toEqual(['ember']);
+    expect(priceOf('charm:ember', p)).toBeNull();
+  });
+
+  it('refuses a charm with no price and a spell name that is not one of the six', () => {
+    expect(priceOf('charm:nothing', fresh())).toBeNull();
+    expect(priceOf('spell:nope', fresh())).toBeNull();
+    expect(buy(rich(), 'spell:nope')).toEqual({ ok: false, reason: 'unavailable' });
+  });
+
+  it('buys a spell by name, and not one already carried', () => {
+    const p = rich();
+    expect(priceOf('spell:rush', p)).toBeNull();
+    expect(buy(p, 'spell:ashfall')).toEqual({ ok: true, kauri: RULES.spellPrice, iron: 0 });
+    expect(p.spells).toContain('ashfall');
+  });
+
+  it('turns in three beads for a tenth more life, and refuses with fewer', () => {
+    const p = rich({ beads: 2 });
+    expect(turnInBeads(p)).toBe(false);
+    p.beads = 3;
+    expect(turnInBeads(p)).toBe(true);
+    expect(p.beads).toBe(0);
+    expect(lifeTenths(p)).toBe(1);
   });
 });

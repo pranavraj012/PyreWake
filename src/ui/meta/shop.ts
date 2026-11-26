@@ -1,21 +1,17 @@
 // A vendor's list: a line of their words, the purse, and one row per item to buy. The Ash-Reader's screen is this with the life gift.
-// Priced from module B (priceOf) unless a test or the preview passes its own table.
+// Prices and the buying are module B's (priceOf, buy); this screen only shows them.
 import { progress, priceOf, type Progress } from '../../game/progress.ts';
 import { sound } from '../../audio/sound.ts';
-import { applyBuy, checkBuy, giveBeads, isOwned, BEADS_PER_LIFE, type PriceFn } from './rules.ts';
+import { applyBuy, checkBuy, giveBeads, isOwned, BEADS_PER_LIFE } from './rules.ts';
 import { ITEMS, UI, VENDORS, type VendorId } from './metaScript.ts';
 import { Sheet } from './sheet.ts';
 
-export interface ScreenOpts { price?: PriceFn }
-
 export class Shop extends Sheet {
   protected vendor: VendorId;
-  protected price: PriceFn;
 
-  constructor(app: HTMLElement, vendor: VendorId, opts: ScreenOpts = {}) {
+  constructor(app: HTMLElement, vendor: VendorId) {
     super(app, 'meta-shop meta-' + vendor, VENDORS[vendor].title);
     this.vendor = vendor;
-    this.price = opts.price ?? priceOf;
     progress.on(() => this.refresh());
   }
 
@@ -33,7 +29,7 @@ export class Shop extends Sheet {
   }
 
   protected row(id: string, p: Readonly<Progress>): string {
-    const it = ITEMS[id], c = this.price(id, p), owned = isOwned(p, id);
+    const it = ITEMS[id], c = priceOf(id, p as Progress), owned = isOwned(p, id);
     const cost = c ? `${c.kauri} ${UI.kauri}${c.iron ? `, ${c.iron} ${UI.iron}` : ''}` : '';
     const short = !!c && (p.kauri < c.kauri || p.iron < c.iron);
     const action = owned ? `<span class="meta-tag">${UI.owned}</span>` : c ? this.button('buy', id, UI.buy) : `<span class="meta-tag">${UI.unsold}</span>`;
@@ -47,9 +43,9 @@ export class Shop extends Sheet {
 
   /** Buy one item: refused (with the reason) when it is not sold, owned, or the purse is short. */
   buy(id: string) {
-    const v = checkBuy(progress.get(), id, this.price);
+    const v = checkBuy(progress.get(), id);
     if (!v.ok) { this.news(UI.refusal[v.why]); return; }
-    progress.change(d => { applyBuy(d, id, this.price); });
+    progress.change(d => { applyBuy(d, id); });
     sound.play('uiPick', { gain: 0.7, wet: 0.4 });
     this.news(UI.done);
   }

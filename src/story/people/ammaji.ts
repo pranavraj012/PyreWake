@@ -1,6 +1,7 @@
-// Ammaji, the Ash-Reader: met at the Last Pyre from the start. Lore, name-beads for flask strength, and a line once the King is burned.
+// Ammaji, the Ash-Reader: met at the Last Pyre from the start. Lore, name-beads turned in for a little more life, and a line once the King is burned.
 import type { Person } from '../dialogue.ts';
 import { AMMAJI as W } from '../peopleScript.ts';
+import { BOSS } from '../../game/progress.ts';
 
 export const AMMAJI: Person = {
   id: 'ammaji',
@@ -9,7 +10,7 @@ export const AMMAJI: Person = {
   place: () => 'hub',
   entries: [
     { when: { notFlag: 'ammaji.met' }, start: 'meet' },
-    { when: { all: [{ burned: 'king' }, { notFlag: 'ammaji.kingWord' }] }, start: 'kingWord' },
+    { when: { all: [{ burned: BOSS.king }, { notFlag: 'ammaji.kingWord' }] }, start: 'kingWord' },
     { when: { always: true }, start: 'hub' },
   ],
   conv: {
@@ -19,7 +20,7 @@ export const AMMAJI: Person = {
         lines: W.hub, voice: 'ammajiBreath',
         choices: [
           { text: W.replies.lore, next: 'lore' },
-          { text: W.replies.beads, when: { count: 'beads', atLeast: 3 }, effects: [{ beads: -3 }, { flask: 1 }], next: 'beadsThanks' },
+          { text: W.replies.beads, when: { count: 'beads', atLeast: 3 }, effects: [{ turnInBeads: true }], next: 'beadsThanks' },
           { text: W.replies.shop, effects: [{ shop: 'ammaji' }], next: null },
           { text: W.replies.leave, next: null },
         ],

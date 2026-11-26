@@ -1,91 +1,86 @@
 // Module I: the meta screens' rules (buying, equipping, wearing, travelling). No DOM: the screens only draw these verdicts.
+// Prices are module B's (priceOf), so these numbers follow B's RULES: weapon level 1 costs 20 kauri, the spear 150 kauri and 2 iron.
 import { describe, expect, it } from 'vitest';
-import { fresh, type Progress } from '../src/game/progress.ts';
-import { applyBuy, checkBuy, checkTravel, checkWear, charmSlots, equipSpell, giveBeads, takeOff, travel, wear, type PriceFn } from '../src/ui/meta/rules.ts';
+import { fresh, priceOf, RULES, type Progress } from '../src/game/progress.ts';
+import { applyBuy, checkBuy, checkTravel, checkWear, equipSpell, giveBeads, takeOff, travel, wear } from '../src/ui/meta/rules.ts';
 
-// a local price table, standing in for module B's priceOf (which is a stub until B lands)
-const TABLE: Record<string, { kauri: number; iron: number }> = {
-  'weapon.level': { kauri: 60, iron: 0 },
-  'weapon.spear': { kauri: 300, iron: 2 },
-  'flask.count': { kauri: 40, iron: 0 },
-  'spell.ashstep': { kauri: 150, iron: 0 },
-  'charm.slot': { kauri: 90, iron: 0 },
-  'charm.ember': { kauri: 120, iron: 0 },
-};
-const price: PriceFn = (id, p) => {
-  if (id === 'weapon.level' && p.weapon.level >= 10) return null; // at the cap
-  return TABLE[id] ?? null;
-};
 const rich = (over: Partial<Progress> = {}): Progress => ({ ...fresh(), kauri: 1000, iron: 5, ...over });
 
-describe('buying', () => {
+describe('buying (prices and effects from module B)', () => {
   it('buys when the purse covers the price, and takes the price', () => {
     const p = rich();
-    expect(applyBuy(p, 'weapon.level', price)).toEqual({ ok: true });
-    expect(p.kauri).toBe(940);
+    expect(applyBuy(p, 'weapon-level')).toEqual({ ok: true });
+    expect(p.kauri).toBe(1000 - RULES.feesPerLevel);
     expect(p.weapon.level).toBe(1);
   });
 
-  it('refuses when short of Kauri, and changes nothing', () => {
-    const p = rich({ kauri: 59 });
-    expect(checkBuy(p, 'weapon.level', price)).toEqual({ ok: false, why: 'kauri' });
-    expect(applyBuy(p, 'weapon.level', price)).toEqual({ ok: false, why: 'kauri' });
-    expect(p.kauri).toBe(59); expect(p.weapon.level).toBe(0);
+  it('refuses when short of kauri, and changes nothing', () => {
+    const p = rich({ kauri: 19 });
+    expect(checkBuy(p, 'weapon-level')).toEqual({ ok: false, why: 'kauri' });
+    expect(applyBuy(p, 'weapon-level')).toEqual({ ok: false, why: 'kauri' });
+    expect(p.kauri).toBe(19); expect(p.weapon.level).toBe(0);
   });
 
-  it('refuses when short of Pyre-iron, even with Kauri to spare', () => {
+  it('refuses when short of pyre-iron, even with kauri to spare', () => {
     const p = rich({ iron: 1 });
-    expect(applyBuy(p, 'weapon.spear', price)).toEqual({ ok: false, why: 'iron' });
+    expect(applyBuy(p, 'weapon:spear')).toEqual({ ok: false, why: 'iron' });
     expect(p.weapons).toEqual(['khanda']); expect(p.kauri).toBe(1000);
   });
 
   it('a price of exactly what you carry is enough', () => {
-    const p = rich({ kauri: 300, iron: 2 });
-    expect(applyBuy(p, 'weapon.spear', price)).toEqual({ ok: true });
+    const { kauri: spearK, iron: spearI } = priceOf('weapon:spear', fresh())!;
+    const p = rich({ kauri: spearK, iron: spearI });
+    expect(applyBuy(p, 'weapon:spear')).toEqual({ ok: true });
     expect(p.kauri).toBe(0); expect(p.iron).toBe(0);
     expect(p.weapons).toEqual(['khanda', 'spear']); expect(p.weapon).toEqual({ kind: 'spear', level: 0 });
   });
 
-  it('refuses what is not sold now (no price: unknown, or at its cap)', () => {
-    const p = rich({ weapon: { kind: 'khanda', level: 10 } });
-    expect(checkBuy(p, 'weapon.level', price)).toEqual({ ok: false, why: 'unknown' });
-    expect(checkBuy(rich(), 'spell.nope', price)).toEqual({ ok: false, why: 'unknown' });
+  it('refuses what is not sold now: a weapon level at the cap, an unknown spell', () => {
+    const p = rich({ weapon: { kind: 'khanda', level: RULES.maxWeaponLevel } });
+    expect(checkBuy(p, 'weapon-level')).toEqual({ ok: false, why: 'unknown' });
+    expect(checkBuy(rich(), 'spell:nope')).toEqual({ ok: false, why: 'unknown' });
+    expect(checkBuy(rich(), 'charm:nope')).toEqual({ ok: false, why: 'unknown' });
   });
 
-  it('a stub priceOf (always null) refuses everything', () => {
-    const nothing: PriceFn = () => null;
-    expect(checkBuy(rich(), 'flask.count', nothing)).toEqual({ ok: false, why: 'unknown' });
-  });
-
-  it('will not sell a weapon, spell or charm twice', () => {
-    const p = rich({ spells: ['ashstep'], charms: ['ember'], flags: { slot3: true } });
-    expect(checkBuy(p, 'spell.ashstep', price)).toEqual({ ok: false, why: 'owned' });
-    expect(checkBuy(p, 'charm.ember', price)).toEqual({ ok: false, why: 'owned' });
-    expect(checkBuy(p, 'charm.slot', price)).toEqual({ ok: false, why: 'owned' });
+  it('will not sell a weapon, spell, charm or third cord twice', () => {
+    const p = rich({ weapons: ['khanda', 'spear'], spells: ['rush', 'sunder', 'brand', 'ashstep'], charms: ['ember'], flags: { charmSlots: 3 } });
+    expect(checkBuy(p, 'weapon:spear')).toEqual({ ok: false, why: 'owned' });
+    expect(checkBuy(p, 'spell:ashstep')).toEqual({ ok: false, why: 'owned' });
+    expect(checkBuy(p, 'charm:ember')).toEqual({ ok: false, why: 'owned' });
+    expect(checkBuy(p, 'charm-slot')).toEqual({ ok: false, why: 'owned' });
   });
 
   it('flasks stack: a second flask is for sale', () => {
     const p = rich();
-    applyBuy(p, 'flask.count', price); applyBuy(p, 'flask.count', price);
+    applyBuy(p, 'flask'); applyBuy(p, 'flask');
     expect(p.flasks.count).toBe(5);
   });
 
   it('buying the third cord gives a third charm slot', () => {
     const p = rich();
-    expect(charmSlots(p)).toBe(2);
-    applyBuy(p, 'charm.slot', price);
-    expect(charmSlots(p)).toBe(3);
+    expect(checkBuy(p, 'charm-slot')).toEqual({ ok: true });
+    applyBuy(p, 'charm-slot');
+    expect(checkBuy(p, 'charm-slot')).toEqual({ ok: false, why: 'owned' });
+    expect(p.flags.charmSlots).toBe(3);
   });
 
-  it('three Name-beads give one life gift; fewer are refused', () => {
+  it('buys a named charm, which then can be worn', () => {
+    const p = rich();
+    expect(applyBuy(p, 'charm:quick')).toEqual({ ok: true });
+    expect(p.charms).toEqual(['quick']);
+    expect(wear(p, 'quick')).toEqual({ ok: true });
+  });
+
+  it('three Name-beads give one life gift (module B turnInBeads); fewer are refused', () => {
     const p = rich({ beads: 2 });
     expect(giveBeads(p)).toEqual({ ok: false, why: 'beads' });
     expect(p.beads).toBe(2);
     p.beads = 7;
     expect(giveBeads(p)).toEqual({ ok: true });
-    expect(p.beads).toBe(4); expect(p.flags.lifeBeads).toBe(1);
+    expect(p.beads).toBe(4); expect(p.flags.lifeTenths).toBe(1);
+    expect(p.flags.lifeBeads).toBeUndefined();
     giveBeads(p);
-    expect(p.flags.lifeBeads).toBe(2);
+    expect(p.flags.lifeTenths).toBe(2);
   });
 });
 
@@ -130,7 +125,7 @@ describe('charms on the cords', () => {
   });
 
   it('the third cord gives a third charm', () => {
-    const p = rich({ charms: ['ember', 'quick', 'perfect'], worn: ['ember', 'quick'], flags: { slot3: true } });
+    const p = rich({ charms: ['ember', 'quick', 'perfect'], worn: ['ember', 'quick'], flags: { charmSlots: 3 } });
     expect(wear(p, 'perfect')).toEqual({ ok: true });
     expect(p.worn).toHaveLength(3);
   });

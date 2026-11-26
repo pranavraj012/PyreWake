@@ -23,7 +23,7 @@ export const AMMAJI = {
     'Thou hast a name the river took. Go and win it back. Bring me three of the beads that carry names, and I will tell thee the rest.',
   ],
   beadsThanks: [
-    'Thou hast fed the ash, and it gives a little of thy life back. Thy flasks will hold more fire now.',
+    'Thou hast fed the ash, and it gives a little of thy life back. Thou shalt bear a little more harm now.',
     'Go on, child. The dead are in no hurry. Thou art.',
   ],
   kingWord: [

@@ -1,8 +1,8 @@
-// Preview of the meta screens without a world: fake progress, fake prices and shrines, and a fake pad.
+// Preview of the meta screens without a world: fake progress and shrines, and a fake pad. Prices are module B's.
 // Open: preview.html?s=smith|ash|inv|map ; ?fight shows the HUD kauri as in a fight. Keys: S, A, I, M open a screen, F toggles a fight, Esc closes.
 // From a script: window.__pad(['down','ok']) sends pad presses through the real padnav.ts.
 import '../style.css';
-import { fresh, progress, type Progress } from '../../game/progress.ts';
+import { fresh, progress } from '../../game/progress.ts';
 import type { Input } from '../../input/input.ts';
 import { padNav } from '../padnav.ts';
 import { Shop } from './shop.ts';
@@ -10,19 +10,6 @@ import { Smith } from './upgrade.ts';
 import { Inventory } from './inventory.ts';
 import { WorldMap, type ShrineInfo } from './map.ts';
 import { Kauri } from './kauri.ts';
-import type { PriceFn } from './rules.ts';
-
-// fake prices: module B's priceOf is a stub until B lands
-const FAKE: Record<string, { kauri: number; iron: number }> = {
-  'weapon.spear': { kauri: 300, iron: 2 }, 'weapon.chakram': { kauri: 420, iron: 4 }, 'weapon.whip': { kauri: 520, iron: 5 },
-  'flask.count': { kauri: 40, iron: 0 }, 'flask.strength': { kauri: 90, iron: 0 },
-  'spell.ashstep': { kauri: 150, iron: 0 }, 'spell.wheel': { kauri: 220, iron: 1 }, 'spell.ashfall': { kauri: 300, iron: 2 },
-  'charm.slot': { kauri: 90, iron: 0 }, 'charm.ember': { kauri: 120, iron: 0 }, 'charm.quick': { kauri: 110, iron: 0 }, 'charm.perfect': { kauri: 160, iron: 1 },
-};
-const price: PriceFn = (id: string, p: Progress) => {
-  if (id === 'weapon.level') return p.weapon.level >= 10 ? null : { kauri: 60 + 40 * p.weapon.level, iron: [3, 6, 9].includes(p.weapon.level) ? 2 : 0 };
-  return FAKE[id] ?? null;
-};
 
 const SHRINES: ShrineInfo[] = [
   { id: 'ash1', region: 'ashfields', name: 'The cold pyre by the banyan road' },
@@ -49,8 +36,8 @@ progress.change(p => {
   });
 });
 
-const smith = new Smith(app, { price });
-const ash = new Shop(app, 'ash', { price });
+const smith = new Smith(app);
+const ash = new Shop(app, 'ash');
 const inv = new Inventory(app);
 const map = new WorldMap(app, SHRINES);
 const kauri = new Kauri(app);
