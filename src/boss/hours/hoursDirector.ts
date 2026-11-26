@@ -23,7 +23,7 @@ const SUNS = [new THREE.Vector3(-0.85, 0.13, -0.3), new THREE.Vector3(-0.86, 0.0
 
 export class HoursDirector {
   fx: HoursFx; private dir: Director; private f: Fight; private house: House; private v1: SisterView; private v2: PallView; private post: Post; private hud: Hud; light: (day: number) => void;
-  private lastEmber = 7; private glideT = 0; private litT = 0; private ritesT = 0; private sunK = 0; private sunWant = 0; private second = false;
+  private lastEmber = 7; private glideT = 0; private litT = 0; private ritesT = 0; private second = false;
   /** A scene holds the light (0 under the smoke, 1 the sun) and the smoke; null hands it back to the fight. */ cine: { day: number } | null = null;
   constructor(dir: Director, f: Fight, house: House, v1: SisterView, v2: PallView, post: Post, hud: Hud, light: (day: number) => void, g: { cot: THREE.BufferGeometry; hook: THREE.BufferGeometry; cloth: THREE.Material; scene: THREE.Scene }) {
     this.dir = dir; this.f = f; this.house = house; this.v1 = v1; this.v2 = v2; this.post = post; this.hud = hud; this.light = light; this.fx = new HoursFx(g.scene, g.cloth, g.hook, g.cot, dir.fx, DEPTH.still);
@@ -31,7 +31,7 @@ export class HoursDirector {
   }
   get sim() { return this.f.king as Sister; }
   private ambient(f: Fight) { const r2 = f.round === 2; sound.bed('fireBed', r2 ? 0.0 : 0.22); sound.bed('windLow', r2 ? 0.55 : 0.22); sound.bed('wind', r2 ? 0.35 : 0); sound.bed('clothBed', r2 && f.phase !== 'won' ? 0.4 : 0); }
-  reset() { this.fx.reset(); this.lastEmber = 7; this.ritesT = 0; this.v2.burnt = 0; this.sunK = this.sunWant = 0; this.second = false; SUNDIR.value.copy(SUNS[0]); if (this.f.round === 1) this.light(0); else this.round2(true); }
+  reset() { this.fx.reset(); this.lastEmber = 7; this.ritesT = 0; this.v2.burnt = 0; this.second = false; SUNDIR.value.copy(SUNS[0]); if (this.f.round === 1) this.light(0); else this.round2(true); }
   round2(first = false) { SUNDIR.value.copy(SUNS[0]); this.light(1); void first; }
   private prop(e: Extract<FightEvent, { k: 'prop' }>, t: number) {
     const p = e.p; if (p.kind !== 'lamp') return false;
@@ -71,7 +71,7 @@ export class HoursDirector {
     if (this.cine) this.light(this.cine.day);
     if (f.round === 2 && !this.second && f.bossHp / k.hp[1] < 0.4 && f.phase === 'r2') { this.second = true; sound.score?.set('pall2'); }
     const hand = this.v1.mark('handL', V()), head = k.form === 2 ? this.v2.mark('head', V()) : this.v1.mark('head', V()); this.fx.step(f, k, hand, head, sd, t);
-    void m; void this.sunK; void this.sunWant; void this.post;
+    void m;
   }
   /** Events only this boss has. */
   on(e: Ev, t: number) {

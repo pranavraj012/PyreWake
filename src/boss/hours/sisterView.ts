@@ -9,16 +9,11 @@ import type { BossView } from '../view.ts';
 import { HOURS_CLIPS as K, SSTAND } from './clips.ts';
 import { SISTER, SISTER_SCALE, SKIRT, STRIPS, STRIP_LEN, STRIP_ROWS, skirtAt, stripRoot } from './frame.ts';
 import type { Sister } from './sister.ts';
+import { glow } from './glow.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 /** Her hands sit well apart on the shaft, as on a glaive; the torso is bulkier than the hero's. */
 export const SISTER_SPEC: BodySpec = { ...HUMAN_SPEC, second: 0.5, torso: HUMAN_SPEC.torso!.map(([b, c, r]) => [b, c, [r[0] * 1.15, r[1], r[2] * 1.15]]) };
-let glowTex: THREE.Texture | null = null;
-/** A soft round glow, for embers and eyes. */
-export function glow(color: THREE.Color, size: number) {
-  if (!glowTex) { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.18, 'rgba(255,200,140,.55)'); g.addColorStop(1, 'rgba(255,120,40,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); glowTex = new THREE.CanvasTexture(c); }
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); s.scale.setScalar(size); s.renderOrder = 7; return s;
-}
 export interface SisterGeo { body: THREE.BufferGeometry; hook: THREE.BufferGeometry }
 
 export class SisterView implements BossView {

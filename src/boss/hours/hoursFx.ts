@@ -5,7 +5,7 @@ import type { Fight } from '../../combat/fight.ts';
 import type { Fx } from '../../render/impact.ts';
 import { FOG } from '../../render/surface.ts';
 import type { Sister } from './sister.ts';
-import { glow } from './sisterView.ts';
+import { glow } from './glow.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const linen = (g: THREE.BufferGeometry, mat = 32) => { const n = g.attributes.position.count, a = new Uint8Array(n * 4); for (let i = 0; i < n; i++) a.set([220, 140, 0, mat], i * 4); g.setAttribute('aInfo', new THREE.BufferAttribute(a, 4, true)); return g; };
