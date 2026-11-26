@@ -48,7 +48,6 @@ const JOBS: Record<string, () => Promise<Mesh>> = {
   sister: async () => (await import('./models/hours.ts')).sister(),
   scythe: async () => (await import('./models/hours.ts')).scythe(),
   pall: async () => (await import('./models/hours.ts')).pall(),
-  pallFrame: async () => (await import('./models/hours.ts')).pallFrame(),
   cot: async () => (await import('./models/house.ts')).cot(),
   cotBits: async () => (await import('./models/house.ts')).cotBits(),
   hcol0: async () => (await import('./models/house.ts')).hcol(1, 0),

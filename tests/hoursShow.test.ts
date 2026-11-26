@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { boneIndex } from '../src/anim/skeletons.ts';
-import { PALL, PALL_BONES, SISTER, SKIRT, STRIPS, domeWeights, skirtWeights, stripWeights } from '../src/boss/hours/frame.ts';
+import { ARMS, PALL_BONES, SISTER, SKIRT, STRIPS, armWeights, skirtWeights, stripWeights } from '../src/boss/hours/frame.ts';
 import { HOURS_CLIPS } from '../src/boss/hours/clips.ts';
 import { isMove } from '../src/boss/hours/sister.ts';
 import { HOURS_ENDING, HOURS_INTRO, HOURS_TURN } from '../src/game/hoursScript.ts';
@@ -15,11 +15,11 @@ describe('the Waiting House on screen', () => {
     const b = boneIndex(SISTER), p = boneIndex(PALL_BONES), nb = SISTER.length, np = PALL_BONES.length;
     for (let i = 0; i <= 40; i++) for (let j = 0; j <= 20; j++) {
       const u = i / 40, v = j / 20;
-      for (const w of [skirtWeights(b, u, v), domeWeights(p, u, v)]) { expect(sum(w)).toBeCloseTo(1, 5); for (const [k] of w) expect(k).toBeGreaterThanOrEqual(0); }
-      for (const [k] of skirtWeights(b, u, v)) expect(k).toBeLessThan(nb); for (const [k] of domeWeights(p, u, v)) expect(k).toBeLessThan(np);
+      for (const w of [skirtWeights(b, u, v), skirtWeights(p, u, v), ...ARMS.map((_, k) => armWeights(p, k, v))]) { expect(sum(w)).toBeCloseTo(1, 5); for (const [k] of w) expect(k).toBeGreaterThanOrEqual(0); }
+      for (const [k] of skirtWeights(b, u, v)) expect(k).toBeLessThan(nb); for (let a = 0; a < ARMS.length; a++) for (const [k] of armWeights(p, a, v)) expect(k).toBeLessThan(np);
     }
     for (const s of STRIPS) for (let j = 0; j <= 10; j++) expect(sum(stripWeights(b, s.side, s.k, j / 10))).toBeCloseTo(1, 5);
-    expect(SISTER.filter(x => x.name.startsWith('skirt')).length).toBe(SKIRT.cols * SKIRT.rows); expect(PALL_BONES.filter(x => x.name.startsWith('hem')).length).toBe(PALL.cols * 2);
+    expect(SISTER.filter(x => x.name.startsWith('skirt')).length).toBe(SKIRT.cols * SKIRT.rows); expect(PALL_BONES.filter(x => x.name.startsWith('arm')).length).toBe(ARMS.length * 8);
   });
   it('her seated pose is not a move, and every move has a clip', () => { expect(isMove('sit')).toBe(false); expect(HOURS_CLIPS.sit).toBeDefined(); });
   it('every line is shown before it is cleared, in order, without two on screen at once', () => {

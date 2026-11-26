@@ -8,11 +8,11 @@ import { HOURS_ATTACKS as A } from './moves.ts';
 
 export const DIAL = 17.5;
 const wrap = (a: number) => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;
-const QUIET = ['sit', 'idle', 'stalk', 'strafe', 'blink', 'reel', 'reel2', 'kneel', 'fall', 'rise', 'die', 'lostCount', 'burnt', 'sag'];
+const QUIET = ['sit', 'idle', 'stalk', 'strafe', 'blink', 'grip', 'reel', 'reel2', 'kneel', 'fall', 'rise', 'die', 'lostCount', 'burnt', 'sag'];
 /** A move rather than footwork or a wound. */
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the line drawn at the cue is where it lands. */
-const LOCK: Record<string, number> = { reap: 0.75, binding: 0.35, lieDown: 0.9, wardStands: 0.35, hourHand: 0.4 };
+const LOCK: Record<string, number> = { reap: 0.75, binding: 0.35, lieDown: 0.9, wardStands: 0.35, hourHand: 0.4, gather: 0.75 };
 /** How many blows (a spell is two) break a count, by form. */
 export const BREAK = [3, 4] as const;
 const COUNT = ['sevenBreaths', 'longCount'];
@@ -20,6 +20,10 @@ const COUNT = ['sevenBreaths', 'longCount'];
 export interface Strip { x: number; z: number; yaw: number; len: number; t: number }
 export interface Stake { x: number; z: number; hp: number; t: number }
 export interface Out { e: string; x?: number; z?: number; n?: number }
+/** A linen arm lying on the floor where it struck: it can be cut while it lies there. */
+export interface Laid { x: number; z: number; yaw: number; len: number; t: number; arm: number }
+/** How long she holds you, and what it costs: freed, or not. */
+export const GRIP = { len: 3.4, free: 14, lost: 42 };
 
 export class Sister implements Boss {
   x = 0; z = -4; y = 0; yaw = 0; vx = 0; vz = 0; speed = 0; mode = 'idle'; mt = 0; prev = 0; burst = 0; form: 1 | 2 = 1; rate = 1; pace = 1; serial = 0;
@@ -32,9 +36,11 @@ export class Sister implements Boss {
   private beyond(ahead: number, side: number) { const ux = this.px - this.x, uz = this.pz - this.z, l = Math.hypot(ux, uz) || 1, q = { x: this.px + (ux * ahead + uz * side) / l, z: this.pz + (uz * ahead - ux * side) / l }, R = Math.hypot(q.x, q.z); if (R > DIAL - 1) { q.x *= (DIAL - 1) / R; q.z *= (DIAL - 1) / R; } return q; }
   private moved = 0; private side = 1; private sideT = 0; private from = { x: 0, z: 0 }; private cut = new Set<string>(); private px = 0; private pz = 5; private burnedAt = -9;
 
-  get r() { return this.form === 2 ? 2.6 : 0.85; }
+  /** Arms lying on the floor; seconds since each of the six was cut (negative: whole); arms cut since she last staggered. */ laid: Laid[] = []; severed = [-1, -1, -1, -1, -1, -1]; private cuts = 0;
+  /** 0-1: how far the hero has torn free of her grip (the page's QTE writes it). */ freed = 0;
+  get r() { return this.form === 2 ? 1.4 : 0.85; }
   set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; this.counted = 0; if (COUNT.includes(mode)) this.embers = 7; this.hidden = false; this.whorl = null; }
-  reset() { this.counted = 0; this.embers = 7; this.strips = []; this.stake = null; this.lit = 0; this.exposed = 0; this.hidden = false; this.whorl = null; this.sunk = 0; this.hugT = 0; this.out = []; this.y = 0; this.cut.clear(); }
+  reset() { this.laid = []; this.severed = [-1, -1, -1, -1, -1, -1]; this.cuts = 0; this.freed = 0; this.counted = 0; this.embers = 7; this.strips = []; this.stake = null; this.lit = 0; this.exposed = 0; this.hidden = false; this.whorl = null; this.sunk = 0; this.hugT = 0; this.out = []; this.y = 0; this.cut.clear(); }
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
   get hx() { return this.x; } get hz() { return this.z; } get hr() { return this.r; }
@@ -136,6 +142,37 @@ export class Sister implements Boss {
     // --- Noon: the scythe stands where it fell, eight seconds; three blows shatter it
     if (this.mode === 'noon' && p < 1.5 && mt >= 1.5) { const h = f.hazards.find(q => q.mode === 'noon' && q.shape === 'circle'); this.stake = { x: h?.x ?? this.px, z: h?.z ?? this.pz, hp: 3, t: 0 }; }
     const st = this.stake; if (st) { st.t += dt; if (this.touch(f, 'stake', st.x, st.z, 0.6)) { st.hp--; this.say('stakeHit', st.x, st.z, st.hp); if (st.hp <= 0) { this.stake = null; this.say('stakeBreak', st.x, st.z); } } if (st.t > 8) this.stake = null; }
-    void m;
+    // --- the Gathering: the arm goes out; it catches you or it lies on the floor
+    if (this.mode === 'gather' && p < 0.95 && mt >= 0.95) {
+      const sx = Math.sin(this.yaw), sz = Math.cos(this.yaw), dx = m.x - this.x, dz = m.z - this.z, fw = dx * sx + dz * sz, sd = Math.abs(dx * sz - dz * sx), on = fw > -0.5 && fw < 11 && sd < 1.25;
+      const r = on ? (m.over ? 'over' : m.safe > 0 || m.clip?.name === 'rush' ? 'safe' : f.invuln > 0 ? 'inv' : 'hit') : 'miss';
+      if (r === 'over') f.leapt(); else if (r === 'safe') f.evade();
+      if (r === 'hit') { this.set('grip'); this.freed = 0; this.say('grab', m.x, m.z); }
+      else this.lay(1, 10);
+    }
+    if (this.mode === 'wardStands' && p < 1.3 && mt >= 1.3) [-0.8, -0.4, 0, 0.4, 0.8].forEach((o, i) => this.lay([0, 2, 1, 3, 4][i], 11, o));
+    // --- held: she keeps you at her face until you tear free or she has done
+    if (this.mode === 'grip') {
+      const sx = Math.sin(this.yaw), sz = Math.cos(this.yaw); m.x = this.x + sx * (this.r + 1.5); m.z = this.z + sz * (this.r + 1.5); f.invuln = Math.max(f.invuln, 0.15);
+      if (this.freed >= 1 || mt >= GRIP.len) {
+        const won = this.freed >= 1, dmg = Math.round(won ? GRIP.free : GRIP.lost - (GRIP.lost - GRIP.free) * 0.5 * this.freed); f.invuln = 0;
+        f.strikePlayer(dmg, true, Math.atan2(this.x - m.x, this.z - m.z), 'gather'); m.x += sx * 2.2; m.z += sz * 2.2;
+        this.say('released', m.x, m.z, won ? 1 : 0); if (won) { this.set('reel2'); this.exposed = 2.5; this.bonus = 1.4; f.brain.broken(); } else this.set('idle');
+      }
+    }
+    // --- the arms on the floor: a blade through one cuts it; two cut and she staggers
+    for (const l of this.laid) l.t += dt; this.laid = this.laid.filter(l => l.t < 3.2 && this.form === 2);
+    for (let i = 0; i < 6; i++) if (this.severed[i] >= 0 && (this.severed[i] += dt) > 6) this.severed[i] = -1;
+    for (const l of [...this.laid]) if (this.slash(f, 'arm' + l.arm + '/' + this.serial, l)) {
+      this.laid = this.laid.filter(q => q !== l); this.severed[l.arm] = 0; this.cuts++; this.say('armCut', m.x, m.z, l.arm);
+      if (this.cuts >= 2 && !this.helpless) { this.cuts = 0; this.set('sag'); this.exposed = 3; this.bonus = 1.5; f.brain.broken(); this.say('sever'); }
+    }
+  }
+  private lay(arm: number, len: number, o = 0) { if (this.severed[arm] < 0) this.laid.push({ x: this.x, z: this.z, yaw: this.yaw + o, len, t: 0, arm }); }
+  /** Any of the hero's swings this frame passes close enough to a laid arm to cut it. */
+  private slash(f: Fight, key: string, l: Laid) {
+    const m = f.m, sx = Math.sin(l.yaw), sz = Math.cos(l.yaw), dx = m.x - l.x, dz = m.z - l.z, u = Math.max(this.r, Math.min(l.len, dx * sx + dz * sz)), d = Math.hypot(dx - sx * u, dz - sz * u);
+    for (const w of f.swings()) { const id = w.id + '/' + key; if (this.cut.has(id) || d > w.reach + 0.5) continue; this.cut.add(id); return true; }
+    return false;
   }
 }

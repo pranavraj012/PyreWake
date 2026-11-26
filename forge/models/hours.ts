@@ -1,6 +1,6 @@
 // The third boss: the Sister of Hours (on the human frame, scaled in play to 2.6 m), her scythe, and the Pall.
 import { boneIndex, ARM_DIR } from '../../src/anim/skeletons.ts';
-import { PALL, PALL_BONES, SISTER, SKIRT, STRIPS, STRIP_LEN, domeAt, domeWeights, skirtAt, skirtWeights, stripRoot, stripWeights } from '../../src/boss/hours/frame.ts';
+import { ARMS, ARM_LEN, PALL_BONES, SISTER, SKIRT, STRIPS, STRIP_LEN, armWeights, robeAt, skirtAt, skirtWeights, stripRoot, stripWeights } from '../../src/boss/hours/frame.ts';
 import { Field, add, any, ball, belly, box, cone, cross, curve, ell, fbm, lerp3, mix, mul, noise, norm, ridged, rng, sstep, sub, tube, type V3 } from '../sdf.ts';
 import { bakeAO, decimate, merge, meshField, type Baked, type Mesh } from '../mesher.ts';
 import { sheet } from '../sheet.ts';
@@ -46,14 +46,14 @@ function face(sk: Field, coif: Field, eyes: Field | null, T: (p: V3) => V3, s: n
     if (shut) sk.put(ell(P([0.031 * sd, 1.664, 0.086]), [0.017 * s, 0.006 * s, 0.01 * s]), { k: 0.006 * s });
     else eyes?.put(ball(P([0.031 * sd, 1.666, 0.08]), 0.0125 * s));
   }
-  sk.put(cone(P([0, 1.6, 0.0]), P([0, 1.47, -0.02]), 0.05 * s, 0.058 * s), { bone: sk.bone === PALL_IX.head ? PALL_IX.head : B.neck });
+  sk.put(cone(P([0, 1.6, 0.0]), P([0, 1.47, -0.02]), 0.05 * s, 0.058 * s), { bone: B.neck });
   sk.displace((x, y, z) => 0.001 * s * fbm(x * 60 / s, y * 60 / s, z * 60 / s, 2), 0.002 * s);
   // the coif: close linen round the head, open only at the face
   coif.put(any((x, y, z) => { const q = P([0, 1.68, -0.006]), e = ell(q, [0.083 * s, 0.108 * s, 0.098 * s])[0](x, y, z), lz = (z - q[2]) / s, ly = (y - q[1]) / s; return Math.max(Math.abs(e) - 0.0055 * s, Math.min(lz - 0.035 - 0.25 * Math.max(0, ly - 0.02), (0.052 - ly) * 1.0, (ly + 0.1) * 1.0) * s); }, P([0, 1.66, 0]), 0.16 * s));
-  coif.put(cone(P([0, 1.6, -0.02]), P([0, 1.46, -0.03]), 0.072 * s, 0.1 * s), { bone: sk.bone === PALL_IX.head ? PALL_IX.head : B.neck, k: 0.03 * s });
+  coif.put(cone(P([0, 1.6, -0.02]), P([0, 1.46, -0.03]), 0.072 * s, 0.1 * s), { bone: B.neck, k: 0.03 * s });
   coif.displace((x, y, z) => -0.002 * s * ridged(x * 40 / s, y * 26 / s, z * 40 / s, 2), 0.003 * s);
 }
-const B = boneIndex(SISTER), at = (n: string) => SISTER[B[n]].pos as V3, PALL_IX = boneIndex(PALL_BONES);
+const B = boneIndex(SISTER), at = (n: string) => SISTER[B[n]].pos as V3, PB = boneIndex(PALL_BONES);
 
 /** The Sister of Hours: upright, heavy-shouldered, layered grey linen gone stiff and black with soot from the knees down; the starched two-pointed hood; a breath-cloth over the mouth; sleeves bound back with cord; a counting cord at her belt. */
 export async function sister(): Promise<Mesh> {
@@ -160,24 +160,42 @@ export async function scythe(): Promise<Mesh> {
   return merge(await bakeParts([[f, 0.008, 4, 1800], [br, 0.006, 37, 900], [bl, 0.005, 4, 1400], [ed, 0.004, 42, 900], [cl, 0.007, 33, 700]], 0.1));
 }
 
-/** The Pall: a dome of soot-black linen six metres high, eight across the hem, nothing under it but the hours. At the top, small and unchanged, her face with its eyes shut, under the two points of the hood. */
+/** The Pall: the Sister grown to nearly five metres in the smoke she breathed. Her own face, eyes shut, the breath-cloth gone; the hood; a body of soot-black linen
+ *  with embers moving in it; long ash-grey arms in hanging sleeves; a robe that pools under her; and six arms of wound linen, burning, from her shoulders and back.
+ *  Built on the Sister's frame (the core bones are hers, in her units); the runtime scales it. */
 export async function pall(): Promise<Mesh> {
-  const S = 1.45, top: V3 = [0, PALL.head, 0.02], T = (p: V3): V3 => [p[0] * S + top[0], (p[1] - 1.66) * S + top[1], p[2] * S + top[2]];
-  const parts: Part[] = [], F = (k: number, voxel: number, mat: number, tris: number) => { const f = new Field(k); parts.push([f, voxel, mat, tris]); return f; };
-  const sk = F(0.02 * S, 0.0045, 35, 4200), coif = F(0.02 * S, 0.006, 33, 2400); sk.bone = PALL_IX.head; coif.bone = PALL_IX.head; face(sk, coif, null, T, S, true);
-  // the dome's shoulder, where the hood's linen goes into it
-  coif.put(cone(T([0, 1.5, -0.02]), [0, PALL.H - 0.25, 0], 0.13 * S, PALL.neck + 0.12), { bone: PALL_IX.crown, k: 0.08 });
-  const out = await bakeParts(parts, 0.2, (mat, v) => mat === 35 ? Math.round(0.04 / v) : 0);
-  out.push(sheet(cornette(T, 1.25), { nu: 70, nv: 14, mat: 34, inner: 33, weights: () => [[PALL_IX.head, 1]] }));
-  out.push(...banded((u, v) => domeAt(u, v), [[0, 0.85, 40], [0.85, 1, 40]], { nu: 150, nv: 54, inner: 33, tatter: 0.16, seed: 19, weights: (u, v) => domeWeights(PALL_IX, u, v) }));
+  const parts: Part[] = [], F = (k: number, voxel: number, mat: number, tris: number, soft = 0.02) => { const f = new Field(k); parts.push([f, voxel, mat, tris, soft]); return f; };
+  const sk = F(0.02, 0.004, 35, 5200, 0.016), coif = F(0.02, 0.005, 33, 2600), robe = F(0.05, 0.007, 40, 6500, 0.025), ash = F(0.012, 0.0042, 39, 3400, 0.016), cape = F(0.04, 0.0065, 33, 3600, 0.03);
+  sk.bone = B.head; coif.bone = B.head; face(sk, coif, null, p => p, 1, true);
+  // the breath-cloth, pulled down: a fold of linen round her throat
+  coif.put(any((x, y, z) => Math.max(Math.abs(ell([0, 1.535, 0.0], [0.085, 0.04, 0.085])[0](x, y, z)) - 0.012, Math.abs(y - 1.535) - 0.028), [0, 1.535, 0], 0.15), { bone: B.neck, k: 0.01 });
+  // the arms: long, thin and ash-grey, the fingers drawn out; wide sleeves hang from the elbow
+  for (const [S, s] of SIDES) {
+    const u = mir(at('upperArm.L'), s), e = mir(at('foreArm.L'), s), w = mir(at('hand.L'), s), d = norm(sub(w, e));
+    ash.put(cone(e, w, 0.034, 0.022), { bone: B['foreArm.' + S], k: 0.02 }); ash.put(ell(add(w, mul(d, 0.03)), [0.03, 0.022, 0.032]), { bone: B['hand.' + S], k: 0.02 });
+    for (let i = 0; i < 4; i++) { const z = 0.026 - i * 0.017, f0 = add(add(w, mul(d, 0.055)), [0, -0.004, z]), f1 = add(add(w, mul(d, 0.15 + 0.012 * (i === 1 || i === 2 ? 1 : 0))), [0, -0.03, z * 1.1]); ash.put(cone(f0, f1, 0.009, 0.004), { bone: B['hand.' + S], k: 0.006 }); }
+    ash.displace((x, y, z) => -0.002 * ridged(x * 50, y * 50, z * 50, 2), 0.003);
+    robe.put(cone(u, lerp3(u, e, 0.95), 0.065, 0.07), { bone: B['upperArm.' + S], k: 0.03 }).put(ell(add(u, [0.01 * s, 0, -0.005]), [0.08, 0.075, 0.08]), { bone: B['upperArm.' + S], k: 0.04 });
+    cape.put(any((x, y, z) => { const q = lerp3(e, w, 0.15), dd = sub([x, y, z], q), ax = d, t = dd[0] * ax[0] + dd[1] * ax[1] + dd[2] * ax[2], r = Math.hypot(dd[0] - ax[0] * t, dd[1] - ax[1] * t, dd[2] - ax[2] * t), rr = 0.06 + Math.max(0, -t) * 0.0 + Math.max(0, t) * 0.5; return Math.max(Math.abs(r - rr) - 0.008, -t - 0.06, t - 0.2 - 0.04 * noise(x * 20, y * 20, z * 20)); }, lerp3(e, w, 0.4), 0.3), { bone: B['foreArm.' + S], k: 0.02 });
+  }
+  // the body: tall, narrow, upright
+  robe.bone = B.chest; robe.put(ell([0, 1.33, -0.012], [0.16, 0.165, 0.115])).put(ell([0, 1.42, -0.02], [0.2, 0.065, 0.11]), { k: 0.06 });
+  robe.put(ell([0, 1.19, -0.008], [0.13, 0.15, 0.105]), { bone: B.spine2, k: 0.07 }).put(ell([0, 1.07, -0.005], [0.115, 0.12, 0.095]), { bone: B.spine1, k: 0.07 }).put(ell([0, 0.99, -0.01], [0.16, 0.09, 0.125]), { bone: B.hips, k: 0.06 });
+  robe.displace((x, y, z) => { const a = Math.atan2(x, z); return -0.009 * ridged(a * 3.4 + noise(x * 6, y * 6, z * 6) * 0.6, y * 3.5, 2, 2) * sstep(1.48, 1.2, y) - 0.004 * ridged(x * 20, y * 20, z * 20, 2) + 0.006; }, 0.014);
+  // a mantle over the shoulders, torn at the hem, where the arms of linen come out
+  cape.bone = B.chest; cape.put(any((x, y, z) => { const e = ell([0, 1.37, -0.02], [0.25, 0.24, 0.19])[0](x, y, z), a = Math.atan2(x, z), hem = 1.15 - 0.1 * Math.cos(a) + 0.04 * Math.sin(a * 7) + 0.03 * noise(x * 12, 3, z * 12); return Math.max(Math.abs(e) - 0.011, hem - y, y - 1.52 - 0.02 * Math.cos(x * 8)); }, [0, 1.36, 0], 0.4), { k: 0.02 });
+  cape.displace((x, y, z) => { const a = Math.atan2(x, z); return -0.01 * ridged(a * 5 + noise(x * 7, y * 7, z * 7) * 0.5, y * 4, 3, 2) * sstep(1.45, 1.2, y) + 0.003; }, 0.012);
+  const out = await bakeParts(parts, 0.16, (mat, v) => mat === 35 ? Math.round(0.03 / v) : mat === 40 ? Math.round(0.05 / v) : 0);
+  out.push(sheet(cornette(p => p, 1.3), { nu: 70, nv: 14, mat: 34, inner: 33, weights: () => [[B.head, 1]] }));
+  // the robe, to the floor and past it; a torn over-robe on it
+  out.push(...banded((u, v) => robeAt(u, v), [[0, 0.6, 40], [0.6, 1, 40]], { nu: 72, nv: 30, inner: 33, tatter: 0.2, seed: 23, weights: (u, v) => skirtWeights(PB, u, v) }));
+  out.push(...banded((u, v) => { const q = robeAt(u, v * 0.62, 1.6), k = 1.06 + 0.03 * v; return [q[0] * k, q[1] + 0.03, (q[2] + 0.02) * k - 0.02]; }, [[0, 1, 33]], { nu: 72, nv: 16, tatter: 0.45, seed: 29, weights: (u, v) => skirtWeights(PB, u, v * 0.62) }));
+  // six arms of linen, wound round and round, thinning to rags
+  ARMS.forEach((A, k) => {
+    const d = norm(A.dir), n1 = norm(cross(d, [0, 1, 0])), n2 = cross(n1, d), c = (v: number) => add(A.root, mul(d, ARM_LEN * v));
+    out.push(sheet((u, v) => { const a = u * Math.PI * 2, r = mix(0.065, 0.018, Math.pow(v, 0.8)) * (1 + 0.16 * Math.sin(v * 90 + a + k) * Math.cos(a * 2)); return add(c(v), add(mul(n1, Math.cos(a) * r), mul(n2, Math.sin(a) * r))); }, { nu: 8, nv: 44, mat: 40, inner: 33, weights: (_u, v) => armWeights(PB, k, v) }));
+    for (let i = 0; i < 3; i++) { const a = i * 2.1 + k, o = add(mul(n1, Math.cos(a) * 0.02), mul(n2, Math.sin(a) * 0.02)); out.push(sheet((u, v) => { const vv = 0.82 + 0.26 * v; return add(add(c(Math.min(1, vv)), mul(d, Math.max(0, vv - 1) * ARM_LEN)), add(o, add(mul(n1, (u - 0.5) * 0.04 * (1 - v)), mul(n2, 0.03 * v * Math.sin(v * 5 + i))))); }, { nu: 3, nv: 12, mat: 33, tatter: 0.6, seed: k * 7 + i, weights: (_u, v) => armWeights(PB, k, Math.min(1, 0.82 + 0.26 * v)) })); }
+  });
   return merge(out);
-}
-/** What Last Rites leaves of her: hoops of iron in the shape of the dome, and the scythe's socket at the back. */
-export async function pallFrame(): Promise<Mesh> {
-  const f = new Field(0.03), r = rng(4);
-  for (const v of [0.18, 0.4, 0.62, 0.84]) { const ring: V3[] = []; for (let i = 0; i <= 48; i++) ring.push(domeAt(i / 48, v, 0).map((c, k) => k === 1 ? c : c * 0.93) as V3); f.put(tube(ring, () => 0.045 + 0.01 * r()), { k: 0.02, bone: v < 0.3 ? PALL_IX.crown : PALL_IX.root }); }
-  for (let i = 0; i < 8; i++) { const rib: V3[] = []; for (let j = 0; j <= 16; j++) rib.push(domeAt(i / 8 + 0.03, 0.12 + j / 16 * 0.8, 0).map((c, k) => k === 1 ? c : c * 0.92) as V3); f.put(tube(rib, () => 0.04), { k: 0.02, bone: PALL_IX.root }); }
-  f.displace((x, y, z) => 0.012 * fbm(x * 3, y * 3, z * 3, 3), 0.016);
-  return merge(await bakeParts([[f, 0.03, 12, 5000]], 0.3));
 }
 void box;

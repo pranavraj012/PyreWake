@@ -23,6 +23,7 @@ const RUNP = makePose({ hy: -0.06, hp: 12, sp: 11, np: -18, ra: -128, re: -60, r
 const FEET = CH.map(c => /^f[lr]/.test(c)), LOWER = CH.map(c => /^h/.test(c));
 
 export class PlayerView {
+  /** Drawn this far above where the hero stands (a scene holding him up); the motor never sees it. */ lift = 0;
   group = new THREE.Group(); rig = new Rig(HUMAN); body = new Body(this.rig, HUMAN_SPEC); footing = new Footing(); gait = new Gait([0, 0.5]); stride = new Stride(); /** Lean from speeding up (+) or pulling up (-), degrees. */ private push = 0; private spPrev = 0; chains: Chains;
   /** What casts the body's shadow: the mesh itself, or a stand-in. */ shadow!: THREE.Object3D; mesh: THREE.SkinnedMesh; weapon: THREE.Mesh; blade: Ribbon; eye: Ribbon; ghosts: Ghosts; fx: Fx; arm: Weapon;
   pose: Pose = new Float32Array(N); private src = new Float32Array(N); private tmp = new Float32Array(N); private inert = new Inertial(); private source = ''; private wasGait = false;
@@ -98,7 +99,7 @@ export class PlayerView {
       this.inert.start(this.src, null, Math.max(inClip ? m.clip!.blend ?? 0.12 : 0.26, /^(hurt|down|block|parry|rekindle)$/.test(m.clip?.name ?? '') ? 0 : far * 0.26, /^(hurt|down|block|parry|rekindle)$/.test(m.clip?.name ?? '') ? 0 : Math.min(0.24, turn / 390))); this.source = key; }
     p.set(this.src); this.inert.apply(p, dt);
 
-    this.group.position.set(m.x, m.y, m.z); this.group.rotation.y = m.yaw + p[IX.tw] * Math.PI / 180; this.group.updateMatrixWorld(true);
+    this.group.position.set(m.x, m.y + this.lift, m.z); this.group.rotation.y = m.yaw + p[IX.tw] * Math.PI / 180; this.group.updateMatrixWorld(true);
     const root = this.group.matrixWorld, L = this.body.limbs.footL, R = this.body.limbs.footR;
     const gaiting = !inClip && m.speed > 0.35 && m.y === 0;
     if (gaiting) {

@@ -59,8 +59,34 @@ C.fall = clip('fall', { dur: 6.0, blend: 0.3, keys: [at(0), { t: 0.6, hy: -0.7, 
 /** Kneeling, the cord across her lap, head bowed: how she sits with the dying, and how she is found at the end. */
 C.sit = clip('sit', { dur: 4.0, blend: 0.4, keys: [at(0, { hy: -0.72, hp: 4, hw: 0, sp: 12, sw: 0, np: -22, nw: 0, ra: -8, re: -62, rl: 0.42, xr: 20, ba: 20, be: -70, lg: 0, la: 8, le: -62, ll: 0.42, xl: 20, flz: 0.05, frz: -0.35, frp: 70, flp: 0 }), { t: 2, sp: 14, np: -26 }, at(4.0, { hy: -0.72, hp: 4, hw: 0, sp: 12, sw: 0, np: -22, nw: 0, ra: -8, re: -62, rl: 0.42, xr: 20, ba: 20, be: -70, lg: 0, la: 8, le: -62, ll: 0.42, xl: 20, flz: 0.05, frz: -0.35, frp: 70, flp: 0 })] });
 
-// --- the Pall: timing only
-for (const [n, dur] of [['hourHand', 4.4], ['drawSheet', 4.1], ['wardStands', 2.4], ['noon', 2.4], ['lastBreath', 3.0], ['hemLash', 2.0], ['longCount', 6.8], ['sag', 3.0], ['reel2', 1.4], ['rise', 3.0], ['die', 6.0]] as const)
-  C[n] = clip(n, { dur, blend: 0.3, keys: [at(0), at(dur)] });
+// --- the Pall: her own frame grown huge, hanging on her smoke; her hands are empty (the scythe is on her back), the six linen arms are drawn by the view
+/** Upright and still, the long arms hanging a little out from the robe, the head bowed toward you. */
+export const PSTAND = makePose({ hy: -0.02, hp: 2, hw: 0, sp: 4, sw: 0, np: -12, nw: 0, ra: -16, re: -66, rl: 0.88, ba: 0, be: -80, lg: 0, la: 16, le: -66, ll: 0.88, xl: 0, flx: 0.1, flz: 0.04, frx: -0.1, frz: -0.04 });
+const P: Key = { ...B, hy: -0.02, hp: 2, hw: 0, sp: 4, sw: 0, np: -12, nw: 0, ra: -16, re: -66, rl: 0.88, ba: 0, be: -80, lg: 0, la: 16, le: -66, ll: 0.88, xl: 0, flx: 0.1, flz: 0.04, frx: -0.1, frz: -0.04 };
+const pa = (t: number, k: Partial<Key> = {}): Key => ({ ...P, ...k, t });
+const pall = (n: string, dur: number, keys: Key[], fx: Clip['fx'] = []) => { C[n] = clip(n, { dur, blend: 0.3, fx, keys: [pa(0), ...keys, pa(dur)] }); };
+/** The Hour Hand: both arms out level, the shadow of the scythe goes round with her. */
+pall('hourHand', 4.4, [pa(0.5, { ra: -86, re: 6, rl: 1, la: 86, le: 6, ll: 1, np: 0, sp: -4 }), pa(3.6, { ra: -86, re: 6, rl: 1, la: 86, le: 6, ll: 1, np: 0, sp: -4 })]);
+/** She rises, arms wide, and comes down on you with everything she has. */
+pall('drawSheet', 4.1, [pa(0.6, { ra: -70, re: 56, la: 70, le: 56, rl: 1, ll: 1, hp: -10, sp: -12, np: 16 }), pa(1.6, { ra: -80, re: 20, la: 80, le: 20, rl: 1, ll: 1, hp: 20, sp: 16, np: -20 }),
+  pa(1.75, { hy: -0.42, hp: 34, sp: 34, np: -30, ra: -40, re: -50, la: 40, le: -50, rl: 1, ll: 1 }), pa(3.4, { hy: -0.4, hp: 32, sp: 32, np: -26, ra: -40, re: -50, la: 40, le: -50, rl: 1, ll: 1 })]);
+/** Many Hands: the arms go up behind her, then she throws them down at the floor in a fan. */
+pall('wardStands', 2.4, [pa(0.4, { ra: -40, re: 74, la: 40, le: 74, rl: 1, ll: 1, hp: -8, sp: -10, np: 14 }), pa(1.1, { ra: -50, re: 80, la: 50, le: 80, hp: -12, sp: -14 }), pa(1.3, { ra: -24, re: -36, la: 24, le: -36, rl: 1, ll: 1, hp: 22, sp: 24, np: -24 }), pa(1.9, { ra: -24, re: -40, la: 24, le: -40, hp: 20, sp: 22 })]);
+/** Noon: she reaches back over her shoulder for the scythe and drives it into the floor. */
+pall('noon', 2.4, [pa(0.6, { ra: -30, re: 88, rl: 1, sp: -10, np: 10, hw: -20, sw: -20 }), pa(1.2, { ra: -30, re: 92, rl: 1, sp: -14, hw: -24, sw: -26 }), pa(1.5, { ra: -6, re: -30, rl: 1, hp: 24, sp: 26, np: -26, hw: 10, sw: 14 }), pa(2.0, { ra: -6, re: -34, hp: 20, sp: 22 })]);
+/** The Last Breath: she draws the smoke in, head back, then lets it out at you in gusts. */
+pall('lastBreath', 3.0, [pa(0.45, { hp: -10, sp: -16, np: 24, ra: -60, re: 20, la: 60, le: 20, rl: 1, ll: 1 }), pa(1.0, { hp: 14, sp: 18, np: -6, ra: -50, re: -20, la: 50, le: -20 }), pa(2.3, { hp: 16, sp: 20, np: -4, ra: -50, re: -20, la: 50, le: -20 })]);
+/** At her hem too long: the arms wrapped in close, then flung out all round. */
+pall('hemLash', 2.0, [pa(0.6, { ra: 40, re: -20, la: -40, le: -20, rl: 0.6, ll: 0.6, hp: 12, sp: 16, np: -20 }), pa(1.02, { ra: -100, re: 10, la: 100, le: 10, rl: 1, ll: 1, hp: -6, sp: -8, np: 0 }), pa(1.4, { ra: -96, re: 0, la: 96, le: 0 })]);
+/** The Long Count: her hands together at her breast, her head bowed over them; at the end, thrown open. */
+pall('longCount', 6.8, [pa(0.6, { ra: 18, re: -8, rl: 0.5, la: -18, le: -8, ll: 0.5, np: -30, sp: 10 }), pa(5.9, { ra: 18, re: -8, rl: 0.5, la: -18, le: -8, ll: 0.5, np: -34, sp: 12 }), pa(6.2, { ra: -80, re: 30, la: 80, le: 30, rl: 1, ll: 1, np: 20, sp: -12 })]);
+/** The Gathering: one arm drawn back like a whip and sent out straight at you. */
+pall('gather', 2.6, [pa(0.5, { ra: -110, re: 30, rl: 1, hw: -30, sw: -34, hp: -4 }), pa(0.95, { ra: 0, re: 0, rl: 1, hw: 18, sw: 22, hp: 16, sp: 16, np: -16 }), pa(1.8, { ra: -10, re: -30, rl: 0.8, hw: 8, sw: 10 })]);
+/** She has you: lifted in the linen, close to her face. */
+pall('grip', 3.6, [pa(0.4, { ra: -20, re: 30, rl: 0.9, la: 20, le: 30, ll: 0.9, np: -24, sp: 14, hp: 8 }), pa(3.2, { ra: -20, re: 34, rl: 0.9, la: 20, le: 34, ll: 0.9, np: -28, sp: 16, hp: 10 })]);
+pall('sag', 3.0, [pa(0.4, { hy: -0.5, hp: 30, sp: 34, np: -40, ra: -30, re: -70, la: 30, le: -70 }), pa(2.5, { hy: -0.5, hp: 30, sp: 34, np: -40, ra: -30, re: -70, la: 30, le: -70 })]);
+pall('reel2', 1.4, [pa(0.3, { hp: -16, sp: -20, np: 24, ra: -60, re: 10, la: 60, le: 10 })]);
+pall('rise', 3.0, [pa(0, { hy: -0.7, hp: 40, sp: 40, np: -50, ra: -20, re: -80, la: 20, le: -80 }), pa(1.6, { hy: -0.3, hp: 10, sp: 6, np: 10, ra: -70, re: 40, la: 70, le: 40, rl: 1, ll: 1 })]);
+C.die = clip('die', { dur: 6.0, blend: 0.3, keys: [pa(0), pa(0.8, { hy: -0.5, hp: 30, sp: 30, np: -40, ra: -30, re: -70, la: 30, le: -70 }), pa(6.0, { hy: -0.7, hp: 40, sp: 40, np: -50, ra: -30, re: -80, la: 30, le: -80 })] });
 
 export const HOURS_CLIPS = C;

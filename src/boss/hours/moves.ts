@@ -5,7 +5,7 @@ import type { Strike, Zone } from '../moves2.ts';
 const D = Math.PI / 180;
 const line = (len: number, half: number, delay: number, yaw = 0): Zone => ({ shape: 'line', at: 'self', len, half, delay, yaw });
 export type HoursMode = 'idle' | 'stalk' | 'strafe' | 'blink' | 'reap' | 'harvest' | 'hourWheel' | 'binding' | 'cleanSheet' | 'lieDown' | 'betweenBeds' | 'sevenBreaths' | 'lostCount' | 'burnt'
-  | 'hourHand' | 'drawSheet' | 'wardStands' | 'noon' | 'lastBreath' | 'hemLash' | 'longCount' | 'sag' | 'reel' | 'reel2' | 'kneel' | 'fall' | 'rise' | 'die';
+  | 'hourHand' | 'drawSheet' | 'wardStands' | 'noon' | 'lastBreath' | 'hemLash' | 'longCount' | 'gather' | 'grip' | 'sag' | 'reel' | 'reel2' | 'kneel' | 'fall' | 'rise' | 'die';
 
 export const HOURS_ATTACKS: Record<string, Strike[]> = {
   // --- the Scythe
@@ -26,6 +26,8 @@ export const HOURS_ATTACKS: Record<string, Strike[]> = {
   noon: [{ kind: 'ground', cue: 0.4, t: [1.5, 1.62], dmg: 14, down: true, mark: 'cleaver', zones: [{ shape: 'circle', at: 'player', r: 2.4, delay: 1.1 }] }, { kind: 'ground', cue: 0.4, t: [1.55, 1.65], dmg: 7, mark: 'cleaver', zones: [{ shape: 'ring', at: 'player', delay: 1.15, speed: 8, max: 7 }] }],
   lastBreath: [[1.0, 1.2], [1.35, 1.55], [1.7, 1.9], [2.05, 2.25]].map(t => ({ kind: 'red' as const, cue: 0.45, t: t as [number, number], dmg: 6, mark: 'head' as const, arc: [9.0, 22] as [number, number] })),
   hemLash: [{ kind: 'white', cue: 0.45, t: [1.0, 1.14], dmg: 10, mark: 'head', arc: [4.6, 180] }],
+  /** The Gathering: a linen arm sent straight at you. Caught, you are held (the view plays it); missed, the arm lies on the floor to be cut. */
+  gather: [{ kind: 'red', cue: 0.35, t: [0.95, 1.05], dmg: 0, silent: true, mark: 'cleaver', zones: [line(11, 1.0, 0.6)] }],
   longCount: [{ kind: 'ground', cue: 0.6, t: [6.0, 6.25], dmg: 16, down: true, mark: 'head', zones: [{ shape: 'circle', at: 'self', r: 18, inner: 3.4, delay: 5.4 }] }],
 };
 for (const l of Object.values(HOURS_ATTACKS)) for (const q of l) q.dmg = Math.round(q.dmg * 1.3);

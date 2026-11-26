@@ -12,8 +12,8 @@ const SISTER: Option[] = [
 ];
 const PALL: Option[] = [
   { seq: ['hourHand'], w: 3, near: 4, far: 14 }, { seq: ['drawSheet'], w: 2.4, near: 3.5, far: 14 }, { seq: ['wardStands'], w: 2.4, near: 4, far: 11.5 },
-  { seq: ['noon'], w: 2, near: 2, far: 12 }, { seq: ['lastBreath'], w: 2.4, near: 0, far: 8.5 },
-  { seq: ['wardStands', 'drawSheet'], w: 1.4, near: 4, far: 11.5, below: 0.6 }, { seq: ['noon', 'hourHand'], w: 1.4, near: 2, far: 12, below: 0.5 },
+  { seq: ['noon'], w: 2, near: 2, far: 12 }, { seq: ['lastBreath'], w: 2.4, near: 0, far: 8.5 }, { seq: ['gather'], w: 2.6, near: 2.5, far: 10.5 },
+  { seq: ['wardStands', 'drawSheet'], w: 1.4, near: 4, far: 11.5, below: 0.6 }, { seq: ['noon', 'hourHand'], w: 1.4, near: 2, far: 12, below: 0.5 }, { seq: ['wardStands', 'gather'], w: 1.2, near: 4, far: 10.5, below: 0.75 },
 ];
 
 export class HoursBrain implements BossBrain {

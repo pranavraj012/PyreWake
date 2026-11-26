@@ -1,6 +1,6 @@
 // The frames of the third boss, shared by the forge (which bakes them) and the runtime (which moves them). No rendering imports.
 // The Sister is the human frame (the hero's, without his cape and braid) scaled to her height, with a hanging skirt of bone chains
-// and linen strips from both forearms. The Pall has no limbs: a root, the small head at the top, and a ring of chains in the hem.
+// and linen strips from both forearms. The Pall is the same frame grown huge, in a long robe, with six chained arms of linen.
 import { HUMAN, type BoneDef, type P3 } from '../../anim/skeletons.ts';
 
 /** The human frame is about 1.79 m to the crown; she stands 2.6 m. */
@@ -38,24 +38,28 @@ export function stripWeights(idx: Record<string, number>, side: 'L' | 'R', k: nu
   put('foreArm.' + side, a); put(`strip${side}${k}_${j}`, (1 - f) * (1 - a)); put(`strip${side}${k}_${j2}`, f * (1 - a)); return [...m];
 }
 
-/** The Pall, in metres. The dome from its crown (v = 0) to the hem (v = 1); the hem's ring of chains; the head at the top. */
-export const PALL = { H: 5.0, R: 4.0, neck: 0.32, head: 5.32, cols: 16, rows: 2 };
-export function domeAt(u: number, v: number, fold = 1): P3 {
-  const a = u * Math.PI * 2, s = Math.sin(v * Math.PI / 2), c = Math.cos(v * Math.PI / 2), r0 = PALL.neck + (PALL.R - PALL.neck) * Math.pow(s, 1.25);
-  const w = 1 + fold * (0.07 * Math.sin(a * 11 + 2.2 * v + 0.3) + 0.045 * Math.sin(a * 7.3 + 1.1 - 3 * v) + 0.03 * Math.sin(a * 19 + v * 5) + 0.035 * Math.sin(a * 3 + 0.5) + 0.012 * Math.sin(a * 41 + v * 13) + 0.008 * Math.sin(a * 67 - v * 21)) * Math.pow(v, 0.8) + fold * 0.015 * Math.sin(v * 31 + a * 2) * v;
-  const drag = fold * 0.12 * Math.max(0, Math.sin(a * 5 + 1.3)) * Math.pow(v, 6);
-  return [Math.sin(a) * r0 * w, Math.max(0.01, PALL.H * Math.pow(c, 0.85) + 0.02 - drag), Math.cos(a) * r0 * w];
+/** The Pall: the Sister's own frame grown to 4.7 m and lifted off the floor on her smoke, in a robe that pools below her, with six arms of burning linen
+ *  from her shoulders and back. The core and robe bones are named and ordered as hers, so her skirt's weights serve the robe. */
+export const PALL_SCALE = 2.6, PALL_HOVER = 0.42;
+/** The robe: the skirt's twelve chains of three, a wider bell that falls past her feet. */
+export function robeAt(u: number, v: number, fold = 1): P3 {
+  const a = u * Math.PI * 2, e = Math.pow(v, 0.8), rx = mix(0.17, 0.66, e), rz = mix(0.14, 0.6, e), w = 1 + fold * (0.07 * Math.sin(a * 9 + 0.4) + 0.04 * Math.sin(a * 17 + 2.1) + 0.03 * Math.sin(a * 5 + 1.2)) * Math.pow(v, 0.7);
+  return [Math.sin(a) * rx * w, SKIRT.top - (SKIRT.top + 0.12) * v, -0.02 + Math.cos(a) * rz * w];
 }
-const HEM_V = [0.5, 0.75];
+/** Six arms of linen: where each leaves her, on which bone, and the way it lies at rest (out, back and down). */
+export const ARMS = [1, -1].flatMap(s => [
+  { root: [0.12 * s, 1.43, -0.1], bone: 'chest', dir: [0.62 * s, 0.25, -0.74] }, { root: [0.2 * s, 1.31, -0.1], bone: 'chest', dir: [0.92 * s, -0.05, -0.38] }, { root: [0.13 * s, 1.15, -0.1], bone: 'spine2', dir: [0.66 * s, -0.42, -0.62] },
+] as { root: P3; bone: string; dir: P3 }[]);
+export const ARM_ROWS = 8, ARM_LEN = 3.5;
+export function armRest(k: number, j: number): P3 { const A = ARMS[k], l = Math.hypot(...A.dir), t = ARM_LEN * j / ARM_ROWS; return [A.root[0] + A.dir[0] / l * t, A.root[1] + A.dir[1] / l * t, A.root[2] + A.dir[2] / l * t]; }
 export const PALL_BONES: BoneDef[] = [
-  { name: 'root', parent: null, pos: [0, 0, 0] }, { name: 'crown', parent: 'root', pos: [0, PALL.H, 0] }, { name: 'head', parent: 'crown', pos: [0, PALL.head, 0] },
-  ...Array.from({ length: PALL.cols }, (_, i) => HEM_V.map((v, j): BoneDef => ({ name: `hem${i}_${j}`, parent: j ? `hem${i}_${j - 1}` : 'root', pos: domeAt(i / PALL.cols, v, 0) }))).flat(),
+  ...core,
+  ...Array.from({ length: SKIRT.cols }, (_, i) => Array.from({ length: SKIRT.rows }, (_, j): BoneDef => ({ name: `skirt${i}_${j}`, parent: j ? `skirt${i}_${j - 1}` : 'hips', pos: robeAt(i / SKIRT.cols, j / SKIRT.rows, 0) }))).flat(),
+  ...ARMS.flatMap((A, k) => Array.from({ length: ARM_ROWS }, (_, j): BoneDef => ({ name: `arm${k}_${j}`, parent: j ? `arm${k}_${j - 1}` : A.bone, pos: armRest(k, j) }))),
 ];
-export function domeWeights(idx: Record<string, number>, u: number, v: number): [number, number][] {
-  const C = PALL.cols, x = ((u % 1) + 1) % 1 * C, i = Math.floor(x) % C, i2 = (i + 1) % C, g = x - Math.floor(x);
+/** Skin weights along an arm: its root bone at the shoulder, then the two nearest links. */
+export function armWeights(idx: Record<string, number>, k: number, v: number): [number, number][] {
+  const q = v * ARM_ROWS, j = Math.max(0, Math.min(ARM_ROWS - 1, Math.floor(q))), f = Math.max(0, Math.min(1, q - j)), j2 = Math.min(ARM_ROWS - 1, j + 1), a = Math.max(0, 1 - v * ARM_ROWS * 1.5);
   const m = new Map<number, number>(), put = (n: string, w: number) => { if (w > 0.001) m.set(idx[n], (m.get(idx[n]) ?? 0) + w); };
-  const cl = (x: number) => Math.max(0, Math.min(1, x)), top = cl(1 - v / 0.25), rest = 1 - top, hk = cl((v - 0.33) / 0.2), r = cl((v - HEM_V[0]) / (HEM_V[1] - HEM_V[0]));
-  put('crown', top); put('root', rest * (1 - hk));
-  for (const [c, cw] of [[i, 1 - g], [i2, g]] as const) { put(`hem${c}_0`, rest * hk * cw * (1 - r)); put(`hem${c}_1`, rest * hk * cw * r); }
-  return [...m];
+  put(ARMS[k].bone, a); put(`arm${k}_${j}`, (1 - f) * (1 - a)); put(`arm${k}_${j2}`, f * (1 - a)); return [...m];
 }

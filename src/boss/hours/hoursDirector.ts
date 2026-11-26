@@ -73,6 +73,7 @@ export class HoursDirector {
     const hand = this.v1.mark('handL', V()), head = k.form === 2 ? this.v2.mark('head', V()) : this.v1.mark('head', V()); this.fx.step(f, k, hand, head, sd, t);
     void m;
   }
+  /** The page's grapple scene: she has caught the hero; she has let go. */ onGrab: (() => void) | null = null; onFree: (() => void) | null = null;
   /** Events only this boss has. */
   on(e: Ev, t: number) {
     const { dir, f } = this, k = this.sim, m = f.m, fx = dir.fx, cam = dir.cam, x = e.x ?? k.x, z = e.z ?? k.z;
@@ -88,6 +89,11 @@ export class HoursDirector {
       case 'stakeHit': sound.play('chip', { x, z, gain: 0.8 }); sound.play('thud', { x, z, gain: 0.5 }); fx.sparks.emit(V(x, 1.2, z), V(0, 0.4, 0), 24, 3, 1.4, 0.6, t); if ((e.n ?? 0) > 0) this.hud.callout(`${3 - (e.n ?? 0)} of 3`); break;
       case 'stakeBreak': sound.play('crackStone', { x, z, gain: 0.9 }); sound.play('collapse', { x, z, gain: 0.4 }); fx.sparks.emit(V(x, 1.5, z), V(0, 0.8, 0), 70, 6, 1.6, 0.8, t); fx.puffs.emit(V(x, 0.5, z), 12, 2.4, 1.4, t); this.hud.callout(HOURS_CALLS.stakeBreak); cam.trauma = 0.6; break;
       case 'sunk': sound.play('sunSink', { gain: 0.9, wet: 0.7 }); this.hud.callout(HOURS_CALLS.sunk); break;
+      // --- the linen arms: she has you; you tore free or you did not; an arm cut on the floor; two cut and she staggers
+      case 'grab': sound.play('clothB', { x, z, gain: 1, wet: 0.4 }); sound.play('pRoar', { x: k.x, z: k.z, bus: 'voice', gain: 0.9, wet: 0.6 }); sound.duck(0.35, 3.2); cam.trauma = 0.8; cam.punch = -6; this.hud.callout(HOURS_CALLS.held); this.onGrab?.(); break;
+      case 'released': if (e.n) { sound.play('tear', { x, z, gain: 1, wet: 0.4 }); sound.play('pPain', { x: k.x, z: k.z, bus: 'voice', gain: 0.9 }); this.hud.callout(HOURS_CALLS.torn); fx.sparks.emit(V(x, 1.4, z), V(0, 0.6, 0), 60, 5, 1.6, 0.6, t); } else { sound.play('boom', { x, z, gain: 0.8 }); sound.play('sheetFall', { x, z, gain: 0.9 }); cam.trauma = 1; } this.onFree?.(); break;
+      case 'armCut': sound.play('tear', { x, z, gain: 0.9, wet: 0.3 }); sound.play('fire', { x, z, gain: 0.6, wet: 0.3 }); sound.play('pPain', { x: k.x, z: k.z, bus: 'voice', gain: 0.6 }); fx.sparks.emit(V(x, 0.5, z), V(0, 1, 0), 50, 4, 1.6, 0.6, t); fx.bursts.add('fire', V(x, 0.4, z), 1.6, 0.5, t); cam.trauma = Math.max(cam.trauma, 0.35); this.hud.callout(HOURS_CALLS.cut); break;
+      case 'sever': sound.play('pRoar', { x: k.x, z: k.z, bus: 'voice', gain: 1, wet: 0.6 }); sound.play('braam', { gain: 0.7 }); cam.trauma = 0.7; this.hud.callout(HOURS_CALLS.sever); break;
     }
     void m;
   }

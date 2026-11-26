@@ -29,6 +29,7 @@ import { SisterView } from './boss/hours/sisterView.ts';
 import { PallView } from './boss/hours/pallView.ts';
 import { HoursDirector } from './boss/hours/hoursDirector.ts';
 import { HOURS_NAMES } from './game/hoursScript.ts';
+import { Grapple } from './game/grapple.ts';
 import { HoursIntro, HoursTurn, HoursEnding } from './game/hoursScenes.ts';
 import type { Ctx } from './core/boot.ts';
 
@@ -37,7 +38,7 @@ export async function bootHours(c: Ctx) {
   status('Climbing the hill'); if (!SHOT) sound.load();
   const tex = await loadTextures(tier, Math.min(8, renderer.capabilities.getMaxAnisotropy()));
   const lod = tier.name === 'high' ? '.lo' : '.xs';
-  const [house, gPlayer, gPlayerLo, gKhanda, gSister, sSister, gScythe, gPall, sPall, gFrame, sPlayer, gCot] = await Promise.all([buildHouse(tex, tier), loadGeo('player'), loadGeo('player', '.xs'), loadGeo(KHANDA.geo), loadGeo('sister'), loadGeo('sister', lod), loadGeo('scythe'), loadGeo('pall'), loadGeo('pall', lod), loadGeo('pallFrame'), loadGeo('player', lod), loadGeo('cot')]);
+  const [house, gPlayer, gPlayerLo, gKhanda, gSister, sSister, gScythe, gPall, sPall, sPlayer, gCot] = await Promise.all([buildHouse(tex, tier), loadGeo('player'), loadGeo('player', '.xs'), loadGeo(KHANDA.geo), loadGeo('sister'), loadGeo('sister', lod), loadGeo('scythe'), loadGeo('pall'), loadGeo('pall', lod), loadGeo('player', lod), loadGeo('cot')]);
   scene.add(house.group); FOG.uGlowP.value.forEach((g, i) => g.set(Math.sin(i * 2.1) * 10, 6.6, Math.cos(i * 2.1) * 10 - 2, i < 4 ? 0.0016 : 0)); FOG.uGlowC.value.setRGB(1, 0.42, 0.14);
   const dis = { value: 0 }, pFlash = { value: new THREE.Vector4(1, 0.3, 0.1, 0) }, pAt = { value: new THREE.Vector4(0, 0, 0, 1) }, aura = { value: 0 };
   const skin = (d: { value: number }, f: { value: THREE.Vector4 }, at: { value: THREE.Vector4 }, more: object = {}) => surface(tex, tier, { ash: 0.08, fx: { dis: d, flash: f, at, ...more } });
@@ -46,7 +47,7 @@ export async function bootHours(c: Ctx) {
   const pv = new PlayerView(scene, gPlayer, gPlayerLo, gKhanda, pMat, pHeld, DEPTH, fx, tier.name === 'phone' ? 2 : 4, KHANDA); pv.dis = dis; pv.flash = pFlash; pv.flashAt = pAt; pv.aura = aura;
   if (tier.name !== 'phone') { pv.glow = new THREE.PointLight(0xff9450, 1, 6, 1.6); scene.add(pv.glow); }
   const sim = new Sister(), brain = new HoursBrain(), m = new Motor(KHANDA), fight = new Fight(m, sim, brain), prompts = new Prompts(), hud = new Hud(app, input); fight.furnish(house.ruin.props); fight.passive = !!(SHOT || Q.has('still'));
-  const v1 = new SisterView(scene, { body: gSister, scythe: gScythe }, held, held, DEPTH, fx, sim), v2 = new PallView(scene, { body: gPall, scythe: gScythe, frame: gFrame }, held, held, DEPTH, fx, sim);
+  const v1 = new SisterView(scene, { body: gSister, scythe: gScythe }, held, held, DEPTH, fx, sim), v2 = new PallView(scene, { body: gPall, scythe: gScythe }, held, held, DEPTH, fx, sim);
   v1.mesh.material = skin(v1.dissolve, v1.flash, v1.flashAt, { wounds: v1.wounds, ember: v1.ember }); v2.mesh.material = surface(tex, tier, { ash: 0, side: THREE.DoubleSide, fx: { dis: v2.dissolve, flash: v2.flash, at: v2.flashAt, wounds: v2.wounds, ember: v2.ember } });
   if (tier.name !== 'phone') { v1.light = new THREE.PointLight(0xffa860, 3, 7, 1.6); v2.light = new THREE.PointLight(0xff7a30, 18, 16, 1.6); scene.add(v1.light, v2.light); }
   pv.shadow = skinnedShadow(pv.mesh, sPlayer, DEPTH.skin); skinnedShadow(v1.mesh, sSister, DEPTH.skin); skinnedShadow(v2.mesh, sPall, DEPTH.skin); v2.show(false);
@@ -63,14 +64,17 @@ export async function bootHours(c: Ctx) {
   light(0);
   const cloth = surface(tex, tier, { world: false, ash: 0.1, side: THREE.DoubleSide }), hd = new HoursDirector(dir, fight, house, v1, v2, post, hud, light, { cot: gCot, scythe: gScythe, cloth, scene }); hud.names = [HOURS_NAMES.r1, HOURS_NAMES.r2]; hud.winTitle = HOURS_NAMES.won;
   onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
+  // her arms can catch you: a close scene, and a mash to tear free (src/game/grapple.ts)
+  const grapple = new Grapple(app); hd.onGrab = () => { grapple.start({ from: 0.55, per: 0.085, drain: 0.28, text: 'Tear free', frame: (gt, eye, at) => { const hx = m.x, hz = m.z, dx = hx - sim.x, dz = hz - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, lift = Math.min(1, gt / 0.6), sw = 2.3 + 0.25 * Math.sin(gt * 0.8); eye.set(hx + ux * 4.4 + uz * sw, 1.15 + 0.35 * lift, hz + uz * 4.4 - ux * sw); at.set(hx * 0.55 + sim.x * 0.45, 2.5 + 0.7 * lift, hz * 0.55 + sim.z * 0.45); return 52 - 4 * lift; } }, input.lastDevice); };
+  hd.onFree = () => { grapple.stop(); pv.lift = 0; follow.snap(m, sim); };
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, house, hd }, intro = new HoursIntro(kit), turn = new HoursTurn(kit), ending = new HoursEnding(kit);
   dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 4 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
   turn.onEnd = () => follow.snap(m, sim); const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
-  hud.onRestart = () => { ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
+  hud.onRestart = () => { grapple.stop(); pv.lift = 0; ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
   menu.fights([['The Hanged King', () => { location.search = ''; }], ['The Ferryman', () => { location.search = '?boss=2'; }], ['The Sister of Hours', null]]);
-  const toMenu = () => { hud.setPaused(false); hud.verse(''); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); intro.rest(); };
+  const toMenu = () => { grapple.stop(); pv.lift = 0; hud.setPaused(false); hud.verse(''); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); intro.rest(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen; hud.next = ''; hud.onSkip = () => { };
   const busy = () => menu.open || intro.active || turn.active || ending.active || fight.phase === 'won';
   document.addEventListener('visibilitychange', () => { if (document.hidden && !busy() && !SHOT) hud.setPaused(true); });
@@ -92,13 +96,14 @@ export async function bootHours(c: Ctx) {
     if (menu.open) { /* the hero waits at the gate */ }
     else if (intro.active) { if (intro.t > 0.6 && ev.some(e => !e.up)) intro.skip(); else mz = intro.step(dt, t); ev = []; }
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
+    if (grapple.active) { grapple.press(ev); grapple.step(dt); sim.freed = grapple.won ? 1 : grapple.prog; pv.lift = 2.1 * Math.min(1, grapple.t / 0.6); ev = []; mx = mz = 0; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
     if (still) { /* tools/hours.mjs films a move held at an exact moment */ const fz = (window as unknown as { __freezeAt?: number }).__freezeAt; if (fz !== undefined && sim.mt >= fz) sim.mt = sim.prev = fz; }
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
     turn.step(dt, t); ending.step(dt, t); hd.step(sd, dt, t); if (!intro.active) dir.mono = Math.max(turn.mono, 0);
-    if (!menu.open && !intro.active) prompts.step(sd, fight);
+    if (!menu.open && !intro.active && !grapple.active) prompts.step(sd, fight); else if (grapple.active) prompts.current = null;
     house.ruin.step(sd, t, [{ x: m.x, z: m.z, r: m.y > 0.6 ? -9 : 0.35, push: 1 + m.speed * 0.25 }, { x: sim.x, z: sim.z, r: sim.y > 0.6 ? -9 : sim.r, push: 3.2 }]); follow.blockers = m.blockers;
     dir.step(sd, dt, t);
   };
@@ -114,11 +119,12 @@ export async function bootHours(c: Ctx) {
     if (busy() && fight.phase !== 'won' || menu.open) follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6);
     const SC = (window as unknown as { __shotCam?: [number[], number[], number] }).__shotCam ?? (SHOT ? SHOTS[SHOT] : undefined); if (SC) { const [pp, ll, ff] = SC; cam.position.set(pp[0], pp[1], pp[2]); cam.lookAt(ll[0], ll[1], ll[2]); cam.fov = ff * (cam.aspect > 1.9 ? 0.92 : 1); cam.updateProjectionMatrix(); }
     else if (menu.open) menuCam(cam, t, m.x, m.z);
+    else if (grapple.active && grapple.camera(cam, Math.min(ms / 1000, 0.05))) { /* the grapple's close shot */ }
     else if (turn.active) turn.camera(cam, t);
     else if (ending.active) ending.camera(cam, t);
     else if (intro.active) intro.camera(cam, t, c.baseFov());
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, c.baseFov())) { follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
-    else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5 && !sim.hidden, h: sim.form === 2 ? 2.6 - 1.2 * v2.headDown : 2.2 }, input.takeLook(), t, c.baseFov());
+    else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5 && !sim.hidden, h: sim.form === 2 ? v2.camH : 2.2 }, input.takeLook(), t, c.baseFov());
     if (!SHOT && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
     { const fz = cam.userData.focus as THREE.Vector3 | undefined, film = menu.open || turn.active || ending.active || intro.active, on = film || cam.userData.frame === true, want = on && fz ? (menu.open ? 0.4 : film ? 0.8 : 0.6) : 0; cam.userData.frame = false; post.dof.amt += (want - post.dof.amt) * (want && post.dof.amt < 0.02 ? 1 : Math.min(1, ms / 90)); if (fz) post.dof.focus = Math.max(0.5, fz.distanceTo(cam.position)); }
     c.sky.position.copy(cam.position); cam.updateMatrixWorld();

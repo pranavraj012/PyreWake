@@ -14,13 +14,13 @@ const n = (ev: FightEvent[], k: string) => ev.filter(e => e.k === k).length;
 const go = (gap: number, mode: string, form: 1 | 2 = 1, ang = 0) => { const t = mk(gap, form, ang); t.f.brain.seen.add(mode); t.k.set(mode); return t; };
 /** Each move, the form it belongs to, and the range the brain picks it from. */
 const RANGE: [string, 1 | 2, number, number][] = [['reap', 1, 1.2, 4.8], ['hourWheel', 1, 2, 7], ['harvest', 1, 2.5, 14], ['lieDown', 1, 1.0, 3.2], ['binding', 1, 2, 8.5], ['cleanSheet', 1, 3, 14], ['betweenBeds', 1, 5, 14],
-  ['hourHand', 2, 4, 14], ['drawSheet', 2, 3.5, 14], ['wardStands', 2, 4, 11.5], ['noon', 2, 2, 12], ['lastBreath', 2, 3, 8.5]];
+  ['hourHand', 2, 4, 14], ['drawSheet', 2, 3.5, 14], ['wardStands', 2, 4, 11.5], ['noon', 2, 2, 12], ['lastBreath', 2, 3, 8.5], ['gather', 2, 2.5, 10.5]];
 
 describe('the Sister of Hours and the Pall', () => {
   it('every strike has a telegraph before it lands, and every move a clip', () => { for (const m of Object.keys(A)) { expect(C[m], m).toBeDefined(); for (const s of A[m]) { expect(s.cue, m).toBeGreaterThan(0); expect(s.cue, m).toBeLessThan(s.t[0] - (s.zones?.length ? 0.4 : 0.25)); } } });
   it('every move lands on a hero who stands still, anywhere in the range it is chosen from', () => {
     for (const [mode, form, near, far] of RANGE) for (let i = 0; i < 4; i++) for (const ang of [-0.4, 0, 0.4]) {
-      const d = near + (far - near) * i / 3, { f, k } = go(d, mode, form, ang), hp = f.hp; for (let j = 0; j < 8 * 60 && (k.mode === mode || j < 5); j++) { f.invuln = 0; f.step(DT, 0, 0, []); }
+      const d = near + (far - near) * i / 3, { f, k } = go(d, mode, form, ang), hp = f.hp; for (let j = 0; j < 8 * 60 && (k.mode === mode || k.mode === 'grip' || j < 5); j++) { f.invuln = 0; f.step(DT, 0, 0, []); }
       expect(f.hp, `${mode} at ${d.toFixed(1)} m, ${ang}`).toBeLessThan(hp);
     }
   });
@@ -55,6 +55,16 @@ describe('the Sister of Hours and the Pall', () => {
   });
   it('Between Beds: she cannot be hit inside the smoke, and comes out within six metres of you', () => {
     const { f, k } = go(8, 'betweenBeds'); run(f, 0.8); expect(k.vulnerable).toBe(false); run(f, 0.7); expect(k.vulnerable).toBe(true); expect(Math.hypot(k.x - f.m.x, k.z - f.m.z)).toBeLessThan(6);
+  });
+  it('The Gathering: caught, you are held and it costs a great deal; torn free, far less, and she reels', () => {
+    const lost = go(5, 'gather', 2); run(lost.f, 6); expect(100 - lost.f.hp).toBeGreaterThan(30);
+    const won = go(5, 'gather', 2); let held = false; run(won.f, 6, () => { if (won.k.mode === 'grip') { held = true; won.k.freed = 1; } return []; });
+    expect(held).toBe(true); expect(100 - won.f.hp).toBeLessThan(20); expect(100 - won.f.hp).toBeGreaterThan(0);
+  });
+  it('a linen arm left on the floor can be cut', () => {
+    const { f, k } = go(4, 'gather', 2, 0.6); f.invuln = 3; run(f, 1.2); expect(k.laid.length).toBe(1);
+    const l = k.laid[0]; f.m.x = l.x + Math.sin(l.yaw) * 5 + Math.cos(l.yaw) * 0.6; f.m.z = l.z + Math.cos(l.yaw) * 5 - Math.sin(l.yaw) * 0.6; f.m.yaw = Math.atan2(-Math.cos(l.yaw), Math.sin(l.yaw));
+    let cut = false; run(f, 1, i => i === 2 ? tap('attack') : [], () => { if (k.severed[l.arm] >= 0) cut = true; return [0, 0]; }); expect(cut).toBe(true);
   });
   it('a hero who answers the cues wins in a sensible time', () => {
     let wins = 0, T = 0; const N = 6;
