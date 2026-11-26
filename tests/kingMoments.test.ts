@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { GRAB_DMG, HANDS, NOOSE, OFFER, REWARD_SHARE, RIDE, RIP, type King } from '../src/boss/king.ts';
+import { GRAB_DMG, NOOSE, OFFER, REWARD_SHARE, RIDE, RIP, type King } from '../src/boss/king.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60;
@@ -37,12 +37,6 @@ describe('the grabs', () => {
     const f = mk(); K(f).set('grab'); const hp0 = f.hp;
     steps(f, 2.2, () => { if (K(f).mt > 1.3 && K(f).mt < 1.6) f.m.safe = 0.2; });
     expect(K(f).held).toBeNull(); expect(f.hp).toBe(hp0);
-  });
-  it('the hands catch a hero who stands still, hold him, and cost at the burst', () => {
-    const f = mk(); K(f).set('skewer'); const hp0 = f.hp;
-    expect(until(f, () => K(f).held === 'hands', 3)).toBe(true);
-    expect(until(f, () => K(f).held === null, 15)).toBe(true);
-    expect(hp0 - f.hp).toBeGreaterThanOrEqual(GRAB_DMG.hands - 1);
   });
 });
 
@@ -79,6 +73,6 @@ describe('the rewards', () => {
     const f = mk(2); K(f).set('hang'); steps(f, 1.0); expect(K(f).reward).toBe('rope');
     K(f).reward = null; K(f).set('noose'); K(f).held = 'noose'; steps(f, 0.3);
     expect(K(f).reward).toBeNull();
-    expect(RIP.cut).toBeLessThan(RIP.len); expect(RIDE.hit).toBeLessThan(RIDE.len); expect(NOOSE.land).toBeLessThan(NOOSE.end); expect(HANDS.burst).toBeLessThan(HANDS.end);
+    expect(RIP.cut).toBeLessThan(RIP.len); expect(RIDE.hit).toBeLessThan(RIDE.len); expect(NOOSE.land).toBeLessThan(NOOSE.end);
   });
 });

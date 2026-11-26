@@ -91,7 +91,7 @@ async function boot() {
   const fight = new Fight(m, king.sim), prompts = new Prompts(), hud = new Hud(app, input); fight.furnish(court.ruin.props); fight.passive = !!(SHOT || BENCH || Q.has('still'));
   const follow = new FollowCam(); follow.blockers = m.blockers;
   // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
-  const moment = new Moment(), qte = new Prompt(app), kSpecs = kingMoments(king.sim, m); let staged: 'noose' | 'hands' | 'rope' | 'ride' | null = null, qteFor: string | null = null;
+  const moment = new Moment(), qte = new Prompt(app), kSpecs = kingMoments(king.sim, m); let staged: 'noose' | 'rope' | 'ride' | null = null, qteFor: string | null = null;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath], court }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => { saveSettings({ beaten: settings.beaten | 1 }); ending.start(); }; hud.next = 'On to the river'; hud.onNext = () => { location.search = '?boss=2'; }; const arm = () => { const sp = lessons.active ? DEFAULT_SPELLS : settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); }; onSettings(() => { fight.brain.temper = settings.temper; arm(); }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0, turned = false;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
@@ -153,8 +153,6 @@ async function boot() {
     { const want = king.sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(kSpecs[want]); } else moment.stop(); } }
     if (!king.sim.reward) qteFor = null; else if (!moment.active && !qte.on && qteFor !== king.sim.reward) { qteFor = king.sim.reward; qte.show('attack', KING_PRESS[king.sim.reward], king.sim.rewardLeft, input.lastDevice); }
     pv.tumble = moment.hero(king.sim.stage, pv.offset);
-    // the hands: dust where he sinks, and the floor breaking open as they let him go
-    if (king.sim.held === 'hands') { const s = king.sim.stage; if (s < 1.0 && Math.random() < 0.5) fx.puffs.emit(new THREE.Vector3(m.x + (Math.random() - 0.5) * 1.2, 0.2, m.z + (Math.random() - 0.5) * 1.2), 1, 1.0 + Math.random(), 0.6, t); if (s >= 1.0 && s < 1.06) fx.puffs.emit(new THREE.Vector3(m.x, 0.3, m.z), 14, 3, 1.2, t); }
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     lessons.step(dt, sd); hud.lesson(lessons.active ? lessons.card : null);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();

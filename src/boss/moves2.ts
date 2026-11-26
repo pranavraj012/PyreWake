@@ -112,7 +112,7 @@ export const ATTACKS: Record<string, Strike[]> = {
   // --- round 2
   flurry: [{ kind: 'white', cue: 0.2, t: [0.8, 0.9], dmg: 7, mark: 'cleaver', arc: [3.6, 90] }, { kind: 'white', cue: 0.82, t: [1.38, 1.48], dmg: 7, mark: 'handL', arc: [3.6, 90] }, { kind: 'white', cue: 1.4, t: [1.96, 2.06], dmg: 7, mark: 'cleaver', arc: [3.6, 90] }, { kind: 'white', cue: 2.2, t: [2.82, 2.94], dmg: 13, mark: 'head', box: [4.0, 1.0] }],
   cross: [{ kind: 'white', cue: 0.16, t: [0.78, 0.98], dmg: 12, mark: 'cleaver', arc: [2.3, 140], low: true }],
-  skewer: [{ kind: 'red', cue: 0.4, t: [1.14, 1.3], dmg: 18, down: true, mark: 'head', box: [4.0, 0.65], seize: 'hands' }],
+  skewer: [{ kind: 'red', cue: 0.4, t: [1.14, 1.3], dmg: 18, down: true, mark: 'head', box: [4.0, 0.65] }],
   rupture: [{ kind: 'ground', cue: 0.4, t: [1.24, 1.36], dmg: 14, down: true, mark: 'head', zones: [-0.5, 0, 0.5].map(yaw => ({ shape: 'line' as const, at: 'self' as const, len: 13, half: 0.85, yaw, delay: 0.85 })) }],
   rain: [0.8, 1.3, 1.8, 2.3, 2.8].map(t => ({ kind: 'ground' as const, cue: t, t: [t + 0.9, t + 1.0] as [number, number], dmg: 7, mark: 'head' as const, zones: [circle(1.8, 0.9, 'player')] })),
   wheel: [{ kind: 'ground', cue: 0.36, t: [1.22, 1.34], dmg: 13, down: true, mark: 'head', zones: [circle(2.4, 0.88)] }, { kind: 'ground', cue: 1.23, t: [1.3, 1.4], dmg: 8, mark: 'head', zones: [{ shape: 'ring', at: 'self', delay: 0.55, speed: 8.5, max: 12 }] }],

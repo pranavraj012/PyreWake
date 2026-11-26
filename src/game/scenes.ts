@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { sound } from '../audio/sound.ts';
 import type { KingView } from '../boss/kingView.ts';
-import { HANDS, NOOSE, RIDE, RIP, type King } from '../boss/king.ts';
+import { NOOSE, RIDE, RIP, type King } from '../boss/king.ts';
 import type { Fight } from '../combat/fight.ts';
 import type { Motor } from '../player/motor.ts';
 import type { PlayerView } from '../player/view.ts';
@@ -166,7 +166,7 @@ export class Ending {
 
 // ---------------------------------------------------------------- the moments (the grabs and the rewards)
 /** Each moment is staged on the boss's own clock (`stage`), so it never runs ahead of or behind the blows: the page plays these specs while the simulation holds the hero. */
-export function kingMoments(sim: King, m: Motor): Record<'noose' | 'hands' | 'rope' | 'ride', MomentSpec> {
+export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope' | 'ride', MomentSpec> {
   /** From the King toward the hero, on the ground, and its right-hand side. */
   const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { ux, uz, sx: -uz, sz: ux }; };
   /** The hero's height in the noose: lifted by the throat, held as the King climbs, kicking, then dropped. */
@@ -177,17 +177,6 @@ export function kingMoments(sim: King, m: Motor): Record<'noose' | 'hands' | 'ro
     hero: (t, o) => { o.y = nooseY(t); },
     tumble: t => t > NOOSE.release ? Math.min(Math.PI, (t - NOOSE.release) * 2.4) : 0,
     rate: t => t > NOOSE.release - 0.1 && t < NOOSE.land + 0.2 ? 0.4 : 1,
-  };
-  /** The hero's offset from where he is held: sunk to the waist in the floor, then thrown out and up. */
-  const handsAt = (t: number, o: THREE.Vector3) => { const { ux, uz } = away(), u = Math.max(0, Math.min(1, (t - HANDS.burst) / (HANDS.end - HANDS.burst)));
-    o.set(ux * 3.2 * u, t < HANDS.burst ? -0.9 * E(0.1, 0.9, t) : -0.9 + Math.sin(Math.PI * u) * 2.2 + 0.9 * u, uz * 3.2 * u); return o; };
-  const hands: MomentSpec = {
-    frame: (t, eye, at) => { const { sx, sz, ux, uz } = away(), hero = handsAt(t, new THREE.Vector3()), hx = m.x + hero.x, hz = m.z + hero.z, thrown = E(HANDS.burst, HANDS.end, t);
-      if (t < HANDS.burst) { eye.set(m.x + sx * 2.6 + ux * 1.2, 0.7, m.z + sz * 2.6 + uz * 1.2); at.set(m.x, 1.0, m.z); return 52; }
-      eye.set(hx + sx * 3.4 + ux * 1.0, 1.3 + 0.8 * thrown, hz + sz * 3.4 + uz * 1.0); at.set(hx, 1.2 + hero.y * 0.5, hz); return 52; },
-    hero: (t, o) => { handsAt(t, o); },
-    tumble: t => t > HANDS.burst ? (t - HANDS.burst) * 5 : 0,
-    rate: t => t > HANDS.burst - 0.1 && t < HANDS.burst + 0.3 ? 0.35 : 1,
   };
   /** Up the rope: a leap to the rope's foot, a catch, the cut, and the fall with the King. */
   const rope: MomentSpec = {
@@ -211,5 +200,5 @@ export function kingMoments(sim: King, m: Motor): Record<'noose' | 'hands' | 'ro
     tumble: t => t > 2.2 ? Math.min(1.6, (t - 2.2) * 2) : 0,
     rate: t => t > RIDE.hit - 0.1 && t < RIDE.hit + 0.1 ? 0.3 : 1,
   };
-  return { noose, hands, rope, ride };
+  return { noose, rope, ride };
 }
