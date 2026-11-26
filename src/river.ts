@@ -70,7 +70,7 @@ export async function bootRiver(c: Ctx) {
   hud.onRestart = () => { moment.stop(); staged = null; qte.hide(); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'weight' : 'row'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   // a phone has no buttons in the scenes: a tap anywhere lights the boat when the scene is waiting for it
-  addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && ending.waiting) ending.tap(t); });
+  addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { if (ending.waiting) ending.tap(t); if (intro.waiting) intro.tap(t); } });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
   menu.fights([['The Hanged King', () => { location.search = ''; }], ['The Ferryman', null], ['The Sister of Hours', () => { location.search = '?boss=3'; }]]);
   const toMenu = () => { hud.setPaused(false); moment.stop(); staged = null; qte.hide(); hud.verse(''); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
@@ -91,7 +91,7 @@ export async function bootRiver(c: Ctx) {
     if (hud.paused) return;
     const pace = turn.active ? turn.rate : moment.active ? moment.rate(sim.stage) : 1; t += dt * pace; FOG.uFogP.value.w = SHARED.uTime.value = t;
     if (menu.open) { /* the hero kneels at the water */ }
-    else if (intro.active) { if (intro.t > 0.6 && ev.some(e => !e.up)) intro.skip(); else mz = intro.step(dt, t); ev = []; }
+    else if (intro.active) { intro.press(ev, t); mz = intro.active ? intro.step(dt, t, input.lastDevice) : 0; ev = []; }
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active) { ending.press(ev, t); if (ending.waiting) ev = []; }
     // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
