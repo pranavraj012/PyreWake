@@ -99,7 +99,7 @@ async function boot() {
     else if (name === 'swing') sound.play('creak', { gain: 0.7, wet: 0.8, x: king.sim.x, z: king.sim.z });
     else if (name === 'throw') { sound.play('groan', { gain: 0.6, x: king.sim.x, z: king.sim.z }); hud.verse(''); }
     else if (name === 'land') { sound.play('slam', { gain: 0.9, x: L.x, z: L.z }); sound.play('thud', { gain: 0.9, x: L.x, z: L.z }); fx.puffs.emit(new THREE.Vector3(L.x, 0, L.z), 18, 2.6, 1.4, t); fx.bursts.add('ground', new THREE.Vector3(L.x, 0.06, L.z), 9, 0.9, t, 0, 0.7, 0.3, 0.1); moment.kick(0.9); }
-  }; let staged: 'noose' | 'rope' | 'ride' | null = null;
+  }; let staged: 'noose' | 'rope' | 'ride' | null = null; let heroHid = false, dimOn = false;
   const kOffer = new Offer(moment, offerSpec(m, () => ({ x: king.sim.hx, y: king.sim.hanging ? 4.2 : 1.9, z: king.sim.hz, tilt: king.sim.hanging ? 60 : undefined, back: king.sim.hanging ? 3.6 : undefined })), (r, secs) => qte.show('attack', KING_PRESS[r as 'rope' | 'ride'], secs, input.lastDevice));
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath], court }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => { saveSettings({ beaten: settings.beaten | 1 }); ending.start(); }; hud.next = 'On to the river'; hud.onNext = () => { location.search = '?boss=2'; }; const arm = () => { const sp = lessons.active ? DEFAULT_SPELLS : settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); }; onSettings(() => { fight.brain.temper = settings.temper; arm(); }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0, turned = false;
@@ -166,6 +166,8 @@ async function boot() {
     // a reward on offer: the slow low shot, then the press (plain English), until the chance lapses
     kOffer.step(dt, king.sim.reward, king.sim.rewardLeft, king.sim.staging !== null);
     pv.tumble = moment.hero(king.sim.stage, pv.offset);
+    // first person: the hero's own body and eye glow are out of the lens; a dim (a flash, a fall) goes over the picture
+    if (heroHid !== moment.hideHero) { heroHid = moment.hideHero; pv.group.visible = pv.eye.mesh.visible = pv.blade.mesh.visible = !heroHid; }
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     lessons.step(dt, sd); hud.lesson(lessons.active ? lessons.card : null);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
@@ -175,7 +177,10 @@ async function boot() {
     if (!menu.open && !intro.active && !story.active && !lessons.active && !moment.active && !qte.on) prompts.step(sd, fight); else if (moment.active || qte.on) prompts.current = null;
     court.ruin.step(sd, t, [{ x: m.x, z: m.z, r: m.y > 0.6 ? -9 : 0.35, push: 1 + m.speed * 0.25 }, { x: king.sim.x, z: king.sim.z, r: king.sim.y > 0.6 || king.sim.hanging ? -9 : 0.8, push: 3.2 }]); follow.blockers = m.blockers;
     court.storm(fight.round === 2 && fight.phase !== 'won' ? (fight.brain.style === 'eclipse' ? 1 : 0.3) : 0); post.heat.value = omenK * 0.8;
+    { const md = moment.dimAt(king.sim.stage); if (md > 0 || dimOn) { dir.dark = md; dimOn = md > 0; } }
     dir.step(sd, dt, t);
+    // the attack's red cue sits at the hand, which is at the lens in first person: it goes while the moment plays
+    if (moment.hideHero) dir.cue.mesh.visible = false;
   };
   renderer.compile(scene, cam); resize();
   // draw every effect once so the first hit doesn't hitch

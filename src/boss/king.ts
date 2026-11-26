@@ -93,7 +93,7 @@ export class King {
   }
   /** The grab connected: the boss takes the hero into a staged moment. It always plays out and always costs. */
   seize(kind: string, f: Fight) {
-    this.stage = this.sp = 0; f.brain.seen.add('grab');
+    this.stage = this.sp = 0; f.brain.seen.add('grab'); for (const h of f.hazards) h.max = -1; // the grab's own danger mark goes: it is the hand now
     this.grabbedOnce = true; this.set('noose'); this.dir = this.yaw;
     this.held = 'noose'; this.yaw0 = this.yaw; let lx = this.x + Math.sin(this.yaw) * NOOSE.throw, lz = this.z + Math.cos(this.yaw) * NOOSE.throw; const LR = Math.hypot(lx, lz); if (LR > NOOSE.far) { lx *= NOOSE.far / LR; lz *= NOOSE.far / LR; } this.landAt = { x: lx, z: lz };
   }
