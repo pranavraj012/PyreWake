@@ -64,6 +64,13 @@ describe('the Sister of Hours and the Pall', () => {
     const l = k.laid[0]; f.m.x = l.x + Math.sin(l.yaw) * 5 + Math.cos(l.yaw) * 0.6; f.m.z = l.z + Math.cos(l.yaw) * 5 - Math.sin(l.yaw) * 0.6; f.m.yaw = Math.atan2(-Math.cos(l.yaw), Math.sin(l.yaw));
     let cut = false; run(f, 1, i => i === 2 ? tap('attack') : [], () => { if (k.severed[l.arm] >= 0) cut = true; return [0, 0]; }); expect(cut).toBe(true);
   });
+  it('the Pall rises after the turn and can be hurt: its rise ends, and a blow or a spell lands', () => {
+    for (const kind of ['attack', 'skill1']) {
+      const { f, k } = mk(2.4, 2); f.fire = 100; k.set('rise'); k.mt = k.prev = 2.6; const hp = f.bossHp;
+      run(f, 4, i => i === 150 ? tap(kind) : []);
+      expect(k.mode, kind).not.toBe('rise'); expect(k.vulnerable, kind).toBe(true); expect(f.bossHp, kind).toBeLessThan(hp);
+    }
+  });
   it('a hero who answers the cues wins in a sensible time', () => {
     let wins = 0, T = 0; const N = 6;
     for (let seed = 1; seed <= N; seed++) {

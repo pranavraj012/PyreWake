@@ -115,7 +115,7 @@ export class Sister implements Boss {
         for (const t of [1.27, 1.62, 1.97]) if (p < t && mt >= t) this.yaw += 0.61;
       } else if (m in LOCK) { if (mt < LOCK[m]) this.turn(3.2 * dt, face); if (m === 'reap' && mt > 1.3 && mt < 1.75) this.turn(4 * dt, face); }
       else { const next = s.find(q => q.t[0] > mt); if (next && mt < next.t[0] - 0.2) this.turn(2.4 * dt, face); else if (!s.length && mt < 0.8) this.turn(1.4 * dt, face); }
-      if (mt >= c.dur && !['kneel', 'fall', 'die', 'rise', 'sit'].includes(m)) this.end(m);
+      if (mt >= c.dur && !['kneel', 'fall', 'die', 'sit'].includes(m)) this.end(m);
       void dx; void dz;
     }
   }
