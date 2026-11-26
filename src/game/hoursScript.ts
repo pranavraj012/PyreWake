@@ -7,8 +7,8 @@
 //   her people did not live. The sky tears open on a low red sun, and she rises into the Pall, the hook through her like a gnomon.
 //   The end. The hours go up into the light. A woman no bigger than you, a cut cord in her lap. You wait while she breathes seven times.
 //   Then you give her the fire she gave them, after.
-export { speak, type Line } from './riverScript.ts';
-import type { Line } from './riverScript.ts';
+export { speak, type Line } from './script.ts';
+import type { Line } from './script.ts';
 
 export const HOURS_NAMES = { r1: 'The Sister of Hours', r2: 'The Pall', won: 'The Hour Moves' } as const;
 

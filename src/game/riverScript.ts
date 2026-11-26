@@ -9,7 +9,8 @@
 //   The end. The coins go back into the river. He is an old man with a bundle in his arms. He gave her his name, once, because he liked to hear
 //   it called across the water. He holds out his lamp, and you light the boat; this is the one blow in the game you do not swing.
 
-export interface Line { at: number; text: string; until?: number; voice?: string }
+import type { Line } from './script.ts';
+export { speak, type Line } from './script.ts';
 
 export const RIVER_NAMES = { r1: 'The Ferryman', r2: 'The Unburdened', won: 'The Far Bank' } as const;
 
@@ -41,9 +42,3 @@ export const RIVER_ENDING = {
     { at: 22.5, until: 26.6, text: '"Call it from the far bank. Let something answer."' },
   ] as Line[],
 };
-
-/** Shows each line at its time and clears it at `until`; pass the scene's clock every frame. */
-export function speak(lines: Line[], t: number, at: (t: number, id: string, f: () => void) => void, verse: (s: string) => void) {
-  lines.forEach((l, i) => { at(l.at, 'say' + i, () => verse(l.text)); if (l.until) at(l.until, 'unsay' + i, () => verse('')); });
-  void t;
-}
