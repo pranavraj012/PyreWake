@@ -1,13 +1,12 @@
 // Checks the story text in script files against docs/game/STYLE.md: the thou/thee/thy/ye grammar and the banned modern words.
 // Run: node tools/lintText.mjs (exit 1 on a failing error). The vitest suite runs the same check (tests/lintText.test.mjs).
-// Errors in a file listed in ALLOWLIST are printed but do not fail: that text has not been approved for rewrite yet.
 // Notes are style hints (contractions, modern "you", comic "forsooth", too many old words); they never fail.
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Files whose text the owner has not approved yet (repo-relative, forward slashes). Remove an entry once its file is rewritten. */
-export const ALLOWLIST = ['src/game/riverScript.ts', 'src/game/hoursScript.ts'];
+/** Files exempt from the error check. Empty: every script file is enforced. */
+export const ALLOWLIST = [];
 
 const VOWEL = /^[aeiou]/i;
 const SENTENCE_END = new Set(['.', '!', '?', '"', ';', ':']);
@@ -162,7 +161,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const show = (label, list) => { if (!list.length) return; console.log(label); for (const f of list) console.log(`  ${f.file}:${f.line} [${f.rule}] ${f.match}: ${f.message}`); };
   console.log(`Scanned ${r.files.length} script files.`);
   show('Failing errors:', r.failing);
-  show('Errors in allowlisted files (not failing yet):', r.allowed);
   show('Notes:', r.notes);
   process.exit(r.failing.length ? 1 : 0);
 }

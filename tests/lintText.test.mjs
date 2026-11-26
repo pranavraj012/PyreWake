@@ -69,11 +69,11 @@ describe('the story scripts', () => {
     expect(r.files).toEqual(expect.arrayContaining(['src/game/riverScript.ts', 'src/game/script.ts']));
   });
 
-  it('has no errors outside the allowlist (the build stays green while owner-unapproved text is pending)', () => {
+  it('has no errors in any script file', () => {
     expect(r.failing).toEqual([]);
   });
 
-  it('keeps every allowlisted file real, so the list cannot go stale', () => {
-    for (const f of ALLOWLIST) expect(r.files, f).toContain(f);
+  it('has no allowlisted files left', () => {
+    expect(ALLOWLIST).toEqual([]);
   });
 });
