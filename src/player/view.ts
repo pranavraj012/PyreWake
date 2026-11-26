@@ -68,10 +68,10 @@ export class PlayerView {
     // turning: the body banks into the turn and the outside arm swings wide for balance
     const bank = Math.max(-1, Math.min(1, this.lean / 12)) * mv, outL = Math.max(0, -bank) * 0.3, outR = Math.max(0, bank) * 0.22;
     // the free hand runs a real path from the shoulder: up and in toward the chest going forward, elbow closing; down by the hip going back, elbow opening
-    const fwd = Math.max(0, -c), bwd = Math.max(0, c), hx = (0.05 - 0.13 * run * fwd + 0.04 * bwd) + outL * 0.25, hy = mix(-0.42, -0.2, run) * fwd + mix(-0.47, -0.42, run) * bwd + mix(-0.47, -0.36, run) * (1 - fwd - bwd), hz = (0.1 + 0.08 * run) * fwd - (0.12 + 0.06 * run) * bwd;
-    const chest = (out[IX.hw] + out[IX.sw]) * w, hl = Math.hypot(hx, hy, hz); set('la', Math.atan2(hx, hz) / DEG + chest, w); set('le', Math.asin(hy / hl) / DEG + 16 * outL, w); set('ll', Math.min(0.97, hl / this.body.armLen), w); set('xl', 16 + 12 * run, w);
-    // the sword hand stays out by the hip and pumps a little against the free one; the blade hangs back and down, tip near the stone
-    const thR = c * (5 + 4 * run) - 24 - 6 * run, [raz, rel] = arm(thR, -0.3 - outR);
+    const fwd = Math.max(0, -c), bwd = Math.max(0, c), hx = (0.05 - 0.13 * run * fwd + 0.04 * bwd) + outL * 0.25, hy = mix(-0.42, -0.2, run) * fwd + mix(-0.47, -0.42, run) * bwd + mix(-0.47, -0.36, run) * (1 - fwd - bwd), hz = 0.08 + (0.12 + 0.06 * run) * fwd - (0.06 + 0.03 * run) * bwd;
+    const chest = (out[IX.hw] + out[IX.sw]) * w, hl = Math.hypot(hx, hy, hz); set('la', Math.atan2(hx, hz) / DEG + chest, w); set('le', Math.asin(hy / hl) / DEG + 16 * outL, w); set('ll', Math.min(0.97, hl / this.body.armLen), w); set('xl', 8 + 6 * run, w);
+    // the sword hand stays in front of the hip and pumps a little against the free one; the blade hangs back and down, tip near the stone
+    const thR = c * (4 + 3 * run) + 4 - 6 * run, [raz, rel] = arm(thR, -0.3 - outR);
     set('ra', raz + chest * 0.6, w); set('re', rel + 6 * run + 10 * outR, w); set('rl', 0.9 - 0.08 * run, w); set('xr', -8, w); set('ba', -148 + c * 2 * w, w); set('be', -22 + 4 * run + Math.sin(2 * T * ph) * 1.5 * w - 3 * spr, w);
     add('sr', bank * 6); add('nr', -bank * 5);
     // guard: the upper body belongs to the weapon, the hips keep walking
