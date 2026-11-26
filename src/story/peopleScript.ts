@@ -7,7 +7,7 @@ export const AMMAJI = {
   sub: 'the Ash-Reader',
   meet: [
     'Come nigh. The ash is quieter where I sit, and I have need of quiet to read it.',
-    'Thou art come up from the fire. Thou need not say how. Most come up the same way, and most do not stay long enough to be asked.',
+    'Thou art come up from the fire. Thou needest not say how. Most come up the same way, and most do not stay long enough to be asked.',
     'I read the names of the dead in what the pyres leave. Every name is in the ash, if one knows where to look.',
     "Thou hast no name of thy own, I think. Only the fire's name for thee, and that is a poor one. Take this bead, and keep it.",
   ],
