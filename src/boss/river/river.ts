@@ -36,7 +36,9 @@ export class River implements Boss {
   set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; if (mode === 'wake') { this.jumped = false; this.from = { x: this.x, z: this.z }; } }
   /** Staged moments: the grab holding the hero, its clock, the reward in progress and the reward on offer. */
   held: 'drag' | null = null; stage = 0; rite: 'chain' | 'lantern' | null = null; reward: 'chain' | 'lantern' | null = null; rewardLeft = 0; lastAnchor = { x: 0, z: 0 }; private sp = 0;
-  reset() { this.clearMoments(); this.chain = null; this.dark = 0; this.lanterns = []; this.coins = []; this.wave = null; this.ring = null; this.souls = []; this.hands = []; this.freed = 0; this.pull = 0; this.exposed = 0; this.sub = false; this.trail = []; this.out = []; this.boil = 0; this.hauling = 0; this.castNow = this.handsNow = this.burstNow = false; this.oneMoreAt = -99; this.y = 0; this.cut.clear(); }
+  /** One grab per boss: its first throw in a fight is forced to connect. Round 1 starts a fight afresh. */
+  grabbedOnce = false; forcesGrab() { return !this.grabbedOnce; }
+  reset() { if (this.form === 1) this.grabbedOnce = false; this.clearMoments(); this.chain = null; this.dark = 0; this.lanterns = []; this.coins = []; this.wave = null; this.ring = null; this.souls = []; this.hands = []; this.freed = 0; this.pull = 0; this.exposed = 0; this.sub = false; this.trail = []; this.out = []; this.boil = 0; this.hauling = 0; this.castNow = this.handsNow = this.burstNow = false; this.oneMoreAt = -99; this.y = 0; this.cut.clear(); }
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
   get hx() { return this.x; } get hz() { return this.z; }
@@ -97,7 +99,7 @@ export class River implements Boss {
   }
   /** The grab connected (the drag's line): the boss takes the hero into a staged moment. It always plays out and always costs. */
   seize(kind: string, f: Fight) {
-    this.stage = this.sp = 0; this.held = 'drag'; f.brain.seen.add('dragDeep');
+    this.stage = this.sp = 0; this.grabbedOnce = true; this.held = 'drag'; f.brain.seen.add('dragDeep');
     f.invuln = Math.max(f.invuln, 0.15);
   }
   /** A reward is on offer for a while (the chain cut, or the lamps gone out). */

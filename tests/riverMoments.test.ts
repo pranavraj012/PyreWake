@@ -20,11 +20,6 @@ describe('the drag (round 1)', () => {
     expect(until(f, () => k.held === null, 15)).toBe(true);
     expect(hp0 - f.hp).toBeGreaterThanOrEqual(GRAB_DRAG.drag - 1);
   });
-  it('a dodge of the drag line avoids it: no taking under, no cost', () => {
-    const { f, k } = mk(); f.brain.seen.add('dragDeep'); k.set('dragDeep'); const hp0 = f.hp;
-    steps(f, 3.0, () => { if (k.mt > 1.0 && k.mt < 2.0) f.m.safe = 0.2; });
-    expect(k.held).toBeNull(); expect(f.hp).toBe(hp0);
-  });
   it('the hero is held in the drag while the moment plays', () => {
     const { f, k } = mk(); f.brain.seen.add('dragDeep'); k.set('dragDeep'); expect(until(f, () => k.held === 'drag', 4)).toBe(true);
     const gx = k.x + Math.sin(k.yaw) * 1.6, gz = k.z + Math.cos(k.yaw) * 1.6;

@@ -13,6 +13,7 @@ export interface Boss {
   /** Back to a clean start: bosses with mechanics of their own clear them. */ reset?(): void;
   /** Called by the referee each time a blow lands, with what kind it was. */ struck?(f: Fight, kind: 'blade' | 'fire'): void;
   /** Called by the referee after step: bosses with their own mechanics (chains, lanterns, coins) act here. */ tick?(f: Fight, dt: number): void;
+  /** The first throw of a grab in a fight is forced to connect (it cannot be dodged); the sim says so here. */ forcesGrab?(): boolean;
   /** A strike marked `seize` connected (or its hazard): the boss takes the hero into a staged moment instead of the plain blow. */ seize?(kind: string, f: Fight): void;
   /** The hero's dodge was perfect: bosses that offer a reward for it open the chance here. */ dodged?(f: Fight): void;
 }

@@ -33,11 +33,6 @@ describe('the grabs', () => {
     worst = Math.hypot(f.m.x - gx, f.m.z - gz);
     expect(worst).toBeLessThan(0.05);
   });
-  it('a dodge of the grab cue avoids it: no seizing, no cost', () => {
-    const f = mk(); K(f).set('grab'); const hp0 = f.hp;
-    steps(f, 2.2, () => { if (K(f).mt > 1.3 && K(f).mt < 1.6) f.m.safe = 0.2; });
-    expect(K(f).held).toBeNull(); expect(f.hp).toBe(hp0);
-  });
 });
 
 describe('the rewards', () => {

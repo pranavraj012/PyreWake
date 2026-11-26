@@ -204,7 +204,8 @@ export class Fight {
     if (!k.attacking) return;
     for (const s of k.live) {
       if (!s.box && !s.arc && !s.head) continue;
-      const id = k.serial + '/' + k.strikes.indexOf(s); if (this.spent.has(id) || m.dead || !k.covers(s, m.x, m.z)) continue;
+      const id = k.serial + '/' + k.strikes.indexOf(s); if (s.seize && k.seize && !m.dead && k.forcesGrab?.()) { if (!this.spent.has(id)) { this.spent.add(id); k.seize(s.seize, this); } continue; }
+      if (this.spent.has(id) || m.dead || !k.covers(s, m.x, m.z)) continue;
       const from = Math.atan2(k.hx - m.x, k.hz - m.z);
       if (s.low && m.over) { this.spent.add(id); this.leapt(); continue; }
       if (m.safe > 0 || this.vanished) { this.spent.add(id); this.evade(); continue; }
@@ -234,6 +235,8 @@ export class Fight {
       else { const R = h.speed * (h.t - h.delay); inside = Math.abs(d - R) < 0.5; over = R > h.max; }
       if (!h.done && h.shape !== 'ring') { if (h.t - dt < h.delay) this.ev.push({ k: 'zoneHit', z: h }); }
       else if (h.shape === 'ring' && h.t - dt < h.delay) this.ev.push({ k: 'zoneHit', z: h });
+      // one grab per boss: its first throw connects whatever the hero does
+      if (h.seize && !h.done && !m.dead && h.t >= h.delay && this.king.forcesGrab?.()) { h.done = true; this.king.seize?.(h.seize, this); }
       if (inside && !h.done && !m.dead) { if (m.over) { h.done = true; this.leapt(); } else if (m.safe > 0 || this.vanished) { h.done = true; this.evade(); } else if (this.invuln <= 0) { h.done = true; if (h.seize && this.king.seize) this.king.seize(h.seize, this); else this.strikePlayer(h.dmg, h.down, Math.atan2(h.x - m.x, h.z - m.z) || m.yaw, h.mode); } }
       if (over) h.max = -1;
     }

@@ -91,7 +91,7 @@ export class King {
   /** The grab connected: the boss takes the hero into a staged moment. It always plays out and always costs. */
   seize(kind: string, f: Fight) {
     this.stage = this.sp = 0; f.brain.seen.add('grab');
-    this.set('noose'); this.dir = this.yaw;
+    this.grabbedOnce = true; this.set('noose'); this.dir = this.yaw;
     this.held = 'noose';
   }
   /** A perfect dodge of the sideways lunge leaves him behind you, exposed: a chance to ride him. */
@@ -102,6 +102,9 @@ export class King {
     if (r === 'rope') this.set('rope'); else this.set('kneel');
     this.rite = r; return r;
   }
+  /** One grab per boss: its first throw in a fight is forced to connect; later throws can be dodged. Round 1 starts a fight afresh. */
+  grabbedOnce = false; forcesGrab() { return !this.grabbedOnce; }
+  reset() { if (this.form === 1) this.grabbedOnce = false; this.clearMoments(); }
   /** A fresh start: no moment is playing and no reward is on offer. */
   clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; }
   /** Which staged moment is playing, if any (the page stages the camera and the hero for it). */
