@@ -2,7 +2,7 @@
 import type { sound as SoundT } from './sound.ts';
 import type { TrackName } from './tracks.ts';
 type S = typeof SoundT;
-export type Mood = 'still' | 'vigil' | 'lesson' | 'spar' | 'r1' | 'crawl' | 'hang' | 'scene' | 'reveal' | 'r2' | 'eclipse' | 'finish' | 'won' | 'dead' | 'row' | 'row2' | 'row3' | 'weight' | 'weight2' | 'hours' | 'pall' | 'pall2';
+export type Mood = 'still' | 'vigil' | 'lesson' | 'spar' | 'r1' | 'crawl' | 'hang' | 'scene' | 'reveal' | 'r2' | 'eclipse' | 'finish' | 'won' | 'dead' | 'row' | 'row2' | 'row3' | 'weight' | 'weight2' | 'hours' | 'pall' | 'pall2' | 'region' | 'hub';
 interface M { bpm: number; drum: number; hi: number; str: number; bra: number; cho: number; trem: number; anvil: number; drone: number; lead: number }
 const MOOD: Record<Mood, M> = {
   vigil: { bpm: 84, drum: 0, hi: 0, str: 0, bra: 0, cho: 0.2, trem: 0.15, anvil: 0, drone: 0.6, lead: 0 }, lesson: { bpm: 84, drum: 0.3, hi: 0, str: 0, bra: 0, cho: 0, trem: 0.15, anvil: 0, drone: 0.6, lead: 0 },
@@ -13,12 +13,16 @@ const MOOD: Record<Mood, M> = {
   row: { bpm: 78, drum: 0, hi: 0, str: 0.35, bra: 0, cho: 0.15, trem: 0.1, anvil: 0, drone: 0.7, lead: 0 }, row2: { bpm: 84, drum: 0, hi: 0, str: 0.5, bra: 0, cho: 0.25, trem: 0.2, anvil: 0, drone: 0.8, lead: 0 }, row3: { bpm: 72, drum: 0, hi: 0, str: 0.3, bra: 0, cho: 0.4, trem: 0.5, anvil: 0, drone: 0.95, lead: 0 },
   weight: { bpm: 96, drum: 0, hi: 0, str: 0.7, bra: 0.3, cho: 0.5, trem: 0.3, anvil: 0, drone: 0.85, lead: 0 }, weight2: { bpm: 104, drum: 0, hi: 0, str: 0.85, bra: 0.5, cho: 0.7, trem: 0.3, anvil: 0, drone: 0.85, lead: 0.3 },
   hours: { bpm: 40, drum: 0, hi: 0, str: 0, bra: 0, cho: 0, trem: 0.15, anvil: 0, drone: 0.8, lead: 0 }, pall: { bpm: 44, drum: 0, hi: 0, str: 0.25, bra: 0, cho: 0.5, trem: 0.25, anvil: 0, drone: 0.85, lead: 0 }, pall2: { bpm: 48, drum: 0, hi: 0, str: 0.55, bra: 0.2, cho: 0.85, trem: 0.4, anvil: 0, drone: 0.9, lead: 0 },
+  region: { bpm: 72, drum: 0, hi: 0, str: 0, bra: 0, cho: 0, trem: 0.1, anvil: 0, drone: 0.5, lead: 0 }, hub: { bpm: 66, drum: 0, hi: 0, str: 0, bra: 0, cho: 0, trem: 0.1, anvil: 0, drone: 0.45, lead: 0 },
   won: { bpm: 60, drum: 0, hi: 0, str: 0, bra: 0, cho: 0.35, trem: 0, anvil: 0, drone: 0.4, lead: 0.8 }, dead: { bpm: 60, drum: 0, hi: 0, str: 0, bra: 0, cho: 0, trem: 0, anvil: 0, drone: 0.3, lead: 0 },
 };
 /** Recorded piece for each mood (the first of a list that has arrived): level, how far its tone is closed (Hz), and the point it must have reached (s). While one plays, the synthesised layers rest, but for the river's oars and the Waiting House's breath, which keep time over it. */
-const MUSIC: Record<Mood, [TrackName | TrackName[], number, number, number?] | null> = {
-  still: ['menu', 1.7, 20000], vigil: ['vigil', 2.0, 20000], lesson: ['king', 1.1, 1500], spar: ['king', 1.7, 9000], r1: ['king', 2.6, 20000, 15.2], crawl: ['crawl', 2.2, 20000], hang: ['hang', 2.4, 20000], scene: null, reveal: ['beneath', 2.5, 20000], r2: ['beneath', 2.5, 20000], eclipse: ['eclipse', 2.6, 20000], finish: ['eclipse', 1.5, 420], row: [['ferry', 'king'], 1.5, 9000], row2: [['ferry', 'king'], 1.9, 20000], row3: [['ferry', 'king'], 1.6, 5000], weight: ['crawl', 2.4, 20000], weight2: ['eclipse', 2.6, 20000], hours: [['hours', 'hang'], 1.8, 20000], pall: [['pall', 'beneath'], 2.3, 20000], pall2: [['pall2', 'pall', 'eclipse'], 2.6, 20000], won: ['morning', 2.2, 20000], dead: null,
+export const MUSIC: Record<Mood, [TrackName | TrackName[], number, number, number?] | null> = {
+  still: ['menu', 1.7, 20000], vigil: ['vigil', 2.0, 20000], lesson: ['king', 1.1, 1500], spar: ['king', 1.7, 9000], r1: ['king', 2.6, 20000, 15.2], crawl: ['crawl', 2.2, 20000], hang: ['hang', 2.4, 20000], scene: null, reveal: ['beneath', 2.5, 20000], r2: ['beneath', 2.5, 20000], eclipse: ['eclipse', 2.6, 20000], finish: ['eclipse', 1.5, 420], row: [['ferry', 'king'], 1.5, 9000], row2: [['ferry', 'king'], 1.9, 20000], row3: [['ferry', 'king'], 1.6, 5000], weight: ['crawl', 2.4, 20000], weight2: ['eclipse', 2.6, 20000], hours: [['hours', 'hang'], 1.8, 20000], pall: [['pall', 'beneath'], 2.3, 20000], pall2: [['pall2', 'pall', 'eclipse'], 2.6, 20000], won: ['morning', 2.2, 20000], dead: null, region: ['region', 1.8, 20000], hub: ['hub', 1.6, 20000],
 };
+/** The danger layer: near foes the region's or the hub's piece drops away by this much, and a low dread bed rises under it (`setDanger`). */
+const DUCK = 0.45;
+export function dangerDuck(k: number): number { return 1 - DUCK * Math.max(0, Math.min(1, k)); }
 /** Round 1's styles, and the least any one piece plays before another style's may start (s). */
 const STYLES = /^(r1|crawl|hang)$/, HOLD = 16;
 /** The river's moods keep a slow 6/8 pulse of oars: [level, how much of the low strings and choir]. A recorded piece can be dropped in later by giving the mood an entry in MUSIC. */
@@ -31,8 +35,10 @@ const DRUM = ['x..x..x...x.x...', 'x..x..x.x...x.xx', 'x.x...x..x.x..x.', 'x..x.
 const ROOT = [0, 0, 1, -2, 0, 0, -4, 1], SCALE = [0, 1, 3, 5, 7, 8, 10, 12, 13, 15];
 
 export class Score {
-  mood: Mood = 'still'; aura = 0; private s: S; private cur: M = { ...MOOD.still }; private step = 0; private next = 0; private leadAt = 7; private rnd = 5; private heard = ''; private rowK = 0; private since = -99; private next_: Mood | null = null;
+  mood: Mood = 'still'; aura = 0; /** Wanted danger, 0 (off, the default) to 1; see `setDanger`. */ danger = 0; private dangerK = 0; private s: S; private cur: M = { ...MOOD.still }; private step = 0; private next = 0; private leadAt = 7; private rnd = 5; private heard = ''; private rowK = 0; private since = -99; private next_: Mood | null = null;
   constructor(s: S) { this.s = s; this.next = s.ctx!.currentTime + 0.1; }
+  /** A world page drives this from the foes nearby: 0 is quiet, 1 is a pack at your back. It rises over about a second and falls more slowly. */
+  setDanger(v: number) { this.danger = Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0)); }
   /** The King changes its mind faster than a piece of music can bear: within round 1 a piece holds for a while before the next may take over. */
   set(m: Mood) {
     if (m === this.mood) { this.next_ = null; return; } const now = this.s.ctx?.currentTime ?? 0; if (STYLES.test(m) && STYLES.test(this.mood) && now - this.since < HOLD) { this.next_ = m; return; }
@@ -44,7 +50,9 @@ export class Score {
   /** A recording is playing: the oars and breaths keep time over it, softer, and nothing pitched. */ private over = false;
   private R() { this.rnd = (this.rnd * 1664525 + 1013904223) >>> 0; return this.rnd / 4294967296; }
   update(dt: number) {
-    const c = this.s.ctx; if (!c || c.state !== 'running') return; if (this.next_ && c.currentTime - this.since >= HOLD) { const m = this.next_; this.next_ = null; this.set(m); } const mu = MUSIC[this.mood], tr = this.s.tracks, name = this.pick(this.mood), on = !!name, g = mu ? mu[1] * (1 + (name === 'morning' || name === 'vigil' ? 0 : 0.04 * this.aura)) : 0, key = on ? `${name} ${g} ${mu![2]}` : ''; this.over = on;
+    const c = this.s.ctx; if (!c || c.state !== 'running') return; if (this.next_ && c.currentTime - this.since >= HOLD) { const m = this.next_; this.next_ = null; this.set(m); }
+    this.dangerK += (this.danger - this.dangerK) * (1 - Math.exp(-dt * (this.danger > this.dangerK ? 1.2 : 0.5))); if (this.dangerK < 1e-3) this.dangerK = 0; this.s.bed('dreadBed', 0.6 * this.dangerK, 'music', 1, 0.8);
+    const mu = MUSIC[this.mood], tr = this.s.tracks, name = this.pick(this.mood), on = !!name, g = mu ? mu[1] * (1 + (name === 'morning' || name === 'vigil' ? 0 : 0.04 * this.aura)) * dangerDuck(this.dangerK) : 0, key = on ? `${name} ${g} ${mu![2]}` : ''; this.over = on;
     if (key !== this.heard) { this.heard = key; tr?.set(on ? name : null, g, mu?.[2], this.mood === 'dead' || this.mood === 'scene' ? 0.7 : 1.8, mu?.[3]); } tr?.update();
     const T = on ? REST : MOOD[this.mood], k = 1 - Math.exp(-dt * (this.mood === 'scene' || this.mood === 'dead' ? 3 : 0.9)); for (const q in T) this.cur[q as keyof M] += (T[q as keyof M] - this.cur[q as keyof M]) * (q === 'bpm' ? 1 : k);
     this.rowK += ((ROW[this.mood]?.[0] ?? 0) - this.rowK) * (1 - Math.exp(-dt * 0.9)); this.s.bed('drone', 0.5 * this.cur.drone, 'music', 1, 0.8); const now = c.currentTime; if (this.next < now - 0.5) this.next = now + 0.05;
