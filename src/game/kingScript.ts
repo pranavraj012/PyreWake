@@ -18,6 +18,7 @@ export const KING_LINES = {
   lastKeepers: 'The keepers who lie here are only the dead now. Thou givest each name to the fire.',
   fires: 'The fires go out. Behind thee, the rope is creaking again.',
   wore: 'He was only what it wore.',
+  seized: 'He takes thee by the throat.',
 };
 export const KING_TITLES = {
   hanged: 'The Hanged King',

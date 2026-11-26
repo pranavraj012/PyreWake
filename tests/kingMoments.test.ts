@@ -29,7 +29,7 @@ describe('the grabs', () => {
     let worst = 0;
     steps(f, 1.0, () => { f.m.x += 0.5; f.m.z += 0.5; });
     // the pinned hero is put back at the grip on every step, however he tried to move
-    const gx = K(f).x + Math.sin(K(f).yaw) * 1.5, gz = K(f).z + Math.cos(K(f).yaw) * 1.5;
+    const gx = K(f).x + Math.sin(K(f).yaw) * NOOSE.reach, gz = K(f).z + Math.cos(K(f).yaw) * NOOSE.reach;
     worst = Math.hypot(f.m.x - gx, f.m.z - gz);
     expect(worst).toBeLessThan(0.05);
   });
@@ -99,5 +99,19 @@ describe('the first grab in training', () => {
     expect(endAt).toBeGreaterThan(seizedAt);
     expect(endStage).toBeGreaterThanOrEqual(NOOSE.end - 0.1);
     expect(hp0 - lowest).toBeGreaterThanOrEqual(GRAB_DMG.noose - 1);
+  });
+});
+
+describe('the noose, as a throw', () => {
+  it('lasts four to six seconds, and the hero lands at the throw point, costing the grab', () => {
+    expect(NOOSE.end).toBeGreaterThanOrEqual(4); expect(NOOSE.end).toBeLessThanOrEqual(6);
+    const f = mk(2); K(f).set('grab'); expect(until(f, () => K(f).held === 'noose', 3)).toBe(true);
+    const at = K(f).landAt; const hp0 = f.hp;
+    // the throw (the release) carries the hero off the grip; by the landing he is where the throw points
+    expect(until(f, () => K(f).stage >= NOOSE.land, 8)).toBe(true);
+    expect(Math.hypot(f.m.x - at.x, f.m.z - at.z)).toBeLessThan(0.05);
+    expect(hp0 - f.hp).toBeGreaterThanOrEqual(GRAB_DMG.noose - 1);
+    expect(until(f, () => K(f).held === null, 8)).toBe(true);
+    expect(K(f).stage).toBeGreaterThanOrEqual(NOOSE.end - 0.1);
   });
 });
