@@ -42,9 +42,13 @@ export class RiverView implements BossView {
   /** The body he is drawn with once the boat rises: the Ferryman again, not the coin-mail. */ oldGeo: THREE.BufferGeometry | null = null; private baseGeo: THREE.BufferGeometry | null = null; private bundle: THREE.Mesh | null = null;
   boat(on: boolean) {
     this.old = on; this.boatT = 0; this.boatM.visible = on; this.baseGeo ??= this.mesh.geometry; this.mesh.geometry = on && this.oldGeo ? this.oldGeo : this.baseGeo; this.eyes(on ? 0.35 : 1);
+    this.holding(on);
+    if (on) { this.visible = true; this.group.visible = true; this.man.scale.setScalar(0.52); } else this.man.scale.setScalar(SCALE);
+  }
+  /** The bundle in his arms: what he kept beneath the jars. The turn shows it first; the ending keeps it. */
+  holding(on: boolean) {
     if (on && !this.bundle) { const g = new THREE.SphereGeometry(1, 14, 10).scale(0.13, 0.11, 0.24), n = g.attributes.position.count, a = new Uint8Array(n * 4); for (let i = 0; i < n; i++) a.set([220, 150, 0, 2], i * 4); g.setAttribute('aInfo', new THREE.BufferAttribute(a, 4, true)); this.bundle = new THREE.Mesh(g, this.lantern.material as THREE.Material); const ch = KING.find(b => b.name === 'chest')!.pos; this.bundle.position.set(0.05, 2.28 - ch[1], 0.38 - ch[2]); this.bundle.rotation.set(0.2, 0.5, 0); this.rig.bones[this.rig.i('chest')].add(this.bundle); }
     if (this.bundle) this.bundle.visible = on;
-    if (on) { this.visible = true; this.group.visible = true; this.man.scale.setScalar(0.52); } else this.man.scale.setScalar(SCALE);
   }
   withWater(w: { ripple(x: number, z: number, a: number, t: number): void }) { this.water = w; return this; }
   /** Lights the lamps and the lantern's glow, 0-1. */ lampLight(k: number) { this.lampK = k; }

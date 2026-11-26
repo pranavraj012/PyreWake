@@ -9,7 +9,7 @@ import { RIVER_ATTACKS as A } from './moves.ts';
 
 export const REACH = 18.5;
 const sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }, wrap = (a: number) => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;
-const QUIET = ['reel', 'reel2', 'snap', 'kneel', 'fall', 'riseW', 'die2', 'idle', 'stalk', 'strafe'];
+const QUIET = ['reel', 'reel2', 'snap', 'kneel', 'fall', 'cradle', 'riseW', 'die2', 'idle', 'stalk', 'strafe'];
 /** A move rather than footwork or a wound. */
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the mark it threw is where it lands: the line is drawn at the cue. */
@@ -82,7 +82,7 @@ export class River implements Boss {
         if (p < s[0].cue && mt >= s[0].cue) { const go = Math.min(14, dist) + 2.2; this.mark = { x: this.x + dx / (dist || 1) * go, z: this.z + dz / (dist || 1) * go }; const R = Math.hypot(this.mark.x, this.mark.z); if (R > 17.5) { this.mark.x *= 17.5 / R; this.mark.z *= 17.5 / R; } }
         const lift = m === 'vault' ? 0.66 : 0.84; if (mt < lift) { this.from = { x: this.x, z: this.z }; this.turn(5 * dt, mt > s[0].cue ? Math.atan2(this.mark.x - this.x, this.mark.z - this.z) : face); }
         else { const u = Math.min(1, (mt - lift) / (m === 'vault' ? 0.78 : 0.8)), e = u * u * (3 - 2 * u) * 0.6 + u * 0.4; this.x = this.from.x + (this.mark.x - this.from.x) * e; this.z = this.from.z + (this.mark.z - this.from.z) * e; this.y = u < 1 ? Math.sin(Math.PI * Math.pow(u, 0.8)) * (m === 'vault' ? 2.8 : 3.6) : 0; }
-      } else if (m === 'haul' || m === 'reel' || m === 'snap' || m === 'kneel' || m === 'fall') { /* held */ }
+      } else if (m === 'haul' || m === 'reel' || m === 'snap' || m === 'kneel' || m === 'fall' || m === 'cradle') { /* held */ }
       else if (m in LOCK) { if (mt < LOCK[m]) this.turn((taut ? 1.0 : 3.2) * dt, face); }
       else { const next = s.find(q => q.t[0] > mt); if (next && mt < next.t[0] - 0.2) this.turn(2.2 * fast * dt, face); else if (!s.length && mt < 1.2) this.turn(1.6 * dt, face); }
       if (m === 'cast' && p < 1.06 && mt >= 1.06) this.castNow = true;
