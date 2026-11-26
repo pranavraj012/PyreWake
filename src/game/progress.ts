@@ -1,5 +1,5 @@
-// Module B: the player's progress (STUB: interface published so modules G, I and E can code against it).
-// Module B replaces the bodies; the exported names and shapes stay.
+// Module B: the player's progress and the rules that change it.
+// Exported names and shapes are the published interface (modules E, G, I code against them); add, never rename.
 
 export type WeaponKind = 'khanda' | 'spear' | 'chakram' | 'whip';
 
@@ -11,6 +11,36 @@ export interface Progress {
   flags: Record<string, number | boolean | string>;                              // quests, people, doors, secrets taken
   dropped: { region: string; x: number; z: number; fares: number } | null;       // fares left where you fell
 }
+
+export const WEAPON_KINDS: readonly WeaponKind[] = ['khanda', 'spear', 'chakram', 'whip'];
+
+/** Tunable numbers, kept in one place for module M (balance). */
+export const RULES = {
+  maxWeaponLevel: 10,
+  /** Pyre-iron needed to reach a weapon level (levels not listed cost none). */
+  ironAtLevel: { 4: 1, 7: 2, 10: 3 } as Record<number, number>,
+  /** Fares to reach weapon level L is feesPerLevel * L. */
+  feesPerLevel: 20,
+  damagePerLevel: 0.06,
+  maxFlasks: 5,
+  flaskPrice: 60,
+  maxFlaskStrength: 3,
+  flaskStrengthPrice: (strength: number) => 80 * (strength + 1),
+  flaskHealPerStrength: 0.25,
+  beadsPerLifeTenth: 3,
+  lifePerTenth: 0.1,
+  spellPrice: 120,
+  charmSlotsStart: 2,
+  maxCharmSlots: 3,
+  charmSlotPrice: { fares: 250, iron: 2 },
+  newWeaponPrice: {
+    spear: { fares: 150, iron: 2 },
+    chakram: { fares: 300, iron: 4 },
+    whip: { fares: 450, iron: 6 },
+  } as Record<Exclude<WeaponKind, 'khanda'>, { fares: number; iron: number }>,
+  /** How close (in world units) you must come to your dropped fares to take them back. */
+  recoverReach: 2,
+};
 
 export function fresh(): Progress {
   return {
@@ -31,10 +61,147 @@ export const progress = {
   on(f: (p: Progress) => void): () => void { listeners.add(f); return () => { listeners.delete(f); }; },
 };
 
-/** Cost of an upgrade, or null when it cannot be bought (unknown, or at its cap). STUB: always null. */
-export function priceOf(_upgrade: string, _p: Progress): { fares: number; iron: number } | null { return null; }
+/** Replaces the whole state (used when a save is loaded). Listeners are told. */
+export function replaceProgress(p: Progress): void {
+  state = p;
+  for (const l of listeners) l(state);
+}
 
-/** What a fight reads. STUB: neutral values (a fight given no progress behaves as today). */
-export function stats(_p: Progress): { life: number; damage: number; flaskHeal: number } {
-  return { life: 1, damage: 1, flaskHeal: 1 };
+const num = (p: Progress, key: string): number => {
+  const v = p.flags[key];
+  return typeof v === 'number' ? v : 0;
+};
+
+/** Charm slots you have (2 at first, 3 after the upgrade). */
+export function charmSlots(p: Progress): number {
+  return Math.max(RULES.charmSlotsStart, num(p, 'charmSlots'));
+}
+
+/** Life tenths bought with Name-beads (three beads each). */
+export function lifeTenths(p: Progress): number {
+  return num(p, 'lifeTenths');
+}
+
+/** Cost of an upgrade, or null when it cannot be bought (unknown, owned, or at its cap).
+ *  Upgrade ids: 'weapon-level' (the current weapon, one level up), 'weapon:<kind>' (a new weapon),
+ *  'flask' (one more flask), 'flask-strength', 'spell:<name>', 'charm-slot'. */
+export function priceOf(upgrade: string, p: Progress): { fares: number; iron: number } | null {
+  if (upgrade === 'weapon-level') {
+    const next = p.weapon.level + 1;
+    if (next > RULES.maxWeaponLevel) return null;
+    return { fares: RULES.feesPerLevel * next, iron: RULES.ironAtLevel[next] ?? 0 };
+  }
+  if (upgrade.startsWith('weapon:')) {
+    const kind = upgrade.slice('weapon:'.length) as WeaponKind;
+    if (kind === 'khanda' || !WEAPON_KINDS.includes(kind)) return null;
+    if (p.weapons.includes(kind)) return null;
+    return { ...RULES.newWeaponPrice[kind] };
+  }
+  if (upgrade === 'flask') {
+    if (p.flasks.count >= RULES.maxFlasks) return null;
+    return { fares: RULES.flaskPrice, iron: 0 };
+  }
+  if (upgrade === 'flask-strength') {
+    if (p.flasks.strength >= RULES.maxFlaskStrength) return null;
+    return { fares: RULES.flaskStrengthPrice(p.flasks.strength), iron: 0 };
+  }
+  if (upgrade.startsWith('spell:')) {
+    const name = upgrade.slice('spell:'.length);
+    if (!name || p.spells.includes(name)) return null;
+    return { fares: RULES.spellPrice, iron: 0 };
+  }
+  if (upgrade === 'charm-slot') {
+    if (charmSlots(p) >= RULES.maxCharmSlots) return null;
+    return { ...RULES.charmSlotPrice };
+  }
+  return null;
+}
+
+export type BuyResult =
+  | { ok: true; fares: number; iron: number }
+  | { ok: false; reason: 'unavailable' | 'poor' };
+
+/** Buys an upgrade on this progress object (mutates it). Refuses, changing nothing, when it cannot be
+ *  bought or the player is short of fares or iron. */
+export function buy(p: Progress, upgrade: string): BuyResult {
+  const price = priceOf(upgrade, p);
+  if (!price) return { ok: false, reason: 'unavailable' };
+  if (p.fares < price.fares || p.iron < price.iron) return { ok: false, reason: 'poor' };
+  p.fares -= price.fares;
+  p.iron -= price.iron;
+  if (upgrade === 'weapon-level') {
+    p.weapon.level += 1;
+  } else if (upgrade.startsWith('weapon:')) {
+    const kind = upgrade.slice('weapon:'.length) as WeaponKind;
+    // Each weapon keeps its own level: the old one's level is stashed in flags and restored on switching back.
+    p.flags[`weaponLevel.${p.weapon.kind}`] = p.weapon.level;
+    p.weapons.push(kind);
+    p.weapon = { kind, level: 0 };
+  } else if (upgrade === 'flask') {
+    p.flasks.count += 1;
+  } else if (upgrade === 'flask-strength') {
+    p.flasks.strength += 1;
+  } else if (upgrade.startsWith('spell:')) {
+    p.spells.push(upgrade.slice('spell:'.length));
+  } else if (upgrade === 'charm-slot') {
+    p.flags.charmSlots = charmSlots(p) + 1;
+  }
+  return { ok: true, fares: price.fares, iron: price.iron };
+}
+
+/** Buys an upgrade on the live progress; the result says what happened. */
+export function purchase(upgrade: string): BuyResult {
+  let result: BuyResult = { ok: false, reason: 'unavailable' };
+  progress.change(p => { result = buy(p, upgrade); });
+  return result;
+}
+
+/** Switches to an owned weapon, restoring its own level. Returns false when it is not owned. */
+export function equipWeapon(p: Progress, kind: WeaponKind): boolean {
+  if (!p.weapons.includes(kind) || p.weapon.kind === kind) return p.weapon.kind === kind;
+  p.flags[`weaponLevel.${p.weapon.kind}`] = p.weapon.level;
+  const stored = p.flags[`weaponLevel.${kind}`];
+  p.weapon = { kind, level: typeof stored === 'number' ? stored : 0 };
+  return true;
+}
+
+/** Turns in Name-beads for life: three beads give one tenth more life. Returns false when short. */
+export function turnInBeads(p: Progress): boolean {
+  if (p.beads < RULES.beadsPerLifeTenth) return false;
+  p.beads -= RULES.beadsPerLifeTenth;
+  p.flags.lifeTenths = lifeTenths(p) + 1;
+  return true;
+}
+
+/** The player dies in the world: the fares they carry lie where they fell. A pile already on the ground
+ *  (died before taking it back) is lost. */
+export function die(p: Progress, region: string, x: number, z: number): void {
+  p.dropped = p.fares > 0 ? { region, x, z, fares: p.fares } : null;
+  p.fares = 0;
+}
+
+/** Takes the dropped fares back if the player is in the same region and within reach. Once: the pile is
+ *  gone after this. Returns the fares recovered (0 when nothing was taken). */
+export function recoverFares(p: Progress, region: string, x: number, z: number, reach = RULES.recoverReach): number {
+  const d = p.dropped;
+  if (!d || d.region !== region) return 0;
+  if (Math.hypot(d.x - x, d.z - z) > reach) return 0;
+  p.fares += d.fares;
+  p.dropped = null;
+  return d.fares;
+}
+
+/** Rests at a shrine: it becomes the place you wake at, and it is remembered as lit. */
+export function rest(p: Progress, region: string, shrine: string): void {
+  p.at = { region, shrine };
+  if (!p.shrines.includes(shrine)) p.shrines.push(shrine);
+}
+
+/** What a fight reads. Neutral (1, 1, 1) for fresh progress, so a fight given no progress behaves as today. */
+export function stats(p: Progress): { life: number; damage: number; flaskHeal: number } {
+  return {
+    life: 1 + RULES.lifePerTenth * lifeTenths(p),
+    damage: 1 + RULES.damagePerLevel * p.weapon.level,
+    flaskHeal: 1 + RULES.flaskHealPerStrength * p.flasks.strength,
+  };
 }
