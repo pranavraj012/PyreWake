@@ -24,7 +24,7 @@ const K: Record<string, Clip> = {
     { t: 2.7, hw: -42, sw: -44, nw: 70, ra: -92, ba: -124, nr: -20 }, { t: 3.4, hy: -0.14, hw: 8, hp: 10, sp: 22, sw: -10, np: -38, nw: 6, nr: -14, ra: -38, re: -62, rl: 0.92, ba: -14, be: -26, la: 40, le: -58, flz: 0.34, frz: -0.22 } ] }),
 };
 // the noose: the hero held up by the throat, the King climbing the rope with him, then the hand opens and lets him fall
-K.noose = clip('noose', { dur: 5.6, blend: 0.25, keys: [
+K.noose = clip('noose', { dur: 6.4, blend: 0.25, keys: [
   { t: 0, hy: -0.3, hp: 12, hw: -6, sp: 14, sw: -14, np: -26, nw: 10, nr: 10, ra: -110, re: -70, rl: 0.9, ba: -60, be: -30, la: 40, le: -40, ll: 0.9 },
   { t: 1.6, hy: -0.4, hp: 18, sp: 26, np: -34, ra: -128, re: -80, la: 40, le: -40 },
   { t: 3.3, hy: -0.4, hp: 20, sp: 28, np: -40, ra: -132, re: -84 },

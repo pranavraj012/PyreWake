@@ -12,6 +12,10 @@ export interface MomentSpec {
   /** How fast the fight runs (1 is normal). */ rate?(t: number): number;
   /** Letterbox bars slide in while it plays, and the HUD goes. */ letterbox?: boolean;
   /** Named moments on the boss's clock: the page plays the sound, the dust, the shake (`due` reports each one once). */ cues?: { t: number; name: string }[];
+  /** First person: the hero's own body is out of the lens while it plays. */ first?: boolean;
+  /** A cut: the camera goes straight to the shot, no easing in. */ snap?: boolean;
+  /** Roll of the shot about its view axis, radians, at the boss's clock. */ roll?(t: number): number;
+  /** Darkness over the picture (0 to 1) at the boss's clock: a flash, a dim. */ dim?(t: number): number;
 }
 
 const EASE_OUT = 0.7;
@@ -23,9 +27,12 @@ export class Moment {
   /** Camera shake (0 to 1, decays by itself); a cue kicks it. */ trauma = 0; private cued = 0;
   get active() { return !!this.spec; }
   get letterbox() { return !!this.spec?.letterbox; }
-  /** After a stop, the camera eases from where the moment left it to wherever the follow camera puts it. */ private ease = 0; private from = new THREE.Vector3(); private fromQ = new THREE.Quaternion(); private last = new THREE.Vector3(); private lastQ = new THREE.Quaternion();
+  /** After a stop, the camera eases from where the moment left it to wherever the follow camera puts it. */ private ease = 0; private fromFp = false; private from = new THREE.Vector3(); private fromQ = new THREE.Quaternion(); private last = new THREE.Vector3(); private lastQ = new THREE.Quaternion();
   start(spec: MomentSpec) { this.spec = spec; this.fresh = true; this.cued = 0; this.trauma = 0; this.ease = 0; }
-  stop() { if (this.spec) { this.from.copy(this.last); this.fromQ.copy(this.lastQ); this.ease = EASE_OUT; } this.spec = null; }
+  stop() { if (this.spec) { this.from.copy(this.last); this.fromQ.copy(this.lastQ); this.ease = EASE_OUT; this.fromFp = !!this.spec.first; } this.spec = null; }
+  /** Whether the hero's own body is hidden: in first person, and while the camera is still close to where it was. */
+  get hideHero() { return this.spec ? !!this.spec.first : this.fromFp && this.ease > EASE_OUT * 0.5; }
+  /** Darkness over the picture at the boss's clock t (0 when nothing is staged). */ dimAt(t: number) { return this.spec?.dim?.(t) ?? 0; }
   rate(t: number) { return this.spec?.rate?.(t) ?? 1; }
   /** The cues whose time has come since the last call (in order). */
   due(t: number): string[] {
@@ -37,8 +44,8 @@ export class Moment {
   hero(t: number, out: THREE.Vector3) { out.set(0, 0, 0); this.spec?.hero?.(t, out); return this.spec?.tumble?.(t) ?? 0; }
   camera(cam: THREE.PerspectiveCamera, dt: number, t: number, time = 0) {
     const s = this.spec; if (!s) return false; const fov = s.frame(t, this.eye, this.at);
-    if (this.fresh) { this.sEye.copy(cam.position); this.sAt.copy(this.at); this.fresh = false; } const k = 1 - Math.exp(-dt * 9);
-    this.sEye.lerp(this.eye, k); this.sAt.lerp(this.at, k); cam.position.copy(this.sEye); cam.lookAt(this.sAt);
+    if (this.fresh) { this.sEye.copy(cam.position); this.sAt.copy(this.at); this.fresh = false; } const k = s.snap ? 1 : 1 - Math.exp(-dt * 9);
+    this.sEye.lerp(this.eye, k); this.sAt.lerp(this.at, k); cam.position.copy(this.sEye); cam.lookAt(this.sAt); if (s.roll) cam.rotateZ(s.roll(t));
     this.trauma *= Math.exp(-dt * 2.2); const j = this.trauma * this.trauma; if (j > 0) { cam.rotateZ(Math.sin(time * 47) * 0.02 * j); cam.rotateX(Math.sin(time * 59) * 0.024 * j); }
     cam.fov += (fov - cam.fov) * k; cam.updateProjectionMatrix(); cam.userData.focus = this.sAt; this.last.copy(cam.position); this.lastQ.copy(cam.quaternion); return true;
   }

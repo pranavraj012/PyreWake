@@ -14,8 +14,8 @@ const sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.mi
 /** Pivot height of the hang, and how far below it the head swings. */
 export const ROPE = 10.6, HEAD_DROP = 8.9;
 /** The staged moments (module A). Times are the moment's own clock, `stage`, in seconds from the seizing or the press. */
-/** The noose (seized at 0): the hero is lifted by the throat, swung once round the King, flung out (release), lands hard (land), lies a beat and is free (end). reach: how far out the hero hangs. throw: where he lands, from the King. */
-export const NOOSE = { lift: 1.2, swing: [1.2, 3.1] as [number, number], release: 3.2, land: 4.0, end: 5.5, reach: 1.6, throw: 5.0 }, RIP = { cut: 1.0, len: 2.7 }, RIDE = { hit: 0.9, len: 2.8 };
+/** The noose (seized at 0): the hand closes on the throat (reach: how far out from the King, throat: the height of a standing hero's throat), lifts him to up (feet clear of the floor by lift), turns him once round the King (swing), lets go (release), he lands hard (land), lies, and gets up from lie to end. throw: where he lands, from the King; far: the arena's edge he is kept inside. */
+export const NOOSE = { reach: 1.6, throat: 1.5, up: 2.5, lift: 0.9, swing: [1.2, 2.45] as [number, number], release: 2.45, land: 3.1, lie: 4.3, end: 5.6, throw: 6, far: 13 }, RIP = { cut: 1.0, len: 2.7 }, RIDE = { hit: 0.9, len: 2.8 };
 /** Grabs always cost this much; a reward takes this share of the boss's life; a reward stays on offer this long. */
 export const GRAB_DMG = { noose: 44 }, REWARD_SHARE = 0.09, OFFER = 1.8;
 
@@ -93,9 +93,9 @@ export class King {
   }
   /** The grab connected: the boss takes the hero into a staged moment. It always plays out and always costs. */
   seize(kind: string, f: Fight) {
-    this.stage = this.sp = 0; f.brain.seen.add('grab');
+    this.stage = this.sp = 0; f.brain.seen.add('grab'); for (const h of f.hazards) h.max = -1; // the grab's own danger mark goes: it is the hand now
     this.grabbedOnce = true; this.set('noose'); this.dir = this.yaw;
-    this.held = 'noose'; this.yaw0 = this.yaw; this.landAt = { x: this.x + Math.sin(this.yaw) * NOOSE.throw, z: this.z + Math.cos(this.yaw) * NOOSE.throw };
+    this.held = 'noose'; this.yaw0 = this.yaw; let lx = this.x + Math.sin(this.yaw) * NOOSE.throw, lz = this.z + Math.cos(this.yaw) * NOOSE.throw; const LR = Math.hypot(lx, lz); if (LR > NOOSE.far) { lx *= NOOSE.far / LR; lz *= NOOSE.far / LR; } this.landAt = { x: lx, z: lz };
   }
   /** A perfect dodge of the sideways lunge leaves him behind you, exposed: a chance to ride him. */
   dodged(_f: Fight) { if (this.mode === 'cross' && !this.held && !this.rite) { this.reward = 'ride'; this.rewardLeft = OFFER; } }
@@ -112,13 +112,18 @@ export class King {
   clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; }
   /** Which staged moment is playing, if any (the page stages the camera and the hero for it). */
   get staging(): 'noose' | 'rope' | 'ride' | null { return this.held ?? this.rite; }
-  /** The noose's path at its clock t: where the hero is, and the King's turn (round once while he swings, then square for the throw). */
-  nooseAt(t: number): { x: number; z: number; yaw: number } {
-    const R = NOOSE.reach, [s0, s1] = NOOSE.swing, u = Math.max(0, Math.min(1, (t - s0) / (s1 - s0))), yaw = this.yaw0 + Math.PI * 2 * u, r = R + 0.7 * Math.sin(Math.PI * u);
-    if (t < NOOSE.release) return { x: this.x + Math.sin(yaw) * r, z: this.z + Math.cos(yaw) * r, yaw };
+  /** The hero's throat at the noose's clock t (the hand holds it there), and the King's turn. He is lifted, the King turns him once round (swing), then he is thrown in an arc to where he lands (release, land). */
+  nooseAt(t: number): { x: number; y: number; z: number; yaw: number } {
+    const R = NOOSE.reach, Y = NOOSE.throat, [s0, s1] = NOOSE.swing;
+    if (t < NOOSE.release) {
+      const hy = t < NOOSE.lift ? Y + (NOOSE.up - Y) * sst(0, NOOSE.lift, t) : NOOSE.up, yaw = this.yaw0 + Math.PI * 2 * sst(s0, s1, t);
+      return { x: this.x + Math.sin(yaw) * R, y: hy, z: this.z + Math.cos(yaw) * R, yaw };
+    }
     const g = { x: this.x + Math.sin(this.yaw0) * R, z: this.z + Math.cos(this.yaw0) * R }, L = this.landAt, v = Math.max(0, Math.min(1, (t - NOOSE.release) / (NOOSE.land - NOOSE.release)));
-    return { x: g.x + (L.x - g.x) * v, z: g.z + (L.z - g.z) * v, yaw: this.yaw0 };
+    return { x: g.x + (L.x - g.x) * v, y: Y + (NOOSE.up - Y) * (1 - v) + 1.2 * 4 * v * (1 - v), z: g.z + (L.z - g.z) * v, yaw: this.yaw0 };
   }
+  /** How firmly the hand holds the throat (0 to 1): full through the lift and swing, letting go as the throw begins. */
+  get gripW() { return this.held === 'noose' ? 1 - sst(NOOSE.release + 0.02, NOOSE.release + 0.25, this.stage) : 0; }
   /** Runs the moments' timings and what they do to the hero and the boss. Called once a step, after the boss moves. */
   tick(f: Fight, dt: number) {
     const m = f.m, cross = (a: number) => this.sp < a && this.stage >= a;

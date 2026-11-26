@@ -40,7 +40,7 @@ describe('the King: the first throw plays its scene on the page', () => {
     const specs = kingMoments(K, f.m); expect(K.staging).toBe('noose');
     const r = playPage(f, () => specs.noose, () => K.held === null, () => K.stage, 9);
     expect(r.letter).toBe(true);
-    expect(r.cues).toEqual(['seize', 'swing', 'throw', 'land']);
+    expect(r.cues).toEqual(['seize', 'lift', 'swing', 'throw', 'land', 'rise']);
     expect(r.badCam + r.badHero).toBe(0);
     expect(f.hp).toBeLessThanOrEqual(100 - GRAB_DMG.noose + 1);
     expect(K.stage).toBeGreaterThanOrEqual(NOOSE.end - 0.1);
