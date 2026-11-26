@@ -18,7 +18,7 @@ export const RIVER_ATTACKS: Record<string, Strike[]> = {
   haul: [],
   haulIn: [{ kind: 'white', cue: 0.7, t: [1.45, 1.6], dmg: 12, down: true, mark: 'cleaver', box: [10.8, 1.0] }],
   wheelIron: [1.3, 2.1, 2.9].map(t => ({ kind: 'white' as const, cue: t - 0.55, t: [t, t + 0.12] as [number, number], dmg: 9, mark: 'cleaver' as const, arc: [5.6, 180] as [number, number] })),
-  dragDeep: [{ kind: 'ground', cue: 0.4, t: [1.56, 1.7], dmg: 14, down: true, mark: 'handL', zones: [{ shape: 'line', at: 'self', len: 14, half: 1.5, delay: 1.15 }] }],
+  dragDeep: [{ kind: 'ground', cue: 0.4, t: [1.56, 1.7], dmg: 14, down: true, mark: 'handL', zones: [{ shape: 'line', at: 'self', len: 14, half: 1.5, delay: 1.15 }], seize: 'drag' }],
   // --- the Lantern
   gather: [],
   wrongShore: [{ kind: 'ground', cue: 4.5, t: [5.35, 5.45], dmg: 0, mark: 'head', silent: true }],

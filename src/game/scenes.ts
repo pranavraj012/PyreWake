@@ -2,8 +2,11 @@
 import * as THREE from 'three';
 import { sound } from '../audio/sound.ts';
 import type { KingView } from '../boss/kingView.ts';
+import { NOOSE, RIDE, RIP, type King } from '../boss/king.ts';
 import type { Fight } from '../combat/fight.ts';
+import type { Motor } from '../player/motor.ts';
 import type { PlayerView } from '../player/view.ts';
+import type { MomentSpec } from './moment.ts';
 import type { Fx } from '../render/impact.ts';
 import type { Hud } from '../ui/hud.ts';
 
@@ -159,4 +162,43 @@ export class Ending {
     else if (t < 14.1) { const u = E(11.3, 14.1, t); L.aim(cam, 4, V(m.x + 0.9, 1.5, m.z + 1.0 - u * 0.1), V(m.x, 1.53, m.z), 30, time); }
     else { const u = E(14.1, 22, t); L.aim(cam, 5, V(m.x - 1.4 - u * 0.6, 1.1 + u * 3.4, m.z + 3.4 + u * 4.2), V(m.x, 1.5 + u * 0.3, m.z - 4), 46, time); }
   }
+}
+
+// ---------------------------------------------------------------- the moments (the grabs and the rewards)
+/** Each moment is staged on the boss's own clock (`stage`), so it never runs ahead of or behind the blows: the page plays these specs while the simulation holds the hero. */
+export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope' | 'ride', MomentSpec> {
+  /** From the King toward the hero, on the ground, and its right-hand side. */
+  const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { ux, uz, sx: -uz, sz: ux }; };
+  /** The hero's height in the noose: lifted by the throat, held as the King climbs, kicking, then dropped. */
+  const nooseY = (t: number) => t < NOOSE.climb[0] ? 0 : t < NOOSE.climb[1] ? 0.9 + 3.1 * E(NOOSE.climb[0], NOOSE.climb[1], t) : t < NOOSE.release ? 4.0 + 0.2 * Math.sin((t - NOOSE.climb[1]) * 11) : Math.max(0, 4.0 * (1 - ((t - NOOSE.release) / (NOOSE.land - NOOSE.release)) ** 2));
+  const noose: MomentSpec = {
+    frame: (t, eye, at) => { const { ux, uz, sx, sz } = away(), c = E(NOOSE.climb[0], NOOSE.climb[1], t), y = nooseY(t);
+      eye.set(sim.x + ux * (5.2 + 1.2 * c) + sx * 2.6, 1.7 + 1.2 * c + 0.3 * (1 - y / 4), sim.z + uz * (5.2 + 1.2 * c) + sz * 2.6); at.set(sim.x + ux * 0.6, 2.2 + 0.5 * y + 0.8 * c, sim.z + uz * 0.6); return 50; },
+    hero: (t, o) => { o.y = nooseY(t); },
+    tumble: t => t > NOOSE.release ? Math.min(Math.PI, (t - NOOSE.release) * 2.4) : 0,
+    rate: t => t > NOOSE.release - 0.1 && t < NOOSE.land + 0.2 ? 0.4 : 1,
+  };
+  /** Up the rope: a leap to the rope's foot, a catch, the cut, and the fall with the King. */
+  const rope: MomentSpec = {
+    frame: (t, eye, at) => { const { ux, uz, sx, sz } = away(), c = E(0.2, 0.95, t), cut = E(RIP.cut, RIP.cut + 0.6, t);
+      // from the hero's side and a little round, so the rope does not hide the King
+      eye.set(sim.x + ux * (7.5 - 1.5 * cut) + sx * (6.0 - 1.5 * cut), 4.6 - 1.4 * cut, sim.z + uz * (7.5 - 1.5 * cut) + sz * (6.0 - 1.5 * cut)); at.set(sim.x, 6.0 + 0.8 * c - 4.2 * cut, sim.z); return 50 - 4 * cut; },
+    hero: (t, o) => { const { ux, uz } = away(), c = E(0.2, 0.95, t), gx = ux * 0.9, gz = uz * 0.9; const hx = m.x - sim.x, hz = m.z - sim.z;
+      const fall = Math.max(0, Math.min(1, (t - RIP.cut - 0.2) / 0.9));
+      o.set((gx - hx) * c, t < RIP.cut ? 8.4 * c : 8.4 * (1 - fall * fall), (gz - hz) * c); },
+    tumble: t => t > RIP.cut + 0.3 ? Math.min(2.2, (t - RIP.cut - 0.3) * 3) : 0,
+    rate: t => t > RIP.cut - 0.1 && t < RIP.cut + 0.15 ? 0.3 : 1,
+  };
+  /** On his back: the hero leaps up onto him, drives the khanda in, and is thrown off to the side. */
+  const ride: MomentSpec = {
+    frame: (t, eye, at) => { const { sx, sz } = away(), u = E(0.6, 0.9, t), d = E(2.2, 2.8, t);
+      eye.set(sim.x - sx * 4.8 + Math.sin(sim.yaw) * 1.6, 2.6 - 0.4 * u + 0.8 * d, sim.z - sz * 4.8 + Math.cos(sim.yaw) * 1.6); at.set(sim.x, 1.5 + 0.3 * u, sim.z); return 50 - 4 * u; },
+    hero: (t, o) => { const { sx, sz } = away(), c = E(0, 0.6, t), d = E(2.2, 2.8, t), bx = sim.x - m.x, bz = sim.z - m.z;
+      // the leap lands on his back; the khanda goes in at RIDE.hit (a dip); the hero is thrown off to the side at the end
+      const y = t < 0.6 ? 1.5 * c + 2.0 * Math.sin(Math.PI * c) : t < 2.2 ? 1.5 - (t > RIDE.hit && t < RIDE.hit + 0.12 ? 0.2 : 0) : 1.5 * (1 - d);
+      o.set(t < 0.6 ? bx * c : bx + sx * 1.6 * d, y, t < 0.6 ? bz * c : bz + sz * 1.6 * d); },
+    tumble: t => t > 2.2 ? Math.min(1.6, (t - 2.2) * 2) : 0,
+    rate: t => t > RIDE.hit - 0.1 && t < RIDE.hit + 0.1 ? 0.3 : 1,
+  };
+  return { noose, rope, ride };
 }

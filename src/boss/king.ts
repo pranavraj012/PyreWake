@@ -3,15 +3,20 @@ import { moveAt } from '../anim/pose.ts';
 import { D } from '../combat/difficulty.ts';
 import { ATTACKS, LEAPS, type Strike } from './moves2.ts';
 import { KING_CLIPS as K } from './clips.ts';
+import type { Fight } from '../combat/fight.ts';
 
 export type KingMode = 'idle' | 'stalk' | 'strafe' | 'crawl' | 'hang' | 'slam' | 'sweep' | 'drag' | 'leap' | 'grab' | 'pounce' | 'rake' | 'hangSwing' | 'hangSwipe' | 'crash' | 'reel' | 'kneel' | 'fall'
-  | 'flurry' | 'cross' | 'skewer' | 'rupture' | 'rain' | 'wheel' | 'hop' | 'reel2' | 'rise2' | 'die2';
+  | 'flurry' | 'cross' | 'skewer' | 'rupture' | 'rain' | 'wheel' | 'hop' | 'reel2' | 'rise2' | 'die2' | 'noose' | 'rope';
 export const KING_MODES: KingMode[] = ['idle', 'stalk', 'strafe', 'slam', 'sweep', 'drag', 'leap', 'grab', 'reel', 'kneel', 'fall', 'crawl', 'pounce', 'rake', 'hang', 'hangSwing', 'hangSwipe', 'crash'];
 export const BENEATH_MODES: KingMode[] = ['idle', 'strafe', 'flurry', 'cross', 'skewer', 'rupture', 'rain', 'wheel', 'hop', 'reel2', 'kneel', 'rise2', 'die2'];
 export const isAttack = (m: string) => m in ATTACKS;
 const sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }, wrap = (a: number) => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;
 /** Pivot height of the hang, and how far below it the head swings. */
 export const ROPE = 10.6, HEAD_DROP = 8.9;
+/** The staged moments (module A). Times are the moment's own clock, `stage`, in seconds from the seizing or the press. */
+export const NOOSE = { climb: [0.5, 2.4] as [number, number], release: 3.6, land: 4.6, end: 5.2 }, RIP = { cut: 1.0, len: 2.7 }, RIDE = { hit: 0.9, len: 2.8 };
+/** Grabs always cost this much; a reward takes this share of the boss's life; a reward stays on offer this long. */
+export const GRAB_DMG = { noose: 44 }, REWARD_SHARE = 0.09, OFFER = 1.8;
 
 export class King {
   x = 0; z = -4; y = 0; private vy = 0; yaw = 0; vx = 0; vz = 0; speed = 0; mode: KingMode = 'idle'; mt = 0; prev = 0; burst = 0; r = 0.75; form: 1 | 2 = 1;
@@ -21,7 +26,9 @@ export class King {
   /** Has the cleaver: the Executioner does, the Crawler and the Hanged do not. */ armed = true; crawling = false;
   /** Hang: seconds since the roots took it, pendulum angle and direction. */ ht = 0; th = 0; dir = 0;
   /** Where a leap is going. */ mark = { x: 0, z: 0 }; private from = { x: 0, z: 0 }; private moved = 0; private side = 1; private sideT = 0;
-  set(mode: KingMode, rate = 1) { const was = this.hanging; this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; if (this.hanging && !was) { this.ht = 0; this.th = 0; } if (was && !this.hanging) { this.x = this.hx; this.z = this.hz; this.th = 0; } }
+  set(mode: KingMode, rate = 1) { const was = this.hanging; this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; this.held = null; if (this.hanging && !was) { this.ht = 0; this.th = 0; this.offered = false; } if (was && !this.hanging) { this.x = this.hx; this.z = this.hz; this.th = 0; } }
+  /** Staged moments: the grab that holds the hero, the moment's own clock, the reward in progress, and the reward on offer. */
+  held: 'noose' | null = null; stage = 0; rite: 'rope' | 'ride' | null = null; reward: 'rope' | 'ride' | null = null; rewardLeft = 0; private offered = false; private sp = 0;
   get hanging() { return this.mode === 'hang' || this.mode === 'hangSwing' || this.mode === 'hangSwipe'; }
   /** The part you can reach: the swinging head when hanging, otherwise the body. */
   get hx() { return this.hanging ? this.x + Math.sin(this.dir) * Math.sin(this.th) * HEAD_DROP : this.x; }
@@ -80,6 +87,44 @@ export class King {
       this.th += (want - this.th) * Math.min(1, dt * 24);
     } else this.th += (idle - this.th) * Math.min(1, dt * 2.5);
     if (m !== 'hang' && this.mt >= K[m].dur) { this.ended = m; this.set('hang'); }
+  }
+  /** The grab connected: the boss takes the hero into a staged moment. It always plays out and always costs. */
+  seize(kind: string, f: Fight) {
+    this.stage = this.sp = 0; f.brain.seen.add('grab');
+    this.grabbedOnce = true; this.set('noose'); this.dir = this.yaw;
+    this.held = 'noose';
+  }
+  /** A perfect dodge of the sideways lunge leaves him behind you, exposed: a chance to ride him. */
+  dodged(_f: Fight) { if (this.mode === 'cross' && !this.held && !this.rite) { this.reward = 'ride'; this.rewardLeft = OFFER; } }
+  /** The hero took the offered reward: the scene plays, and the blow lands at its own moment. */
+  takeReward(): 'rope' | 'ride' | null {
+    const r = this.reward; if (!r) return null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0;
+    if (r === 'rope') this.set('rope'); else this.set('kneel');
+    this.rite = r; return r;
+  }
+  /** One grab per boss: its first throw in a fight is forced to connect; later throws can be dodged. Round 1 starts a fight afresh. */
+  grabbedOnce = false; forcesGrab() { return !this.grabbedOnce; }
+  reset() { if (this.form === 1) this.grabbedOnce = false; this.clearMoments(); }
+  /** A fresh start: no moment is playing and no reward is on offer. */
+  clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; }
+  /** Which staged moment is playing, if any (the page stages the camera and the hero for it). */
+  get staging(): 'noose' | 'rope' | 'ride' | null { return this.held ?? this.rite; }
+  /** Runs the moments' timings and what they do to the hero and the boss. Called once a step, after the boss moves. */
+  tick(f: Fight, dt: number) {
+    const m = f.m, cross = (a: number) => this.sp < a && this.stage >= a;
+    if (this.reward && (this.rewardLeft -= dt) <= 0) { this.reward = null; this.rewardLeft = 0; }
+    if (this.hanging && !this.offered && !this.held && !this.rite && this.ht > 0.8 && Math.hypot(m.x - this.x, m.z - this.z) < 5.5) { this.offered = true; this.reward = 'rope'; this.rewardLeft = OFFER; }
+    if (this.held || this.rite) this.stage += dt * this.pace;
+    if (this.held === 'noose') {
+      f.invuln = Math.max(f.invuln, 0.15);
+      if (this.stage < NOOSE.release) { m.x = this.x + Math.sin(this.yaw) * 1.5; m.z = this.z + Math.cos(this.yaw) * 1.5; }
+      if (cross(NOOSE.land)) { f.invuln = 0; f.strikePlayer(GRAB_DMG.noose, true, Math.atan2(this.x - m.x, this.z - m.z), 'grab'); }
+      if (this.stage >= NOOSE.end) { this.set('hang'); this.ht = 1.2; }
+    }
+    const pool = f.round === 2 ? D.boss.hp2 : D.boss.hp1;
+    if (this.rite === 'rope') { if (cross(RIP.cut)) { this.set('crash'); f.damage(Math.round(pool * REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); } if (this.stage >= RIP.len) this.rite = null; }
+    else if (this.rite === 'ride') { if (cross(RIDE.hit)) f.damage(Math.round(pool * REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); if (this.stage >= RIDE.len) this.rite = null; }
+    this.sp = this.stage;
   }
   /** Does this strike cover the point (with the player's own width)? */
   covers(q: Strike, px: number, pz: number, r = 0.3) {

@@ -92,6 +92,7 @@ export interface Strike {
   box?: [number, number]; arc?: [number, number]; head?: number; /** Comes in at leg height: a jump clears it. */ low?: boolean;
   /** Ground marks drawn from the cue. With no box/arc/head of its own, the zone does the damage. */ zones?: Zone[];
   /** Hit only outside this radius (a sweep with a safe place at the boss's feet). */ inner?: number; /** The zone is only drawn: the boss resolves it itself. */ silent?: boolean;
+  /** When it connects, the boss seizes the hero into a staged moment instead of the plain blow (Boss.seize). */ seize?: string;
 }
 /** Attacks that fly to a marked spot: launch, landing, height. `past` overshoots through the target. */
 export const LEAPS: Record<string, { t0: number; t1: number; h: number; max: number; past?: number }> = {
@@ -102,7 +103,7 @@ export const ATTACKS: Record<string, Strike[]> = {
   slam: [{ kind: 'white', cue: 0.7, t: [1.38, 1.52], dmg: 12, mark: 'cleaver', box: [4.2, 0.75] }],
   sweep: [{ kind: 'white', cue: 0.3, t: [0.94, 1.1], dmg: 10, mark: 'cleaver', arc: [4.2, 105], low: true }, { kind: 'white', cue: 1.26, t: [1.88, 2.02], dmg: 10, mark: 'cleaver', arc: [4.2, 105], low: true }],
   drag: [{ kind: 'white', cue: 0.3, t: [0.92, 1.06], dmg: 11, mark: 'cleaver', arc: [3.8, 70] }],
-  grab: [{ kind: 'red', cue: 0.56, t: [1.38, 1.52], dmg: 17, down: true, mark: 'handL', box: [3.0, 0.7] }],
+  grab: [{ kind: 'red', cue: 0.56, t: [1.38, 1.52], dmg: 17, down: true, mark: 'handL', box: [3.0, 0.7], seize: 'noose' }],
   leap: [{ kind: 'ground', cue: 0.4, t: [1.28, 1.4], dmg: 12, down: true, mark: 'cleaver', zones: [circle(2.5, 0.9)] }],
   pounce: [{ kind: 'ground', cue: 0.4, t: [1.14, 1.26], dmg: 13, down: true, mark: 'handL', zones: [circle(2.1, 0.76)] }],
   rake: [{ kind: 'white', cue: 0.24, t: [0.86, 0.98], dmg: 9, mark: 'cleaver', arc: [3.5, 80], low: true }, { kind: 'white', cue: 0.9, t: [1.46, 1.58], dmg: 9, mark: 'handL', arc: [3.5, 80], low: true }],

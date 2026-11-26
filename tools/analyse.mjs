@@ -19,7 +19,7 @@ function bout(kind, seed) {
     else if (o.spell && m.can.ultimate && d < 8) p = tap('ultimate'); else if (o.spell && m.can.skill2 && k.committed) p = tap('skill2'); else if (o.spell && m.can.skill1 && d < 4 && rnd() < .05) p = tap('skill1');
     else if (o.jump && d < 4 && up < 0 && rnd() < o.jump / 20) p = tap('jump');
     else if (d < 2.8 && up < 0 && i - last > 9 && i > wait) { last = i; if (o.hold && rnd() < o.hold) { p = [{ a: 'attack', up: false }]; up = i + 24; } else p = tap('attack'); if (o.pause && rnd() < o.pause) wait = i + 24; }
-    f.step(DT, Math.sin(a) * go, Math.cos(a) * go, p); total++; if (m.state === 'free') idle++;
+    const mo = k.held || k.rite; f.step(DT, mo ? 0 : Math.sin(a) * go, mo ? 0 : Math.cos(a) * go, mo ? [] : p); total++; if (m.state === 'free') idle++;
     for (const e of m.events) if (e.startsWith('clip:')) { const c = e.slice(5); R.clips[c] = (R.clips[c] ?? 0) + 1; seenAt[c] ??= f.time; src = c; } else if (e.startsWith('use:')) R.uses[e.slice(4)] = (R.uses[e.slice(4)] ?? 0) + 1;
     const did = Math.max(0, prev - f.bossHp); prev = f.bossHp; if (did) { const n = f.ev.find(e => e.k === 'detonate') ? 'rush' : f.ev.find(e => e.k === 'shotHit') ? 'sunder' : f.ev.find(e => e.k === 'rites') ? 'rites' : src; R.dmg[n] = (R.dmg[n] ?? 0) + did; }
     if (m.clip) R.secs[m.clip.name] = (R.secs[m.clip.name] ?? 0) + DT; const want = MUSIC[f.brain.style]; if (want !== tr && (want === 'beneath' || f.time - trAt >= 16)) { music.push([tr, f.time - trAt]); tr = want; trAt = f.time; }

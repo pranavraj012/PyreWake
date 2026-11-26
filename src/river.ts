@@ -8,7 +8,8 @@ import { startLoop } from './core/loop.ts';
 import { loadGeo, loadTextures } from './render/assets.ts';
 import { DEPTH, FOG, SHARED, surface } from './render/surface.ts';
 import { LINE } from './render/sky.ts';
-import { RIVER_NAMES } from './game/riverScript.ts';
+import { RIVER_NAMES, RIVER_PRESS } from './game/riverScript.ts';
+import { Moment, Prompt } from './game/moment.ts';
 import { Dust, Puffs, Sparks } from './render/fx.ts';
 import { Bursts } from './render/impact.ts';
 import { skinnedShadow } from './render/shadowProxy.ts';
@@ -30,7 +31,7 @@ import { River } from './boss/river/river.ts';
 import { RiverBrain } from './boss/river/brain.ts';
 import { RiverView } from './boss/river/riverView.ts';
 import { RiverDirector } from './boss/river/riverDirector.ts';
-import { RiverIntro, RiverEnding, RiverTurn } from './game/riverScenes.ts';
+import { RiverIntro, RiverEnding, RiverTurn, riverMoments } from './game/riverScenes.ts';
 
 export type { Ctx };
 
@@ -56,15 +57,17 @@ export async function bootRiver(c: Ctx) {
   pv.shadow = skinnedShadow(pv.mesh, sPlayer, DEPTH.skin); skinnedShadow(v1.mesh, sFerry, DEPTH.skin); skinnedShadow(v2.mesh, sBare, DEPTH.skin); v2.show(false);
   if (tier.name === 'phone') pv.weapon.castShadow = v1.cleaver.castShadow = false;
   const follow = new FollowCam(); follow.blockers = m.blockers;
+  // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
+  const moment = new Moment(), qte = new Prompt(app), rSpecs = riverMoments(sim, m); let staged: 'drag' | 'chain' | 'lantern' | null = null, qteFor: string | null = null;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [v1, v2], court: ghats }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = [RIVER_NAMES.r1, RIVER_NAMES.r2]; hud.winTitle = RIVER_NAMES.won; onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
   turn.onEnd = () => follow.snap(m, sim); const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
-  hud.onRestart = () => { ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'weight' : 'row'); };
+  hud.onRestart = () => { moment.stop(); staged = null; qte.hide(); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'weight' : 'row'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
   menu.fights([['The Hanged King', () => { location.search = ''; }], ['The Ferryman', null], ['The Sister of Hours', () => { location.search = '?boss=3'; }]]);
-  const toMenu = () => { hud.setPaused(false); hud.verse(''); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
+  const toMenu = () => { hud.setPaused(false); moment.stop(); staged = null; qte.hide(); hud.verse(''); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen; hud.next = ''; hud.onSkip = () => { };
   document.addEventListener('visibilitychange', () => { if (document.hidden && !menu.open && !intro.active && !turn.active && !ending.active && fight.phase !== 'won' && !SHOT) hud.setPaused(true); });
   addEventListener('gamepaddisconnected', () => { if (input.lastDevice === 'pad' && !menu.open && !intro.active && !turn.active && !ending.active && fight.phase !== 'won') hud.setPaused(true); });
@@ -80,16 +83,23 @@ export async function bootRiver(c: Ctx) {
     if (padNav(input)) ev = ev.filter(e => e.a === 'pause' && !menu.open);
     if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && !intro.active && fight.phase !== 'won') hud.setPaused(!hud.paused);
     if (hud.paused) return;
-    const pace = turn.active ? turn.rate : 1; t += dt * pace; FOG.uFogP.value.w = SHARED.uTime.value = t;
+    const pace = turn.active ? turn.rate : moment.active ? moment.rate(sim.stage) : 1; t += dt * pace; FOG.uFogP.value.w = SHARED.uTime.value = t;
     if (menu.open) { /* the hero kneels at the water */ }
     else if (intro.active) { if (intro.t > 0.6 && ev.some(e => !e.up)) intro.skip(); else mz = intro.step(dt, t); ev = []; }
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
+    // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
+    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.takeReward()) qte.hide();
+    if (moment.active) { ev = []; mx = mz = 0; }
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
+    { const want = sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(rSpecs[want]); } else moment.stop(); } }
+    if (!sim.reward) qteFor = null; else if (!moment.active && !qte.on && qteFor !== sim.reward) { qteFor = sim.reward; qte.show('attack', RIVER_PRESS[sim.reward], sim.rewardLeft, input.lastDevice); }
+    pv.tumble = moment.hero(sim.stage, pv.offset);
+    if (sim.held === 'drag' && sim.stage >= 0.55 && sim.stage < 0.62) fx.sparks.emit(new THREE.Vector3(m.x, 0.2, m.z), new THREE.Vector3(0, 1, 0), 40, 4, 1.2, 0.5, t);
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
     turn.step(dt, t); ending.step(dt, t); rd.step(sd, dt, t); if (!intro.active) dir.mono = Math.max(turn.mono, 0);
-    if (!menu.open && !intro.active) prompts.step(sd, fight);
+    if (!menu.open && !intro.active && !moment.active && !qte.on) prompts.step(sd, fight); else if (moment.active || qte.on) prompts.current = null;
     ghats.ruin.step(sd, t, [{ x: m.x, z: m.z, r: m.y > 0.6 ? -9 : 0.35, push: 1 + m.speed * 0.25 }, { x: sim.x, z: sim.z, r: sim.y > 0.6 ? -9 : 0.8, push: 3.2 }]); follow.blockers = m.blockers;
     dir.step(sd, dt, t);
   };
@@ -108,6 +118,7 @@ export async function bootRiver(c: Ctx) {
     else if (turn.active) turn.camera(cam, t);
     else if (ending.active) ending.camera(cam, t);
     else if (intro.active) intro.camera(cam, t, c.baseFov());
+    else if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.stage)) { /* a staged moment's shot */ }
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, c.baseFov())) { follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5, h: sim.form === 2 ? 2.1 : 1.7 + sim.y * 0.6 }, input.takeLook(), t, c.baseFov());
     if (!SHOT && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);

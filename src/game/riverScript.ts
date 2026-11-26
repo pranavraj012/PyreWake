@@ -50,3 +50,6 @@ export const RIVER_ENDING = {
     { at: 35.0, until: 39.2, text: '"Call it from the far bank. Let something answer."' },
   ] as Line[],
 };
+
+// The presses the Ferryman's staged moments offer the hero. Cue prompts stay plain, as STYLE.md asks.
+export const RIVER_PRESS = { chain: 'Run the chain', lantern: 'Strike the lantern' } as const;
