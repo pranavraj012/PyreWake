@@ -14,7 +14,7 @@ const QUIET = ['reel', 'reel2', 'snap', 'kneel', 'fall', 'cradle', 'riseW', 'die
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the mark it threw is where it lands: the line is drawn at the cue. */
 const LOCK: Record<string, number> = { cast: 0.3, dragDeep: 0.4, haulIn: 0 };
-/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { under: 0.55, hold: 1.6, dmg: 1.7, heave: 3.6, end: 5.2 }, CHAIN = { hit: 1.6, len: 3.0 }, LANTERN = { hit: 0.9, len: 2.4 };export const GRAB_DRAG = { drag: 44 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
+/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { under: 0.55, hold: 1.6, dmg: 1.7, heave: 3.6, end: 5.2 }, CHAIN = { hit: 1.5, len: 3.4 }, LANTERN = { hit: 1.25, len: 3.4 };export const GRAB_DRAG = { drag: 44 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
 
 export interface Chain { x: number; z: number; len: number; hp: number; t: number; cut: number }
 export interface Lantern { x: number; z: number; real: boolean; t: number; gone: number }
@@ -126,8 +126,8 @@ export class River implements Boss {
       if (cross(DRAG.dmg)) { f.invuln = 0; f.strikePlayer(GRAB_DRAG.drag, true, Math.atan2(this.x - m.x, this.z - m.z), 'dragDeep'); }
       if (this.stage >= DRAG.end) this.held = null;
     }
-    if (this.rite === 'chain') { if (cross(CHAIN.hit)) f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); if (this.stage >= CHAIN.len) this.rite = null; }
-    else if (this.rite === 'lantern') { if (cross(LANTERN.hit)) f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); if (this.stage >= LANTERN.len) this.rite = null; }
+    if (this.rite === 'chain') { if (cross(CHAIN.hit)) { f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0, 'blade', 'heavy'); this.set('reel'); } if (this.stage >= CHAIN.len) this.rite = null; }
+    else if (this.rite === 'lantern') { if (cross(LANTERN.hit)) { f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0, 'blade', 'heavy'); this.set('reel'); } if (this.stage >= LANTERN.len) this.rite = null; }
     this.sp = this.stage;
   }
   /** Three lanterns round the player; one is real. */
