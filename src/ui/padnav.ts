@@ -2,7 +2,7 @@
 import { sound } from '../audio/sound.ts';
 import type { Input } from '../input/input.ts';
 
-const PANELS: [string, string, string][] = [['paused', '.pause', '[data-b=go]'], ['won', '.win', '[data-b=again]'], ['menu', '#menu', '[data-b=play]']];
+const PANELS: [string, string, string][] = [['paused', '.pause', '[data-b=go]'], ['won', '.win', '[data-b=again]'], ['menu', '#menu', '[data-b=play]'], ['meta', '.meta-sheet.on', '[data-b=close]']];
 /** Returns true while a panel has the pad. */
 export function padNav(input: Input): boolean {
   const body = document.body.classList; body.toggle('padmode', input.lastDevice === 'pad'); const P = PANELS.find(([c]) => body.contains(c)); const keys = input.takeNav(); if (!P) return false;
@@ -10,7 +10,7 @@ export function padNav(input: Input): boolean {
   for (const k of keys) {
     const at = document.activeElement as HTMLElement | null, cur = at && list.includes(at) ? at : null;
     if (k === 'ok') { (cur ?? root.querySelector<HTMLElement>(P[2]))?.click(); continue; }
-    if (k === 'back') { if (P[0] === 'paused') root.querySelector<HTMLElement>(P[2])?.click(); else if (P[0] === 'menu') root.querySelector<HTMLElement>('nav [aria-expanded=true]')?.click(); continue; }
+    if (k === 'back') { if (P[0] === 'paused' || P[0] === 'meta') root.querySelector<HTMLElement>(P[2])?.click(); else if (P[0] === 'menu') root.querySelector<HTMLElement>('nav [aria-expanded=true]')?.click(); continue; }
     if (!cur) { (root.querySelector<HTMLElement>(P[2]) ?? list[0])?.focus(); continue; }
     if (cur instanceof HTMLInputElement && (k === 'left' || k === 'right')) { cur.value = String(+cur.value + (k === 'right' ? 0.1 : -0.1)); cur.dispatchEvent(new Event('input', { bubbles: true })); continue; }
     // the nearest one that way
