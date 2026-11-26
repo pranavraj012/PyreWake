@@ -8,11 +8,11 @@ import { HOURS_ATTACKS as A } from './moves.ts';
 
 export const DIAL = 17.5;
 const wrap = (a: number) => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;
-const QUIET = ['sit', 'idle', 'stalk', 'strafe', 'reel', 'reel2', 'kneel', 'fall', 'rise', 'die', 'lostCount', 'burnt', 'sag'];
+const QUIET = ['sit', 'idle', 'stalk', 'strafe', 'blink', 'reel', 'reel2', 'kneel', 'fall', 'rise', 'die', 'lostCount', 'burnt', 'sag'];
 /** A move rather than footwork or a wound. */
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the line drawn at the cue is where it lands. */
-const LOCK: Record<string, number> = { closeEyes: 0.3, sweepWard: 0.3, binding: 0.35, lieDown: 0.9, wardStands: 0.35, hourHand: 0.4 };
+const LOCK: Record<string, number> = { reap: 0.75, binding: 0.35, lieDown: 0.9, wardStands: 0.35, hourHand: 0.4 };
 /** How many blows (a spell is two) break a count, by form. */
 export const BREAK = [3, 4] as const;
 const COUNT = ['sevenBreaths', 'longCount'];
@@ -25,13 +25,15 @@ export class Sister implements Boss {
   x = 0; z = -4; y = 0; yaw = 0; vx = 0; vz = 0; speed = 0; mode = 'idle'; mt = 0; prev = 0; burst = 0; form: 1 | 2 = 1; rate = 1; pace = 1; serial = 0;
   cues: Strike[] = []; live: Strike[] = []; ended: string | null = null; armed = true; crawling = false; ht = 0; th = 0; dir = 0; mark = { x: 0, z: 0 };
   // --- her own mechanics
-  /** Blows taken during this count. */ counted = 0; /** Embers left in the count, 7 to 0. */ embers = 7; /** Linen strips lying on the floor. */ strips: Strip[] = []; /** The hook planted by Noon. */ stake: Stake | null = null;
+  /** Blows taken during this count. */ counted = 0; /** Embers left in the count, 7 to 0. */ embers = 7; /** Linen strips lying on the floor. */ strips: Strip[] = []; /** The scythe planted by Noon. */ stake: Stake | null = null;
   /** Seconds her hem burns. */ lit = 0; /** Seconds she takes extra, and by how much. */ exposed = 0; bonus = 1.25; /** Inside the smoke: cannot be hit. */ hidden = false; /** Where she will come out of the smoke. */ whorl: { x: number; z: number } | null = null;
   /** Counts she has finished in round 2: each lowers the sun and lengthens the Hour Hand. */ sunk = 0; /** Seconds the hero has stood at her hem. */ hugT = 0; out: Out[] = [];
+  /** Where the smoke will give her back, behind or beside you. */
+  private beyond(ahead: number, side: number) { const ux = this.px - this.x, uz = this.pz - this.z, l = Math.hypot(ux, uz) || 1, q = { x: this.px + (ux * ahead + uz * side) / l, z: this.pz + (uz * ahead - ux * side) / l }, R = Math.hypot(q.x, q.z); if (R > DIAL - 1) { q.x *= (DIAL - 1) / R; q.z *= (DIAL - 1) / R; } return q; }
   private moved = 0; private side = 1; private sideT = 0; private from = { x: 0, z: 0 }; private cut = new Set<string>(); private px = 0; private pz = 5; private burnedAt = -9;
 
   get r() { return this.form === 2 ? 2.6 : 0.85; }
-  set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; this.counted = 0; if (COUNT.includes(mode)) this.embers = 7; if (mode !== 'betweenBeds') { this.hidden = false; this.whorl = null; } }
+  set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; this.counted = 0; if (COUNT.includes(mode)) this.embers = 7; this.hidden = false; this.whorl = null; }
   reset() { this.counted = 0; this.embers = 7; this.strips = []; this.stake = null; this.lit = 0; this.exposed = 0; this.hidden = false; this.whorl = null; this.sunk = 0; this.hugT = 0; this.out = []; this.y = 0; this.cut.clear(); }
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
@@ -77,12 +79,20 @@ export class Sister implements Boss {
     else if (m === 'idle') this.turn(1.4 * dt, face);
     else if (m in C) {
       const c = C[m], s = this.strikes, mt = this.mt, p = this.prev;
-      if (c.move) { const g = moveAt(c, mt), want = g - this.moved, st = want > 0 ? Math.min(want, Math.max(0, dist - (m === 'sweepWard' ? -12 : 1.6))) : want; this.moved = g; this.x += Math.sin(this.yaw) * st; this.z += Math.cos(this.yaw) * st; }
+      if (c.move) { const g = moveAt(c, mt), want = g - this.moved, st = want > 0 ? Math.min(want, Math.max(0, dist - 1.6)) : want; this.moved = g; this.x += Math.sin(this.yaw) * st; this.z += Math.cos(this.yaw) * st; }
       if (m === 'betweenBeds') {
         if (p < 0.3 && mt >= 0.3) { const a = Math.atan2(this.x - this.px, this.z - this.pz) + (this.serial % 2 ? 0.6 : -0.6), q = { x: this.px + Math.sin(a) * 4.2, z: this.pz + Math.cos(a) * 4.2 }, R = Math.hypot(q.x, q.z); if (R > DIAL - 1) { q.x *= (DIAL - 1) / R; q.z *= (DIAL - 1) / R; } this.whorl = q; this.say('whorl', q.x, q.z); }
         if (p < 0.4 && mt >= 0.4) { this.hidden = true; this.say('vanish'); }
         if (p < 1.4 && mt >= 1.4 && this.whorl) { this.x = this.whorl.x; this.z = this.whorl.z; this.yaw = Math.atan2(this.px - this.x, this.pz - this.z); this.hidden = false; this.whorl = null; this.say('emerge'); }
         if (mt > 1.4 && mt < 1.55) this.turn(4 * dt, face);
+      } else if (m === 'harvest' || m === 'blink') {
+        // into the smoke; out of it at your back (harvest) or a few strides off your shoulder (blink)
+        const [w, v, o] = m === 'harvest' ? [0.3, 0.4, 1.2] : [0.15, 0.25, 0.75];
+        if (p < w && mt >= w) { const q = m === 'harvest' ? this.beyond(2.7, 0) : this.beyond(-4.8, this.serial % 2 ? 2.0 : -2.0); this.whorl = q; this.say('whorl', q.x, q.z); }
+        if (p < v && mt >= v) { this.hidden = true; this.say('vanish'); }
+        if (p < o && mt >= o && this.whorl) { this.x = this.whorl.x; this.z = this.whorl.z; this.yaw = Math.atan2(this.px - this.x, this.pz - this.z); this.hidden = false; this.whorl = null; this.say('emerge'); }
+        if (mt > o && mt < o + (m === 'harvest' ? 0.32 : 0.3)) this.turn(5 * dt, face);
+      } else if (m === 'hourWheel') { if (mt < 0.8 || mt > 2.7) this.turn(2.4 * dt, face); else this.turn(0.9 * dt, face);
       } else if (m === 'drawSheet') {
         if (p < s[0].cue && mt >= s[0].cue) { this.mark = { x: this.px, z: this.pz }; this.from = { x: this.x, z: this.z }; }
         if (mt >= 0.9 && mt < 1.7) { const u = (mt - 0.9) / 0.8, e = u * u * (3 - 2 * u); this.x = this.from.x + (this.mark.x - this.from.x) * e; this.z = this.from.z + (this.mark.z - this.from.z) * e; this.y = Math.sin(Math.PI * u) * 4; }
@@ -90,8 +100,7 @@ export class Sister implements Boss {
       } else if (m === 'lastBreath') {
         if (mt < 0.45) this.turn(3 * dt, face - 0.9);
         for (const t of [1.27, 1.62, 1.97]) if (p < t && mt >= t) this.yaw += 0.61;
-      } else if (m in LOCK) { if (mt < LOCK[m]) this.turn(3.2 * dt, face); if (m === 'sweepWard' && mt > 1.5 && mt < 2.05) this.turn(5 * dt, face); }
-      else if (m === 'turnPyre' && mt > 1.1 && mt < 1.6) this.turn(2.0 * dt, face);
+      } else if (m in LOCK) { if (mt < LOCK[m]) this.turn(3.2 * dt, face); if (m === 'reap' && mt > 1.3 && mt < 1.75) this.turn(4 * dt, face); }
       else { const next = s.find(q => q.t[0] > mt); if (next && mt < next.t[0] - 0.2) this.turn(2.4 * dt, face); else if (!s.length && mt < 0.8) this.turn(1.4 * dt, face); }
       if (mt >= c.dur && !['kneel', 'fall', 'die', 'rise', 'sit'].includes(m)) this.end(m);
       void dx; void dz;
@@ -124,7 +133,7 @@ export class Sister implements Boss {
     if (this.strips.length && (f.shots.some(s => this.onStrip(s.x, s.z, s.r + 0.6)) || (m.clip?.name === 'rush' && this.onStrip(m.x, m.z, 1.0)))) { this.strips = []; this.set('burnt'); this.exposed = 2.2; this.bonus = 1.3; f.brain.broken(); this.say('burnStrips'); }
     // the thrown sheet: Sunder Arc tears it in the air
     if (this.mode === 'cleanSheet') for (const h of f.hazards) if (h.mode === 'cleanSheet' && h.t < h.delay && f.shots.some(s => s.big && Math.hypot(s.x - h.x, s.z - h.z) < h.r + 1.2)) { h.max = -1; this.say('tear', h.x, h.z); }
-    // --- Noon: the hook stands where it fell, eight seconds; three blows shatter it
+    // --- Noon: the scythe stands where it fell, eight seconds; three blows shatter it
     if (this.mode === 'noon' && p < 1.5 && mt >= 1.5) { const h = f.hazards.find(q => q.mode === 'noon' && q.shape === 'circle'); this.stake = { x: h?.x ?? this.px, z: h?.z ?? this.pz, hp: 3, t: 0 }; }
     const st = this.stake; if (st) { st.t += dt; if (this.touch(f, 'stake', st.x, st.z, 0.6)) { st.hp--; this.say('stakeHit', st.x, st.z, st.hp); if (st.hp <= 0) { this.stake = null; this.say('stakeBreak', st.x, st.z); } } if (st.t > 8) this.stake = null; }
     void m;

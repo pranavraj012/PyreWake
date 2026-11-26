@@ -1,4 +1,4 @@
-// Draws the Pall: a dome of soot-black linen on smoke, embers moving behind the cloth, her small face at the top, and the hook rising out of her back like a sundial's gnomon.
+// Draws the Pall: a dome of soot-black linen on smoke, embers moving behind the cloth, her small face at the top, and the scythe rising out of her back like a sundial's gnomon.
 // Stiff above, alive only at the hem: the hem's chains flare, lift and trail; the whole of her flattens when she lands, and her face comes down to sword height.
 import * as THREE from 'three';
 import { Rig } from '../../anim/rig.ts';
@@ -11,7 +11,7 @@ import { glow } from './glow.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const NOISE3 = `float h3(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); } float n3(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f); return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
-export interface PallGeo { body: THREE.BufferGeometry; hook: THREE.BufferGeometry; frame: THREE.BufferGeometry }
+export interface PallGeo { body: THREE.BufferGeometry; scythe: THREE.BufferGeometry; frame: THREE.BufferGeometry }
 
 export class PallView implements BossView {
   group = new THREE.Group(); form: 1 | 2 = 2; sim: Sister; rig = new Rig(PALL_BONES); mesh: THREE.SkinnedMesh; cleaver: THREE.Mesh; man = new THREE.Group(); light: THREE.PointLight | null = null;
@@ -41,8 +41,8 @@ void main(){ if (abs(vM - 40.) > .5) discard; float t = uT.w; vec3 q = vP * vec3
  gl_FragColor = vec4(vec3(1., .3, .06) * g * uK * 1.4, 1.); }` }));
     this.overlay.bind(this.rig.skeleton, new THREE.Matrix4()); this.overlay.frustumCulled = false; this.overlay.renderOrder = 3; this.man.add(this.overlay);
     this.frame = new THREE.SkinnedMesh(g.frame, held); this.frame.bind(this.rig.skeleton, new THREE.Matrix4()); this.frame.frustumCulled = false; this.frame.visible = false; this.man.add(this.frame);
-    // the hook stands out of her back: a gnomon
-    this.cleaver = new THREE.Mesh(g.hook, held); this.cleaver.castShadow = true; this.cleaver.customDepthMaterial = depth.still; this.cleaver.position.set(0.15, 3.6, -2.4); this.cleaver.rotation.set(-0.62, 0.0, 0.08); this.rig.bones[0].add(this.cleaver);
+    // the scythe stands out of her back: a gnomon
+    this.cleaver = new THREE.Mesh(g.scythe, held); this.cleaver.castShadow = true; this.cleaver.customDepthMaterial = depth.still; this.cleaver.position.set(0.15, 3.6, -2.4); this.cleaver.rotation.set(-0.62, 0.0, 0.08); this.rig.bones[0].add(this.cleaver);
     for (let i = 0; i < 7; i++) { const e = glow(new THREE.Color(1.6, 0.85, 0.45), 0.26); e.visible = false; scene.add(e); this.embers.push(e); }
   }
   get x() { return this.sim.hx; } get z() { return this.sim.hz; }
@@ -97,7 +97,7 @@ void main(){ if (abs(vM - 40.) > .5) discard; float t = uT.w; vec3 q = vP * vec3
     // her face keeps its size however flat she is
     const hb = r.bones[r.i('head')]; hb.scale.set(1 / sx, 1 / sy, 1 / sx); g.updateMatrixWorld(true);
     hb.localToWorld(this.headAt.set(0, 0.2, 0.15)); this.headDown = E(3.4, 1.8, this.headAt.y);
-    // --- the hook: gone while it stands planted as Noon's stake
+    // --- the scythe: gone while it stands planted as Noon's stake
     this.cleaver.visible = !(m === 'noon' && mt > 0.75) && !S0.stake;
     // --- the coals behind the cloth
     const count = m === 'longCount'; this.coals.uK.value += ((S0.helpless ? 0.55 : 1) * (S0.attacking ? 1.25 : 1) - this.coals.uK.value) * Math.min(1, dt * 3); this.coals.uUp.value += ((count ? 1 : 0) - this.coals.uUp.value) * Math.min(1, dt * 2); this.coals.uBurn.value = this.burnt;

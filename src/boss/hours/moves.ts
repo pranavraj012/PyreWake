@@ -4,14 +4,14 @@ import type { Strike, Zone } from '../moves2.ts';
 
 const D = Math.PI / 180;
 const line = (len: number, half: number, delay: number, yaw = 0): Zone => ({ shape: 'line', at: 'self', len, half, delay, yaw });
-export type HoursMode = 'idle' | 'stalk' | 'strafe' | 'turnPyre' | 'closeEyes' | 'sweepWard' | 'binding' | 'cleanSheet' | 'lieDown' | 'betweenBeds' | 'sevenBreaths' | 'lostCount' | 'burnt'
+export type HoursMode = 'idle' | 'stalk' | 'strafe' | 'blink' | 'reap' | 'harvest' | 'hourWheel' | 'binding' | 'cleanSheet' | 'lieDown' | 'betweenBeds' | 'sevenBreaths' | 'lostCount' | 'burnt'
   | 'hourHand' | 'drawSheet' | 'wardStands' | 'noon' | 'lastBreath' | 'hemLash' | 'longCount' | 'sag' | 'reel' | 'reel2' | 'kneel' | 'fall' | 'rise' | 'die';
 
 export const HOURS_ATTACKS: Record<string, Strike[]> = {
-  // --- the Hook
-  turnPyre: [{ kind: 'white', cue: 0.35, t: [0.95, 1.1], dmg: 10, mark: 'cleaver', arc: [4.6, 110], low: true }, { kind: 'white', cue: 1.15, t: [1.75, 1.9], dmg: 12, down: true, mark: 'cleaver', box: [4.8, 0.8] }],
-  closeEyes: [{ kind: 'red', cue: 0.3, t: [0.68, 0.8], dmg: 14, mark: 'cleaver', box: [5.4, 0.7] }],
-  sweepWard: [{ kind: 'ground', cue: 0.3, t: [1.2, 1.4], dmg: 12, down: true, mark: 'cleaver', zones: [line(10, 1.2, 0.9)] }, { kind: 'white', cue: 1.6, t: [2.2, 2.35], dmg: 9, mark: 'cleaver', arc: [4.2, 120] }],
+  // --- the Scythe
+  reap: [{ kind: 'white', cue: 0.4, t: [1.02, 1.16], dmg: 10, low: true, mark: 'cleaver', arc: [5.0, 100] }, { kind: 'white', cue: 1.5, t: [1.86, 2.0], dmg: 11, mark: 'cleaver', arc: [5.0, 100] }],
+  harvest: [{ kind: 'red', cue: 1.22, t: [1.62, 1.74], dmg: 16, down: true, mark: 'cleaver', box: [4.2, 0.9] }],
+  hourWheel: [[1.15, 1.3], [1.75, 1.9], [2.35, 2.5]].map((t, i) => ({ kind: 'white' as const, cue: i ? t[0] - 0.3 : 0.4, t: t as [number, number], dmg: 8, mark: 'cleaver' as const, arc: [4.3, 180] as [number, number] })),
   // --- the Linen
   binding: [{ kind: 'ground', cue: 0.35, t: [1.15, 1.3], dmg: 9, mark: 'handL', zones: [-0.45, 0, 0.45].map(y => line(9, 0.55, 0.8, y)) }],
   cleanSheet: [{ kind: 'ground', cue: 0.4, t: [1.75, 1.9], dmg: 12, down: true, mark: 'head', zones: [{ shape: 'circle', at: 'player', r: 3.3, delay: 1.35 }] }],

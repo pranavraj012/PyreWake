@@ -13,7 +13,7 @@ const run = (f: Fight, secs: number, press: (i: number) => Press[] = () => [], m
 const n = (ev: FightEvent[], k: string) => ev.filter(e => e.k === k).length;
 const go = (gap: number, mode: string, form: 1 | 2 = 1, ang = 0) => { const t = mk(gap, form, ang); t.f.brain.seen.add(mode); t.k.set(mode); return t; };
 /** Each move, the form it belongs to, and the range the brain picks it from. */
-const RANGE: [string, 1 | 2, number, number][] = [['turnPyre', 1, 1.2, 4.6], ['closeEyes', 1, 1.5, 5.4], ['lieDown', 1, 1.0, 3.2], ['sweepWard', 1, 3.5, 10], ['binding', 1, 2, 8.5], ['cleanSheet', 1, 3, 14], ['betweenBeds', 1, 5, 14],
+const RANGE: [string, 1 | 2, number, number][] = [['reap', 1, 1.2, 4.8], ['hourWheel', 1, 2, 7], ['harvest', 1, 2.5, 14], ['lieDown', 1, 1.0, 3.2], ['binding', 1, 2, 8.5], ['cleanSheet', 1, 3, 14], ['betweenBeds', 1, 5, 14],
   ['hourHand', 2, 4, 14], ['drawSheet', 2, 3.5, 14], ['wardStands', 2, 4, 11.5], ['noon', 2, 2, 12], ['lastBreath', 2, 3, 8.5]];
 
 describe('the Sister of Hours and the Pall', () => {

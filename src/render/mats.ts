@@ -50,4 +50,5 @@ export const MATS: MatDef[] = [
   m(39, 1, 2.2, [0.2, 0.192, 0.185], { keep: 0.3, rough: 0.99, bump: 1.1, edge: 0.2, grime: 0.5 }),     // ash shapes under ash sheets
   m(40, 5, 2.0, [0.012, 0.011, 0.011], { keep: 0.1, rough: 0.9, bump: 1.5, edge: 0.35, grime: 0.6, ember: 0 }),  // the Pall's soot-black cloth
   m(41, 2, 1.6, [0.11, 0.085, 0.06], { keep: 0.25, rough: 0.88, bump: 1.5, edge: 0.45, grime: 1.1 }),   // dry cot timber
+  m(42, 6, 1.4, [0.2, 0.06, 0.03], { keep: 0.1, rough: 0.26, roughTex: 0.3, metal: 1, bump: 0.3, edge: 0.9, grime: 0.3, ember: 1.6 }),   // the scythe's edge, kept red
 ];

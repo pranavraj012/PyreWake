@@ -27,7 +27,8 @@
     "analyse3": "node tools/analyse3.mjs",
     "film": "node tools/hours.mjs",
     "film:scenes": "node tools/hoursScenes.mjs",
-    "peek": "node tools/peek.mjs"
+    "peek": "node tools/peek.mjs",
+    "watch": "node tools/watch.mjs"
   },
   "dependencies": {
     "three": "0.187.0"

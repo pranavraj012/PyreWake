@@ -4,7 +4,7 @@
 //   The way in. Above the far bank the dying were carried up the hill to wait for the fire, and sisters counted their breaths. On the first
 //   night the fire did not wait for them: the Sister of Hours barred the doors and lit the house. Smoke has stood over it since.
 //   The turn. Beaten once, she asks the keeper the difference between them, pulls down her breath-cloth and breathes in the smoke: the hours
-//   her people did not live. The sky tears open on a low red sun, and she rises into the Pall, the hook through her like a gnomon.
+//   her people did not live. The sky tears open on a low red sun, and she rises into the Pall, the scythe through her like a gnomon.
 //   The end. The hours go up into the light. A woman no bigger than you, a cut cord in her lap. You wait while she breathes seven times.
 //   Then you give her the fire she gave them, after.
 export { speak, type Line } from './script.ts';
@@ -44,4 +44,4 @@ export const HOURS_ENDING = {
 
 /** In the fight: the count, spoken as breath. */
 export const HOURS_COUNT = ['Seven...', 'six...', 'five...', 'four...', 'three...', 'two...', 'one...'];
-export const HOURS_CALLS = { lost: 'She lost count', burn: 'The linen burns', tear: 'Torn', stake: 'The hook stands', stakeBreak: 'Shattered', sunk: 'The sun sinks', risen: 'The sun climbs' };
+export const HOURS_CALLS = { lost: 'She lost count', burn: 'The linen burns', tear: 'Torn', stake: 'The scythe stands', stakeBreak: 'Shattered', sunk: 'The sun sinks', risen: 'The sun climbs' };

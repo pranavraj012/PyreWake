@@ -1,4 +1,4 @@
-// The third boss: the Sister of Hours (on the human frame, scaled in play to 2.6 m), her pyre-hook, and the Pall.
+// The third boss: the Sister of Hours (on the human frame, scaled in play to 2.6 m), her scythe, and the Pall.
 import { boneIndex, ARM_DIR } from '../../src/anim/skeletons.ts';
 import { PALL, PALL_BONES, SISTER, SKIRT, STRIPS, STRIP_LEN, domeAt, domeWeights, skirtAt, skirtWeights, stripRoot, stripWeights } from '../../src/boss/hours/frame.ts';
 import { Field, add, any, ball, belly, box, cone, cross, curve, ell, fbm, lerp3, mix, mul, noise, norm, ridged, rng, sstep, sub, tube, type V3 } from '../sdf.ts';
@@ -117,19 +117,47 @@ export async function sister(): Promise<Mesh> {
   return merge(out);
 }
 
-/** The pyre-hook: 4.2 m of iron, a hooked head for turning a body on the pyre. The grip of the lower hand is the origin; the shaft runs up +Y and the hook opens toward +X. */
-export async function hook(): Promise<Mesh> {
-  const f = new Field(0.012), cl = new Field(0.01);
-  f.put(cone([0, -0.9, 0], [0, 3.05, 0], 0.034, 0.03), { k: 0.01 }).put(cone([0, -0.92, 0], [0, -0.78, 0], 0.042, 0.04), { k: 0.008 }).put(ball([0, -0.92, 0], 0.04));
-  for (const y of [0.0, 0.8, 1.7, 2.6]) f.put(cone([0, y - 0.03, 0], [0, y + 0.03, 0], 0.041, 0.041), { k: 0.008 });
-  // the head: a socket, a straight spike, and the hook, thick at the throat and drawn to a point
-  f.put(cone([0, 2.95, 0], [0, 3.22, 0], 0.044, 0.05), { k: 0.01 }).put(cone([0, 3.2, 0], [0, 3.62, 0], 0.04, 0.006), { k: 0.01 });
-  const h = curve([[0, 3.18, 0], [0.22, 3.26, 0], [0.38, 3.12, 0], [0.4, 2.9, 0], [0.3, 2.74, 0], [0.18, 2.78, 0]], 30); f.put(tube(h, t => 0.042 - 0.034 * Math.pow(t, 1.3)), { k: 0.015 });
+/** A flat blade in the XY plane, hung below a spine (a polyline, root to tip): `w(t)` deep, thick at the spine and drawn to an edge. */
+function blade(spine: [number, number][], w: (t: number) => number, thick: number): ReturnType<typeof any> {
+  const n = spine.length - 1, L: number[] = [0]; for (let i = 0; i < n; i++) L.push(L[i] + Math.hypot(spine[i + 1][0] - spine[i][0], spine[i + 1][1] - spine[i][1])); const T = L[n];
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (const [x, y] of spine) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const c: V3 = [(x0 + x1) / 2, (y0 + y1) / 2 - 0.15, 0], r = Math.hypot(x1 - x0, y1 - y0) / 2 + 0.45;
+  return any((x, y, z) => {
+    let best = 1e9, off = 0, tt = 0, cap = false;
+    for (let i = 0; i < n; i++) {
+      const [ax, ay] = spine[i], [bx, by] = spine[i + 1], dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, u = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)), px = ax + dx * u, py = ay + dy * u, d = Math.hypot(x - px, y - py);
+      if (d < best) { best = d; const l = Math.sqrt(l2); off = ((x - ax) * -dy + (y - ay) * dx) / l; tt = (L[i] + u * l) / T; cap = (i === 0 && u <= 0) || (i === n - 1 && u >= 1); }
+    }
+    const W = w(tt), below = -off, d2 = cap || below <= 0 ? best : below > W ? below - W : -Math.min(below, W - below), k = Math.max(0, Math.min(1, below / Math.max(W, 1e-3)));
+    return Math.max(d2, Math.abs(z) - (0.0025 + thick * Math.pow(1 - k, 1.4) * (1 - 0.6 * tt)));
+  }, c, r);
+}
+
+/** Her scythe: 3.5 m of black iron, an hour-ring of brass where the blade meets the haft, and a long blade drooping forward, its edge kept red. The grip of the lower hand is the origin; the haft runs up +Y and the blade reaches toward +X. */
+export async function scythe(): Promise<Mesh> {
+  const f = new Field(0.012), br = new Field(0.008), bl = new Field(0.006), ed = new Field(0.004), cl = new Field(0.01);
+  // the haft: slightly bent, banded, a spike at the foot
+  const haft = curve([[0, -0.95, 0], [0.02, 0.5, 0], [0.0, 1.6, 0], [-0.03, 2.62, 0]], 24); f.put(tube(haft, t => 0.032 - 0.006 * t), { k: 0.01 });
+  f.put(cone([0, -0.95, 0], [0, -1.18, 0], 0.03, 0.004), { k: 0.008 });
+  for (const y of [-0.8, 0.9, 1.85]) br.put(cone([0, y - 0.035, 0], [0, y + 0.035, 0], 0.04, 0.04), { k: 0.006 });
+  f.put(cone([-0.03, 2.5, 0], [-0.02, 2.74, 0], 0.046, 0.04), { k: 0.012 }).put(ball([-0.02, 2.76, 0], 0.045));
   f.displace((x, y, z) => 0.003 * fbm(x * 20, y * 4, z * 20, 3) + 0.002 * ridged(x * 50, y * 30, z * 50, 2), 0.005);
-  // rags of linen tied under the head, burned at the ends
-  for (let k = 0; k < 3; k++) { const a = k * 2.1, p0: V3 = [Math.sin(a) * 0.04, 2.9 - k * 0.04, Math.cos(a) * 0.04]; cl.put(tube(curve([p0, add(p0, [Math.sin(a) * 0.05, -0.15, Math.cos(a) * 0.05]), add(p0, [Math.sin(a) * 0.04, -0.34 - k * 0.08, Math.cos(a) * 0.06])], 10), t => 0.018 - 0.008 * t), { k: 0.01 }); }
-  cl.put(cone([0, 2.86, 0], [0, 2.95, 0], 0.05, 0.05), { k: 0.01 }); cl.displace((x, y, z) => 0.003 * ridged(x * 40, y * 40, z * 40, 2), 0.004);
-  return merge(await bakeParts([[f, 0.008, 12, 2600], [cl, 0.007, 33, 700]], 0.1));
+  // the hour-ring: a brass dial round the head, twelve marks on it
+  const RC: V3 = [-0.02, 2.5, 0], R = 0.3; br.put(any((x, y, z) => Math.hypot(Math.hypot(x - RC[0], y - RC[1]) - R, z) - 0.017, RC, R + 0.05), { k: 0.004 });
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, p: V3 = [RC[0] + Math.cos(a) * R, RC[1] + Math.sin(a) * R, 0]; br.put(ell(p, [0.026, 0.026, 0.022]), { k: 0.006 }); }
+  br.put(cone([RC[0] - R, RC[1], 0], [RC[0] + R, RC[1], 0], 0.009, 0.009), { k: 0.004 }).put(cone([RC[0], RC[1] - R, 0], [RC[0], RC[1] + R, 0], 0.009, 0.009), { k: 0.004 });
+  // the blade: a long crescent; black on the flat, the last finger of it toward the edge glowing
+  const spine: [number, number][] = [[-0.02, 2.66], [0.3, 2.86], [0.72, 2.94], [1.15, 2.86], [1.52, 2.64], [1.8, 2.32], [1.96, 1.98]];
+  const W = (t: number) => (0.27 * Math.pow(1 - t, 0.8) + 0.012) * Math.min(1, 0.55 + t * 8);
+  bl.put(blade(spine, t => W(t) * 0.8, 0.018), { k: 0.004 });
+  ed.put(blade(spine, W, 0.012), { k: 0.002 });
+  bl.put(ell([0.04, 2.63, 0], [0.09, 0.07, 0.035]), { k: 0.02 });
+  bl.displace((x, y, z) => 0.0015 * ridged(x * 30, y * 30, z * 30, 2), 0.003);
+  // a counting cord knotted to the ring, and linen tied under it, burned at the ends
+  const c0: V3 = [-0.02, 2.2, 0.02]; cl.put(tube(curve([c0, [0.06, 1.95, 0.05], [0.04, 1.62, 0.04]], 14), () => 0.008), { k: 0.004 }); for (let k = 0; k < 7; k++) cl.put(ball([0.04 + 0.015 * Math.sin(k), 1.98 - k * 0.05, 0.045], 0.016), { k: 0.004 });
+  for (let k = 0; k < 3; k++) { const a = k * 2.1, p0: V3 = [Math.sin(a) * 0.04, 2.3 - k * 0.04, Math.cos(a) * 0.04]; cl.put(tube(curve([p0, add(p0, [Math.sin(a) * 0.05, -0.15, Math.cos(a) * 0.05]), add(p0, [Math.sin(a) * 0.04, -0.4 - k * 0.1, Math.cos(a) * 0.06])], 10), t => 0.018 - 0.008 * t), { k: 0.01 }); }
+  cl.put(cone([0, 2.26, 0], [0, 2.36, 0], 0.05, 0.05), { k: 0.01 }); cl.displace((x, y, z) => 0.003 * ridged(x * 40, y * 40, z * 40, 2), 0.004);
+  return merge(await bakeParts([[f, 0.008, 4, 1800], [br, 0.006, 37, 900], [bl, 0.005, 4, 1400], [ed, 0.004, 42, 900], [cl, 0.007, 33, 700]], 0.1));
 }
 
 /** The Pall: a dome of soot-black linen six metres high, eight across the hem, nothing under it but the hours. At the top, small and unchanged, her face with its eyes shut, under the two points of the hood. */
@@ -144,7 +172,7 @@ export async function pall(): Promise<Mesh> {
   out.push(...banded((u, v) => domeAt(u, v), [[0, 0.85, 40], [0.85, 1, 40]], { nu: 150, nv: 54, inner: 33, tatter: 0.16, seed: 19, weights: (u, v) => domeWeights(PALL_IX, u, v) }));
   return merge(out);
 }
-/** What Last Rites leaves of her: hoops of iron in the shape of the dome, and the hook's socket at the back. */
+/** What Last Rites leaves of her: hoops of iron in the shape of the dome, and the scythe's socket at the back. */
 export async function pallFrame(): Promise<Mesh> {
   const f = new Field(0.03), r = rng(4);
   for (const v of [0.18, 0.4, 0.62, 0.84]) { const ring: V3[] = []; for (let i = 0; i <= 48; i++) ring.push(domeAt(i / 48, v, 0).map((c, k) => k === 1 ? c : c * 0.93) as V3); f.put(tube(ring, () => 0.045 + 0.01 * r()), { k: 0.02, bone: v < 0.3 ? PALL_IX.crown : PALL_IX.root }); }

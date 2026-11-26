@@ -42,7 +42,7 @@ export class HoursIntro {
     c.at(t, B.ward + 0.4, 'creak', () => { sound.play('creak', { gain: 0.5, wet: 0.7 }); sound.play('creak', { gain: 0.35, wet: 0.8, delay: 1.3 }); });
     c.at(t, B.bed + 0.3, 'bed', () => { hud.verse(HOURS_INTRO.bed.text); sound.play('whisper', { gain: 0.7, wet: 0.8 }); });
     c.at(t, HOURS_INTRO.bed.until, 'unbed', () => hud.verse(''));
-    // she is sitting at the last cot; she stands, the hood's points rising above you, and takes up the hook
+    // she is sitting at the last cot; she stands, the hood's points rising above you, and takes up the scythe
     if (t < B.stand) { if (k.mode !== 'sit') k.set('sit'); k.mt = k.prev = 1.0; k.x = 0; k.z = -4; k.yaw = 0; } else if (k.mode === 'sit') { k.set('idle'); }
     k1.eyeK += ((t > B.her + 0.6 ? 1 : 0) - k1.eyeK) * Math.min(1, dt * 3);
     c.at(t, B.stand, 'stand', () => { sound.play('clothB', { gain: 0.9, wet: 0.5 }); sound.play('sBreath', { gain: 0.9, wet: 0.4 }); this.lens.trauma = 0.25; });

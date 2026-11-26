@@ -120,8 +120,9 @@ src/ui/ src/input/ src/arena/ src/core/
 | `npm run moments` | drives the game to each key moment and captures it |
 | `npm run analyse3` | headless fights against the Sister of Hours and the Pall, as four kinds of player |
 | `npm run film -- <form> [move t...]` | the third boss's portraits, or one move held at each given second (`CAMS1` sets the camera) |
-| `npm run film:scenes -- intro\|turn\|ending [t...]` | contact sheet of a third-fight scene |
+| `npm run film:scenes -- intro\|turn\|ending [t...]` | contact sheet of a third-fight scene (`BOSS=2` films the river's) |
 | `npm run peek -- "<address>" "<js>" [out]` | one frame of any page after running some code in it |
+| `npm run watch -- "<address>" "<js>" [secs] [step]` | a live fight filmed from the follow camera, as a contact sheet |
 | `python forge/sound/kitchen.py` | recook the sound pack (needs the CC0 sources in `assets_src/sfx`) |
 | `npm run forge [names]` | rebake models (`textures` needs the CC0 sources in `assets_src/`) |
 

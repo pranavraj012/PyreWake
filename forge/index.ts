@@ -46,7 +46,7 @@ const JOBS: Record<string, () => Promise<Mesh>> = {
   hull: async () => (await import('./models/river.ts')).hull(),
   section: async () => (await import('./models/river.ts')).section(),
   sister: async () => (await import('./models/hours.ts')).sister(),
-  hook: async () => (await import('./models/hours.ts')).hook(),
+  scythe: async () => (await import('./models/hours.ts')).scythe(),
   pall: async () => (await import('./models/hours.ts')).pall(),
   pallFrame: async () => (await import('./models/hours.ts')).pallFrame(),
   cot: async () => (await import('./models/house.ts')).cot(),

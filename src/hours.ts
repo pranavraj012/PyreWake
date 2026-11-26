@@ -37,7 +37,7 @@ export async function bootHours(c: Ctx) {
   status('Climbing the hill'); if (!SHOT) sound.load();
   const tex = await loadTextures(tier, Math.min(8, renderer.capabilities.getMaxAnisotropy()));
   const lod = tier.name === 'high' ? '.lo' : '.xs';
-  const [house, gPlayer, gPlayerLo, gKhanda, gSister, sSister, gHook, gPall, sPall, gFrame, sPlayer, gCot] = await Promise.all([buildHouse(tex, tier), loadGeo('player'), loadGeo('player', '.xs'), loadGeo(KHANDA.geo), loadGeo('sister'), loadGeo('sister', lod), loadGeo('hook'), loadGeo('pall'), loadGeo('pall', lod), loadGeo('pallFrame'), loadGeo('player', lod), loadGeo('cot')]);
+  const [house, gPlayer, gPlayerLo, gKhanda, gSister, sSister, gScythe, gPall, sPall, gFrame, sPlayer, gCot] = await Promise.all([buildHouse(tex, tier), loadGeo('player'), loadGeo('player', '.xs'), loadGeo(KHANDA.geo), loadGeo('sister'), loadGeo('sister', lod), loadGeo('scythe'), loadGeo('pall'), loadGeo('pall', lod), loadGeo('pallFrame'), loadGeo('player', lod), loadGeo('cot')]);
   scene.add(house.group); FOG.uGlowP.value.forEach((g, i) => g.set(Math.sin(i * 2.1) * 10, 6.6, Math.cos(i * 2.1) * 10 - 2, i < 4 ? 0.0016 : 0)); FOG.uGlowC.value.setRGB(1, 0.42, 0.14);
   const dis = { value: 0 }, pFlash = { value: new THREE.Vector4(1, 0.3, 0.1, 0) }, pAt = { value: new THREE.Vector4(0, 0, 0, 1) }, aura = { value: 0 };
   const skin = (d: { value: number }, f: { value: THREE.Vector4 }, at: { value: THREE.Vector4 }, more: object = {}) => surface(tex, tier, { ash: 0.08, fx: { dis: d, flash: f, at, ...more } });
@@ -46,7 +46,7 @@ export async function bootHours(c: Ctx) {
   const pv = new PlayerView(scene, gPlayer, gPlayerLo, gKhanda, pMat, pHeld, DEPTH, fx, tier.name === 'phone' ? 2 : 4, KHANDA); pv.dis = dis; pv.flash = pFlash; pv.flashAt = pAt; pv.aura = aura;
   if (tier.name !== 'phone') { pv.glow = new THREE.PointLight(0xff9450, 1, 6, 1.6); scene.add(pv.glow); }
   const sim = new Sister(), brain = new HoursBrain(), m = new Motor(KHANDA), fight = new Fight(m, sim, brain), prompts = new Prompts(), hud = new Hud(app, input); fight.furnish(house.ruin.props); fight.passive = !!(SHOT || Q.has('still'));
-  const v1 = new SisterView(scene, { body: gSister, hook: gHook }, held, held, DEPTH, fx, sim), v2 = new PallView(scene, { body: gPall, hook: gHook, frame: gFrame }, held, held, DEPTH, fx, sim);
+  const v1 = new SisterView(scene, { body: gSister, scythe: gScythe }, held, held, DEPTH, fx, sim), v2 = new PallView(scene, { body: gPall, scythe: gScythe, frame: gFrame }, held, held, DEPTH, fx, sim);
   v1.mesh.material = skin(v1.dissolve, v1.flash, v1.flashAt, { wounds: v1.wounds, ember: v1.ember }); v2.mesh.material = surface(tex, tier, { ash: 0, side: THREE.DoubleSide, fx: { dis: v2.dissolve, flash: v2.flash, at: v2.flashAt, wounds: v2.wounds, ember: v2.ember } });
   if (tier.name !== 'phone') { v1.light = new THREE.PointLight(0xffa860, 3, 7, 1.6); v2.light = new THREE.PointLight(0xff7a30, 18, 16, 1.6); scene.add(v1.light, v2.light); }
   pv.shadow = skinnedShadow(pv.mesh, sPlayer, DEPTH.skin); skinnedShadow(v1.mesh, sSister, DEPTH.skin); skinnedShadow(v2.mesh, sPall, DEPTH.skin); v2.show(false);
@@ -61,7 +61,7 @@ export async function bootHours(c: Ctx) {
     RIM.value.set(0.9, 0.42, 0.22, 1.1 + 0.5 * day); post.shaft.value.set(0.9, 0.38, 0.16); post.exposure.value = 1.7 - 0.3 * day; SUN.value = day; house.smokeAmt(1 - day); house.daylight(day);
   };
   light(0);
-  const cloth = surface(tex, tier, { world: false, ash: 0.1, side: THREE.DoubleSide }), hd = new HoursDirector(dir, fight, house, v1, v2, post, hud, light, { cot: gCot, hook: gHook, cloth, scene }); hud.names = [HOURS_NAMES.r1, HOURS_NAMES.r2]; hud.winTitle = HOURS_NAMES.won;
+  const cloth = surface(tex, tier, { world: false, ash: 0.1, side: THREE.DoubleSide }), hd = new HoursDirector(dir, fight, house, v1, v2, post, hud, light, { cot: gCot, scythe: gScythe, cloth, scene }); hud.names = [HOURS_NAMES.r1, HOURS_NAMES.r2]; hud.winTitle = HOURS_NAMES.won;
   onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, house, hd }, intro = new HoursIntro(kit), turn = new HoursTurn(kit), ending = new HoursEnding(kit);
   dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 4 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
