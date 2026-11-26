@@ -9,6 +9,7 @@ import type { Fight } from '../combat/fight.ts';
 import type { PlayerView } from '../player/view.ts';
 import type { Fx } from '../render/impact.ts';
 import { DAWN } from '../render/sky.ts';
+import { LEVEL } from '../render/water.ts';
 import type { Hud } from '../ui/hud.ts';
 import { Cues, Lens } from './scenes.ts';
 
@@ -16,49 +17,84 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b
 export interface RiverKit { f: Fight; pv: PlayerView; k1: RiverView; k2: RiverView; fx: Fx; hud: Hud; ghats: Awaited<ReturnType<typeof buildGhats>>; rd: RiverDirector }
 
 // ---------------------------------------------------------------- the way in
-export const INTRO_LEN = 23.5;
-export const LORE = [
-  'After the fire comes the crossing. A ferryman takes what is left across the Slow River, and pours it out where mornings start.',
-  'The river has one law: only ash may cross. Ash weighs nothing.',
-  'The Ferryman laid his daughter in the boat, unburned, under the jars of other people\'s ash. The river noticed.',
-  'Behind him the dead walked into the water to reach the morning. Every one of them has paid. They hold on.',
-  'You carry the King\'s ash down the steps, and set a lamp on the river to call the ferry. He will not let you.',
-];
+// The river at night. You set a lamp on the water to call the ferry. Every lamp on the river goes out, from the far bank toward you, and last of all yours.
+// One lantern, far out. Then a pole comes down through the dark in front of you, and he stands up out of the river, hat first.
+// Under the hat, behind the coins, two eyes. He drives the pole into the riverbed and the lamps run back to the horizon.
+export const INTRO_LEN = 25.5;
+const B = { lamp: 7.4, out: 9.9, last: 11.7, far: 12.7, plunge: 14.0, rise: 14.15, risen: 17.3, eyes: 18.1, line: 18.8, lift: 20.2, slam: 21.35, title: 23.0 };
 export class RiverIntro {
-  t = INTRO_LEN; private c = new Cues(); private lens = new Lens(); private kit: RiverKit; onEnd: () => void = () => { }; private line = -1;
-  constructor(kit: RiverKit) { this.kit = kit; }
+  t = INTRO_LEN; private c = new Cues(); private lens = new Lens(); private kit: RiverKit; onEnd: () => void = () => { };
+  private lamp = new THREE.Group(); private lampGlow: THREE.Sprite; private lp = V(); private lv = V(); private eyeK = 1; private dark = 0;
+  constructor(kit: RiverKit) {
+    this.kit = kit;
+    const bowl = new THREE.Mesh(new THREE.LatheGeometry([new THREE.Vector2(0, 0), new THREE.Vector2(0.07, 0.01), new THREE.Vector2(0.11, 0.05), new THREE.Vector2(0.12, 0.09), new THREE.Vector2(0.1, 0.1), new THREE.Vector2(0, 0.07)], 10), new THREE.MeshBasicMaterial({ color: 0x140a05 }));
+    const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,210,140,1)'); g.addColorStop(0.14, 'rgba(255,150,60,.6)'); g.addColorStop(1, 'rgba(255,90,20,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    this.lampGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), color: new THREE.Color(0.32, 0.18, 0.08), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); this.lampGlow.position.y = 0.16; this.lampGlow.scale.setScalar(0.3);
+    this.lamp.add(bowl, this.lampGlow); this.lamp.visible = false; kit.ghats.group.add(this.lamp);
+  }
   get active() { return this.t < INTRO_LEN; }
   /** At rest: the hero at the top of the steps, the Ferryman far out in the dark. */
-  rest() { const { f, k1 } = this.kit, k = f.king as River; k.form = 1; k.x = 0; k.z = -26; k.yaw = 0; k.set('idle'); k1.settle(); }
-  start() { const { f, pv } = this.kit, m = f.m; this.t = 0; this.line = -1; this.c.clear(); this.lens.cut = 0; this.lens.trauma = 0; this.rest(); m.revive(0, 15.5, Math.PI); pv.reset(); this.kit.rd.reset(); this.kit.ghats.lamps(1, true); sound.score?.set('vigil'); }
-  stop() { this.t = INTRO_LEN; this.kit.hud.verse(''); }
-  skip() { if (!this.active || this.t < 0.6) return; this.c.off = true; this.kit.hud.verse(''); this.t = INTRO_LEN; this.finish(); }
-  private finish() { this.kit.hud.verse(''); this.onEnd(); }
+  rest() { const { f, k1 } = this.kit, k = f.king as River; k.form = 1; k.x = 0; k.z = -26; k.y = 0; k.yaw = 0; k.set('idle'); k1.settle(); k1.eyes(1); k1.show(true); }
+  start() { const { f, pv } = this.kit, m = f.m; this.t = 0; this.c.clear(); this.lens.cut = 0; this.lens.trauma = 0; this.rest(); m.revive(0, 15.5, Math.PI); pv.reset(); this.kit.rd.reset(); this.kit.ghats.lamps(1, true); this.kit.ghats.setOut(0, 0, 0); this.kit.ghats.setFront(0); this.kit.ghats.flames(1); this.lamp.visible = false; this.eyeK = 0; this.dark = 0; this.kit.k1.show(false); sound.score?.set('vigil'); }
+  stop() { this.t = INTRO_LEN; this.kit.hud.verse(''); this.restore(); }
+  skip() { if (!this.active || this.t < 0.6) return; this.c.off = true; this.t = INTRO_LEN; this.finish(); }
+  /** However it ended, the river is as the fight needs it. */
+  private restore() { const { ghats, k1, f } = this.kit, k = f.king as River; this.kit.rd.cine = null; ghats.setOut(0, 0, 0); ghats.setFront(0); ghats.flames(1); ghats.lamps(1); this.lamp.visible = false; ghats.bowlsLit(true); k1.eyes(1); if (k.form === 1) k1.show(true); if (k.form === 1) { k.y = 0; if (k.z < -4.5 || k.z > -3.5) { k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k1.settle(); } } }
+  private finish() { this.kit.hud.verse(''); this.restore(); this.onEnd(); }
   /** Returns the hero's forward walk. */
   step(dt: number, time: number): number {
-    const { f, pv, fx, hud, ghats } = this.kit, m = f.m, k = f.king as River, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.6);
-    const i = Math.min(LORE.length - 1, Math.floor(t / 4.2)); if (t < 21.5 && i !== this.line) { this.line = i; hud.verse(LORE[i]); } else if (t >= 21.5 && this.line !== 9) { this.line = 9; hud.verse(''); }
-    c.at(t, 0.05, 'hush', () => { sound.duck(0.5, 3); });
-    // the hero goes down to the water and sets a lamp on it
-    const walk = t > 1.0 && t < 6.6 ? -0.5 : 0, kneel = t > 12.5 && t < 15.5; void kneel;
-    c.at(t, 12.6, 'lamp', () => { ghats.ripple(m.x, m.z - 1.2, 1.6, time); sound.play('lampSet', { gain: 0.8, wet: 0.5 }); fx.sparks.emit(V(m.x, 0.3, m.z - 1), V(0, 0.6, 0), 24, 1.6, 2, -1.2, time); });
-    // far out, a lantern; then a man walking up out of the river
-    if (t > 13.5 && t < 20.4) { const u = E(13.5, 20.2, t); if (k.mode === 'idle' && u > 0.02) k.set('stalk'); k.z = Math.min(-4, -26 + (Math.min(-4, k.z) + 26) * 0 + 22 * u); k.x = 0; k.yaw = 0; if (u > 0.98) k.set('idle'); }
-    c.at(t, 13.6, 'lantern', () => { sound.play('lanternRise', { gain: 0.8, wet: 0.7 }); ghats.lamps(0.5); });
-    c.at(t, 16.4, 'dark', () => { ghats.lamps(0.12); });
-    c.at(t, 20.6, 'title', () => { hud.say('The Ferryman', 2.4, 'title', 'Only ash may cross.'); sound.play('fCall', { gain: 0.9, wet: 0.6, bus: 'voice' }); sound.play('braam', { gain: 0.7 }); ghats.lamps(1); this.lens.trauma = 0.7; ghats.ripple(0, -4, 3, time); fx.puffs.emit(V(0, 0.2, -4), 14, 3, 1.5, time); });
+    const { f, fx, hud, ghats, k1 } = this.kit, m = f.m, k = f.king as River, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.6);
+    // words: few, and only where nothing else is speaking
+    c.at(t, 0.8, 'w1', () => hud.verse('After the fire comes the crossing.'));
+    c.at(t, 4.0, 'w1x', () => hud.verse(''));
+    c.at(t, 4.8, 'w2', () => hud.verse('Set a lamp on the water, and the ferry will come.'));
+    c.at(t, 8.4, 'w2x', () => hud.verse(''));
+    c.at(t, 0.05, 'hush', () => { sound.duck(0.5, 3); sound.play('wave', { gain: 0.35, wet: 0.8 }); });
+    const walk = t > 1.0 && t < 6.6 ? -0.5 : 0;
+    // the hero's lamp: set down, drifting out ahead of the dark
+    c.at(t, B.lamp, 'lamp', () => { this.lp.set(m.x + 0.1, LEVEL + 0.01, m.z - 1.0); this.lv.set(0, 0, -1.25); this.lamp.visible = true; ghats.ripple(this.lp.x, this.lp.z, 1.2, time); sound.play('lampSet', { gain: 0.9, wet: 0.5 }); fx.sparks.emit(this.lp.clone().add(V(0, 0.15, 0)), V(0, 0.6, 0), 18, 1.2, 1.6, -1.2, time); });
+    if (this.lamp.visible) { this.lv.multiplyScalar(Math.exp(-dt * 0.45)); this.lp.addScaledVector(this.lv, dt); this.lamp.position.set(this.lp.x, LEVEL - 0.02 + Math.sin(time * 1.9) * 0.012, this.lp.z); this.lamp.rotation.set(Math.sin(time * 1.3) * 0.06, 0, Math.cos(time * 1.1) * 0.06); this.lampGlow.scale.setScalar(0.3 * (0.9 + 0.1 * Math.sin(time * 9)) * (t > B.last ? Math.max(0, 1 - (t - B.last) * 5) : 1)); }
+    // the dark comes in off the river from the far bank, and the last lamp to go out is yours
+    if (t >= B.out && t < B.plunge) { const u = Math.min(1, (t - B.out) / (B.last - 0.2 - B.out)); ghats.setOut(0, -110, 1 + Math.pow(u, 0.8) * 125); }
+    c.at(t, B.out, 'out', () => { sound.duck(0.15, 4); sound.play('lampOut', { gain: 0.5, wet: 0.95 }); sound.play('whisper', { gain: 0.5, wet: 0.9 }); });
+    c.at(t, B.out + 0.7, 'out2', () => sound.play('lampOut', { gain: 0.7, wet: 0.85 }));
+    c.at(t, B.out + 1.3, 'out3', () => { sound.play('lampOut', { gain: 0.85, wet: 0.7 }); ghats.flames(0); ghats.bowlsLit(false); });
+    c.at(t, B.last, 'last', () => { sound.play('lampOut', { gain: 1, wet: 0.4 }); fx.puffs.emit(this.lp.clone().add(V(0, 0.2, 0)), 4, 0.4, 0.5, time); });
+    this.dark += ((t > B.out + 1.2 && t < B.slam ? 1 : 0) - this.dark) * Math.min(1, dt * 3);
+    // far out, one lantern: him, on the water
+    if (t < B.plunge) { k.x = 0; k.z = -26; k.y = 0; k.yaw = 0; }
+    c.at(t, B.far, 'lantern', () => { k1.show(true); k1.eyes(0); sound.play('lanternRise', { gain: 0.8, wet: 0.8 }); });
+    this.kit.rd.cine = { lamps: t > B.out + 1.3 && t < B.slam ? 0 : 1, lantern: t < B.far ? (t < B.out + 1 ? 1 : 0) : t < B.plunge ? E(B.far, B.far + 0.8, t) : 1, night: this.dark * 0.8 };
+    // a pole comes down through the dark, close; the river opens, and he stands up out of it
+    c.at(t, B.plunge, 'plunge', () => { k.x = 0; k.z = -4.2; k.y = -3.6; k.yaw = 0; k.set('idle'); k1.settle(); this.lamp.visible = false; sound.play('slam', { gain: 0.9, wet: 0.5 }); sound.play('wave', { gain: 0.8, wet: 0.6 }); ghats.ripple(0.6, -3.6, 2.4, time); fx.puffs.emit(V(0.6, 0.2, -3.6), 16, 2.6, 1.4, time); this.lens.trauma = 0.55; });
+    if (t >= B.plunge && t < B.risen + 0.4) { const u = E(B.rise, B.risen, t); k.y = -3.6 + 3.6 * (u * 0.85 + 0.15 * Math.pow(u, 3)); k.x = 0; k.z = -4.2; if (Math.random() < dt * 14) ghats.ripple((Math.random() - 0.5) * 1.6, -4.2 + (Math.random() - 0.5) * 1.2, 0.8, time); if (Math.random() < dt * 30 && k.y > -3) fx.puffs.emit(V((Math.random() - 0.5) * 1.1, 0.15, -4.2 + (Math.random() - 0.5) * 0.9), 1, 0.9, 1.2, time); }
+    c.at(t, B.rise, 'rise', () => { sound.play('boatRise', { gain: 0.9, wet: 0.6 }); sound.play('drain', { gain: 0.8, wet: 0.6 }); sound.play('riserL', { gain: 0.5 }); });
+    c.at(t, B.risen, 'risen', () => { k.y = 0; sound.play('thud', { gain: 0.6, wet: 0.4 }); ghats.ripple(0, -4.2, 1.6, time); });
+    // under the hat, behind the coins, he opens his eyes; he says the law
+    this.eyeK += ((t >= B.eyes ? 1 : 0) - this.eyeK) * Math.min(1, dt * (t >= B.eyes ? 7 : 20)); k1.eyes(this.eyeK * (t >= B.eyes && t < B.eyes + 0.35 ? 0.6 + 0.4 * Math.sin((t - B.eyes) * 40) : 1));
+    c.at(t, B.eyes, 'eyes', () => { sound.play('kBreath', { gain: 0.6, wet: 0.5, bus: 'voice' }); });
+    c.at(t, B.line, 'line', () => { hud.verse('"Only ash may cross."'); sound.play('fCall', { gain: 0.95, wet: 0.55, bus: 'voice' }); });
+    c.at(t, B.lift, 'lift', () => { hud.verse(''); k.set('plant'); sound.play('creak', { gain: 0.8, wet: 0.5 }); });
+    // the pole goes into the riverbed: the lamps run back out to the far bank, brighter than before
+    c.at(t, B.slam, 'slam', () => { sound.play('braam', { gain: 0.85 }); sound.play('boom', { gain: 0.8 }); sound.play('flare', { gain: 0.7, wet: 0.6 }); sound.duck(0.5, 1.4); this.lens.trauma = 1; ghats.setOut(0, 0, 0); ghats.flames(1); ghats.bowlsLit(true); ghats.ripple(0, -3.6, 4.5, time); fx.puffs.emit(V(0, 0.3, -3.4), 26, 4, 2, time); fx.sparks.emit(V(0, 0.4, -3.4), V(0, 1, 0), 60, 6, 2.2, 0.6, time); });
+    if (t >= B.slam) ghats.setFront(t < B.title + 2 ? Math.max(0.01, (t - B.slam) * 60) : 0);
+    c.at(t, B.title, 'title', () => { hud.say('The Ferryman', 2.6, 'title', 'He has never lost a fare.'); sound.play('rise', { gain: 0.6, wet: 0.6 }); });
     if (t >= INTRO_LEN) this.finish();
     return walk;
   }
   camera(cam: THREE.PerspectiveCamera, time: number, base: number) {
-    const { f } = this.kit, m = f.m, k = f.king as River, t = this.t, L = this.lens;
-    if (t < 4.2) { const u = E(0, 4.2, t); L.aim(cam, 1, V(-5 + u * 4, 1.7 + u * 0.4, 18 - u * 2), V(0, 0.7, -28), 40, time); }
-    else if (t < 8.6) { const u = E(4.2, 8.6, t); L.aim(cam, 2, V(m.x + 2.6 - u * 0.6, 1.1, m.z + 3.6 - u * 0.6), V(m.x - 0.2, 1.2, m.z - 2.4), 38, time); }
-    else if (t < 12.6) { const u = E(8.6, 12.6, t); L.aim(cam, 3, V(m.x - 2.4 + u * 0.5, 0.5, m.z - 3.2), V(m.x, 1.0 - u * 0.2, m.z + 0.4), 36, time); }
-    else if (t < 16.2) { const u = E(12.6, 16.2, t); L.aim(cam, 4, V(m.x + 1.4, 0.9 + u * 0.3, m.z + 2.4), V(0, 1.2, -16), 32, time); }
-    else if (t < 20.5) { const u = E(16.2, 20.5, t); L.aim(cam, 5, V(2.2 - u * 1.4, 0.5, 2.2 - u * 1.5), V(0, 1.7, k.z), 40 - u * 4, time); }
-    else { const u = E(20.5, 23.5, t); L.aim(cam, 6, V(m.x + 1.2, 1.5, m.z + 3.2 - u * 0.4), V(0, 1.8, -4), base - 2, time); }
+    const { f, k1 } = this.kit, m = f.m, t = this.t, L = this.lens, lp = this.lp;
+    if (t < 4.6) { const u = E(0, 4.6, t); L.aim(cam, 1, V(-3.2 + u * 2.6, 0.42 + u * 0.55, 4.5 - u * 2.2), V(0, 0.7, -60), 42, time); }
+    else if (t < B.lamp + 0.4) { const u = E(4.6, B.lamp + 0.4, t); L.aim(cam, 2, V(m.x + 1.0 - u * 0.4, 1.05 - u * 0.25, m.z + 2.7 - u * 0.5), V(m.x - 0.1, 0.7 - u * 0.4, m.z - 3), 40, time); }
+    else if (t < B.last + 0.5) { const u = E(B.lamp + 0.4, B.last + 0.5, t); L.aim(cam, 3, V(lp.x + 0.9 - u * 0.5, 0.3 + u * 0.08, lp.z + 1.7 + u * 0.4), V(lp.x - 0.2, 0.25, lp.z - 8), 38 - u * 4, time); }
+    else if (t < B.plunge) { const u = E(B.last + 0.5, B.plunge, t); L.aim(cam, 4, V(m.x - 0.7, 1.5, m.z + 2.3 - u * 0.6), V(0, 1.7, -26), 26 - u * 3, time); }
+    else if (t < B.risen + 0.3) { const u = E(B.rise, B.risen, t); L.aim(cam, 5, V(1.9 - u * 0.6, 0.32, -0.4 - u * 0.3), V(0, 0.4 + u * 2.3, -4.2), 42 - u * 4, time, 0.02); }
+    else if (t < B.lift + 0.2) { const h = k1.eyeAt(V()), u = E(B.risen + 0.3, B.lift, t); L.aim(cam, 6, V(h.x + 0.3 - u * 0.25, h.y - 0.95 + u * 0.22, h.z + 1.6 - u * 0.68), V(h.x, h.y - 0.08 + u * 0.06, h.z), 40 - u * 7, time); }
+    else if (t < B.title) { const u = E(B.lift + 0.2, B.title, t); L.aim(cam, 7, V(m.x + 2.4 - u * 0.6, 0.75 + u * 0.5, m.z + 3.6), V(0, 1.4 + u * 0.3, -9), 52, time); }
+    else { const u = E(B.title, INTRO_LEN, t); L.aim(cam, 8, V(m.x + 1.2, 1.5, m.z + 3.2 - u * 0.4), V(0, 1.9, -4), base - 2, time); }
   }
+  /** 0-1: how much of the night has come in; the director may darken the frame with it. */
+  get night() { return this.dark; }
 }
 
 // ---------------------------------------------------------------- the turn

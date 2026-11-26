@@ -107,7 +107,7 @@ export async function bootRiver(c: Ctx) {
   const SHOTS: Record<string, [number[], number[], number]> = { main: [[1.15, 1.75, 8.9], [-0.1, 1.5, -4], 46], wide: [[10, 4.5, 14], [-1, 1.8, -6], 46], boss: [[2.2, 1.5, 0.2], [0, 1.9, -4.2], 42], bossc: [[1.2, 1.9, -1.4], [0, 2.1, -4.1], 36], face: [[0.7, 2.4, -2.1], [0, 2.4, -4.0], 34], side: [[5.5, 1.7, -3.5], [0, 1.6, -4], 42], back: [[-1.5, 2.2, -8.5], [0, 1.8, -4], 44], up: [[0, 1.4, 1], [0, 6, -14], 60], weight: [[8, 3.2, 8], [0, 1.8, -5], 52], horizon: [[0, 1.6, 12], [0, 0.8, -60], 50], lamps: [[3, 0.7, 6], [4, 0.2, -20], 40] };
   const draw = (_: number, ms: number) => {
     if (intro.active || turn.active || ending.active || menu.open) follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6);
-    if (SHOT && SHOTS[SHOT]) { const [pp, ll, ff] = SHOTS[SHOT]; cam.position.set(pp[0], pp[1], pp[2]); cam.lookAt(ll[0], ll[1], ll[2]); cam.fov = ff * (cam.aspect > 1.9 ? 0.92 : 1); cam.updateProjectionMatrix(); }
+    const SC = (window as unknown as { __shotCam?: [number[], number[], number] }).__shotCam ?? (SHOT ? SHOTS[SHOT] : undefined); if (SC) { const [pp, ll, ff] = SC; cam.position.set(pp[0], pp[1], pp[2]); cam.lookAt(ll[0], ll[1], ll[2]); cam.fov = ff * (cam.aspect > 1.9 ? 0.92 : 1); cam.updateProjectionMatrix(); }
     else if (menu.open) menuCam(cam, t, m.x, m.z);
     else if (turn.active) turn.camera(cam, t);
     else if (ending.active) ending.camera(cam, t);

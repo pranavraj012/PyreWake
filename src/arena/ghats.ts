@@ -69,12 +69,12 @@ export async function buildGhats(tex: TexSet, tier: Tier, moon: THREE.Vector3) {
     }
     const g = new THREE.InstancedBufferGeometry(); g.instanceCount = n; g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, 0, 0, 1, 0, 0, 1, 1, 0, -1, 1, 0, -1, 0, 0, 1, 0, 0, 1, 1, 0, -1, 1, 0]), 3));
     g.setAttribute('kind', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0, 1, 1, 1, 1]), 1)); g.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]); g.setAttribute('aP', new THREE.InstancedBufferAttribute(ax, 4));
-    const u = { uT: FOG.uFogP, uLit: { value: 1 }, uGain: { value: 0.75 }, uLevel: { value: LEVEL }, uFront: { value: 0 } };
+    const u = { uT: FOG.uFogP, uLit: { value: 1 }, uGain: { value: 0.75 }, uLevel: { value: LEVEL }, uFront: { value: 0 }, uOut: { value: new THREE.Vector3(0, 0, 0) } };
     const m = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: u,
-      vertexShader: `attribute vec4 aP; attribute float kind; uniform vec4 uT; uniform float uLit, uLevel, uFront; varying vec2 u; varying float vk, vl, vf, vd, vg;
+      vertexShader: `attribute vec4 aP; attribute float kind; uniform vec4 uT; uniform float uLit, uLevel, uFront; uniform vec3 uOut; varying vec2 u; varying float vk, vl, vf, vd, vg;
 void main(){ float t = uT.w; vec3 c = vec3(aP.x + sin(t * .07 + aP.z * 6.) * .35, uLevel + .1 + .012 * sin(t * 1.3 + aP.z * 20.), aP.y + cos(t * .05 + aP.z * 9.) * .35);
- vl = clamp((uLit - aP.w) * 9. + .5, 0., 1.); float bd = length(c.xz - vec2(0., -9.)), fr = uFront > 0. ? smoothstep(uFront, uFront - 4., bd) : 0.; vg = fr * (.9 + 2.4 * exp(-max(uFront - bd, 0.) * .045)); vl = max(vl, fr); vk = kind; vf = aP.z; u = position.xy; float dist = length(c - cameraPosition); vd = dist; float s = .1 * (1. + dist * .011);
+ vl = clamp((uLit - aP.w) * 9. + .5, 0., 1.); if (uOut.z > 0.) vl *= smoothstep(uOut.z - 2.5 - aP.z * 3., uOut.z - aP.z * 3., length(c.xz - uOut.xy)); float bd = length(c.xz - vec2(0., -9.)), fr = uFront > 0. ? smoothstep(uFront, uFront - 4., bd) : 0.; vg = fr * (.9 + 2.4 * exp(-max(uFront - bd, 0.) * .045)); vl = max(vl, fr); vk = kind; vf = aP.z; u = position.xy; float dist = length(c - cameraPosition); vd = dist; float s = .1 * (1. + dist * .011);
  vec4 clip = projectionMatrix * viewMatrix * vec4(c, 1.);
  if (kind < .5) { vec3 r = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]), up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]); gl_Position = projectionMatrix * viewMatrix * vec4(c + r * position.x * s * 1.6 + up * position.y * s * 2.6, 1.); }
  else { float L = min(.34 + dist * .035, 4.); gl_Position = clip + vec4(position.x * s * 1.1 * projectionMatrix[0][0], -position.y * L * projectionMatrix[1][1], 0., 0.); } }`,
@@ -100,6 +100,8 @@ void main(){ float t = uT.w, fl = .8 + .2 * sin(t * 7. + vf * 40.) + .1 * sin(t 
     group, ruin, water, /** The lamps you can see, 0-1 lit. The next call eases to it; `at` jumps. */ lamps(k: number, at = false) { lampTo = k; if (at) { lit = k; lamp.u.uLit.value = k; } },
     /** 0-1: pyre light. Unused here; the lamp posts burn. */ flames(k: number) { flameK = k; (lampFire.material as THREE.ShaderMaterial).uniforms.uGain.value = k; }, omen(_k: number) { /* no eclipse on the river */ }, storm(_k: number) { }, breach() { }, tear() { },
     /** The fire running from lamp to lamp: how far out from the boat it has caught, in metres. 0 is off. */ setFront(d: number) { lamp.u.uFront.value = d; },
+    /** The clay bowls glow while their lamps burn; out, they are only clay. */ bowlsLit(on: boolean) { bowls.visible = on; },
+    /** A darkness spreading over the water from (x, z): every lamp within `r` metres is out. r = 0 is off. */ setOut(x: number, z: number, r: number) { lamp.u.uOut.value.set(x, z, r); },
     /** A ring spreads on the water. */ ripple(x: number, z: number, amp: number, t: number) { water.ripple(x, z, amp, t); },
     update(t: number, focus: THREE.Vector3) {
       const dt = Math.max(0, Math.min(0.1, t - lastT)); lastT = t; lit += (lampTo - lit) * (1 - Math.exp(-dt * (lampTo > lit ? 5 : 3.2))); lamp.u.uLit.value = lit; water.boil.value.w *= 1;

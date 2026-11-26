@@ -1,6 +1,6 @@
 // The river's pieces: the Ferryman, his pole, anchor and lantern, moored boats, and the parts of the Weight.
 import { KING, boneIndex } from '../../src/anim/skeletons.ts';
-import { Field, add, any, ball, belly, box, clamp, cone, curve, ell, fbm, lerp3, mix, mul, noise, norm, ridged, rng, sstep, sub, tube, type V3 } from '../sdf.ts';
+import { Field, add, any, ball, belly, box, clamp, cone, cross, curve, ell, fbm, lerp3, mix, mul, noise, norm, ridged, rng, sstep, sub, tube, type V3 } from '../sdf.ts';
 import { bakeAO, decimate, merge, meshField, type Baked, type Mesh } from '../mesher.ts';
 import { strand } from '../sheet.ts';
 import { shatter } from './arena.ts';
@@ -13,77 +13,138 @@ async function finish(parts: Part[], reach: number, smooth = 0): Promise<Mesh> {
   return merge(out);
 }
 
-/** An old man broad as a door and bent under the net he wears, on the King's frame (scaled down in play). */
+/** Hat frame: centre, forward tilt, height and brim radius. Shared by the hat, the veil and the view's eye-glow placement. */
+export const HAT = { c: [0, 3.44, 0.12] as V3, tilt: 0.1, H: 0.38, R: 0.64 };
+const hatY = (r: number) => HAT.H * (1 - r / HAT.R) - 0.07 * Math.pow(Math.min(1.2, r / HAT.R), 2.5);
+/** Hat frame to rig space. */
+const hatPt = (x: number, yy: number, zz: number): V3 => { const c = Math.cos(HAT.tilt), s = Math.sin(HAT.tilt); return [HAT.c[0] + x, HAT.c[1] + yy * c - zz * s, HAT.c[2] + yy * s + zz * c]; };
+
+/** The Drowned Boatman, on the King's long frame (scaled in play to about three metres): gaunt, long-armed, a soaked black shroud to the water,
+ *  a steep reed hat with a veil of black-gold fare coins hiding all of the face but the jaw. `bare`: round 2, hat, veil and mantle gone, the starved body under them. */
 export async function ferryman(bare = false): Promise<Mesh> {
   const parts: Part[] = [], F = (k: number, voxel: number, mat: number, tris: number, soft = 0.04) => { const f = new Field(k); parts.push([f, voxel, mat, tris, soft]); return f; };
-  const sk = F(0.07, 0.0115, 27, 30000), net = F(0.004, 0.0085, 26, 9000), cloth = F(0.05, 0.016, 5, 14000), iron = F(0.01, 0.0095, 12, 4500);
-  // --- the barrel of him: broad pelvis, great belly, a back that humps
-  sk.bone = b.hips; sk.put(ell([0, 1.9, -0.02], [0.36, 0.24, 0.24]));
-  sk.put(ell([0, 2.12, 0.1], [0.34, 0.28, 0.27]), { bone: b.spine1, k: 0.12 }).put(ell([0, 2.42, 0.02], [0.4, 0.34, 0.3]), { bone: b.spine2, k: 0.12 });
-  sk.put(ell([0, 2.78, -0.08], [0.56, 0.44, 0.36], [0.2, 0, 0]), { bone: b.chest, k: 0.14 }).put(ell([0, 3.1, -0.32], [0.44, 0.28, 0.3]), { bone: b.chest, k: 0.14 });
-  for (const [, s] of SIDES) sk.put(ell([0.34 * s, 3.1, -0.1], [0.2, 0.14, 0.2]), { bone: b.chest, k: 0.1 }).put(belly([0.1 * s, 3.18, -0.06], [0.5 * s, 3.1, -0.1], 0.1, 0.15, 0.12), { bone: b['clav.' + (s > 0 ? 'L' : 'R')], k: 0.1 });
-  // --- neck sunk between the shoulders, a heavy head carried forward
-  sk.put(cone([0, 3.12, -0.14], [0, 3.34, 0.04], 0.19, 0.15), { bone: b.neck, k: 0.1 }).put(cone([0, 3.3, 0.0], [0, 3.46, 0.12], 0.15, 0.13), { bone: b.neck2, k: 0.08 });
-  sk.bone = b.head; sk.put(ell([0, 3.6, 0.18], [0.19, 0.21, 0.23])).put(ell([0, 3.45, 0.3], [0.17, 0.17, 0.15], [0.2, 0, 0]), { k: 0.08 }).put(box([0, 3.37, 0.33], [0.15, 0.065, 0.1], 0.06), { k: 0.08 });
-  sk.put(ell([0, 3.5, 0.42], [0.04, 0.085, 0.05], [0.3, 0, 0]), { k: 0.05 }).put(ell([0, 3.45, 0.44], [0.055, 0.03, 0.04]), { k: 0.04 });
-  for (const [, s] of SIDES) { sk.put(ell([0.09 * s, 3.62, 0.38], [0.075, 0.05, 0.06], [0.2, 0, 0.1 * s]), { k: 0.06 }).put(ell([0.085 * s, 3.585, 0.405], [0.045, 0.028, 0.03]), { op: 'sub', k: 0.04 }).put(ell([0.18 * s, 3.57, 0.15], [0.03, 0.07, 0.05]), { k: 0.03 }).put(ell([0.12 * s, 3.4, 0.4], [0.05, 0.055, 0.05]), { k: 0.05 }); }
-  sk.put(ell([0, 3.395, 0.46], [0.07, 0.014, 0.03]), { op: 'sub', k: 0.02 });
-  sk.displace((x, y, z) => 0.009 * fbm(x * 7, y * 7, z * 7, 3) - 0.005 * ridged(x * 16, y * 9, z * 16, 2) + 0.004, 0.014);
-  // --- arms: long, thick, rope-scarred
+  const sk = F(0.04, 0.0085, 31, 30000, 0.035), cloth = F(0.05, 0.014, 30, bare ? 9000 : 15000), rope = F(0.01, 0.007, 11, 2600), wrap = F(0.006, 0.0065, 2, 5000);
+  const hat = bare ? null : F(0.01, 0.008, 28, 5200), coin = bare ? null : F(0.003, 0.0042, 29, 7000), iron = bare ? null : F(0.01, 0.009, 12, 3600);
+  const sleeve = bare ? [] : SIDES.map(() => F(0.04, 0.013, 30, 3200));
+  // --- the frame of him: narrow pelvis, a waist like a wrist, a ribcage you could count
+  sk.bone = b.hips; sk.put(ell([0, 1.86, -0.02], [0.19, 0.13, 0.13]));
+  sk.put(ell([0, 2.12, -0.06], [0.135, 0.16, 0.1]), { bone: b.spine1, k: 0.08 }).put(ell([0, 2.2, 0.07], [0.09, 0.09, 0.035]), { bone: b.spine1, op: 'sub', k: 0.05 });
+  sk.put(ell([0, 2.46, -0.11], [0.19, 0.22, 0.145]), { bone: b.spine2, k: 0.09 }).put(ell([0, 2.78, -0.17], [0.235, 0.2, 0.155]), { bone: b.chest, k: 0.09 }).put(ell([0, 2.99, -0.19], [0.28, 0.075, 0.12]), { bone: b.chest, k: 0.07 });
+  sk.put(cone([0, 2.62, 0.01], [0, 2.98, -0.03], 0.018, 0.022), { bone: b.chest, k: 0.02 });
+  for (const [S, s] of SIDES) {
+    sk.put(cone([0.05 * s, 3.05, -0.08], [0.33 * s, 3.08, -0.12], 0.022, 0.017), { bone: b.chest, k: 0.02 }).put(cone([0.04 * s, 3.13, -0.18], [0.34 * s, 3.07, -0.16], 0.055, 0.04), { bone: b.chest, k: 0.05 });
+    sk.put(ell([0.15 * s, 2.86, -0.31], [0.08, 0.1, 0.03], [0, 0, 0.3 * s]), { bone: b.chest, k: 0.04 });
+    void S;
+  }
+  // --- a long neck, all cord; the head of a man who has been under the water a long time
+  sk.put(cone([0, 3.06, -0.17], [0, 3.3, -0.02], 0.068, 0.062), { bone: b.neck, k: 0.05 }).put(cone([0, 3.28, -0.03], [0, 3.46, 0.1], 0.062, 0.058), { bone: b.neck2, k: 0.04 });
+  for (const [, s] of SIDES) sk.put(cone([0.05 * s, 3.08, -0.1], [0.035 * s, 3.4, 0.1], 0.016, 0.012), { bone: b.neck2, k: 0.02 });
+  sk.put(ell([0, 3.3, 0.04], [0.018, 0.028, 0.02]), { bone: b.neck2, k: 0.02 });
+  sk.bone = b.head;
+  sk.put(ell([0, 3.66, 0.1], [0.13, 0.155, 0.165]), { k: 0.06 }).put(ell([0, 3.6, 0.0], [0.115, 0.125, 0.1]), { k: 0.06 }).put(ell([0, 3.52, 0.2], [0.1, 0.145, 0.105]), { k: 0.06 });
+  sk.put(box([0, 3.39, 0.22], [0.07, 0.045, 0.07], 0.035), { k: 0.05 }).put(ell([0, 3.35, 0.28], [0.036, 0.038, 0.032]), { k: 0.03 });
+  for (const [, s] of SIDES) {
+    sk.put(ell([0.075 * s, 3.555, 0.255], [0.038, 0.024, 0.034], [0, 0.3 * s, 0]), { k: 0.025 }).put(ell([0.078 * s, 3.43, 0.15], [0.022, 0.05, 0.04]), { k: 0.03 }).put(ell([0.13 * s, 3.56, 0.11], [0.014, 0.042, 0.026]), { k: 0.015 });
+    sk.put(ell([0.125 * s, 3.62, 0.2], [0.028, 0.05, 0.05]), { op: 'sub', k: 0.04 }).put(ell([0.082 * s, 3.465, 0.27], [0.028, 0.045, 0.035]), { op: 'sub', k: 0.035 }).put(ell([0.047 * s, 3.594, 0.292], [0.031, 0.022, 0.03]), { op: 'sub', k: 0.02 });
+  }
+  sk.put(ell([0, 3.632, 0.272], [0.1, 0.019, 0.026]), { k: 0.03 }).put(ell([0, 3.55, 0.305], [0.013, 0.05, 0.02], [0.22, 0, 0]), { k: 0.02 }).put(ell([0, 3.503, 0.318], [0.017, 0.014, 0.017]), { k: 0.015 });
+  sk.put(ell([0, 3.432, 0.305], [0.042, 0.0045, 0.03]), { op: 'sub', k: 0.008 });
+  sk.displace((x, y, z) => 0.004 * fbm(x * 11, y * 11, z * 11, 3) - 0.003 * ridged(x * 22, y * 14, z * 22, 2) + 0.001 + 0.009 * Math.pow(Math.abs(Math.sin((y + 0.03 * Math.abs(x) * 6) * 40)), 4) * sstep(2.34, 2.42, y) * sstep(2.9, 2.8, y) * sstep(-0.2, -0.05, z) * sstep(0.04, 0.09, Math.abs(x)), 0.014);
+  // --- arms down past the knee: bone, tendon, and long fingers
   for (const [S, s] of SIDES) {
     const c = mir(at('clav.L'), s), u = mir(at('upperArm.L'), s), e = mir(at('foreArm.L'), s), w = mir(at('hand.L'), s);
-    sk.put(cone(c, u, 0.1, 0.12), { bone: b['clav.' + S], k: 0.08 }); sk.bone = b['upperArm.' + S];
-    sk.put(ball(u, 0.16), { k: 0.09 }).put(belly(u, e, 0.13, 0.15, 0.1, 0.35)).put(belly(lerp3(u, e, 0.06), lerp3(u, e, 0.9), 0.05, 0.12, 0.04, 0.4), { k: 0.05 }); sk.bone = b['foreArm.' + S];
-    sk.put(ell(e, [0.11, 0.115, 0.115]), { k: 0.07 }); const off: V3 = [0.02, 0.01, 0.034];
-    sk.put(cone(add(e, off), add(w, mul(off, 0.8)), 0.085, 0.06), { k: 0.04 }).put(cone(sub(e, off), sub(w, mul(off, 0.8)), 0.08, 0.055), { k: 0.04 }).put(belly(lerp3(e, w, 0.04), lerp3(e, w, 0.7), 0.06, 0.1, 0.05, 0.25), { k: 0.05 });
-    sk.bone = b['hand.' + S]; sk.put(ell(w, [0.075, 0.09, 0.085]), { k: 0.05 }).put(ell(add(w, [0.05 * s, -0.1, 0]), [0.05, 0.12, 0.1], [0, 0, 0.4 * s]), { k: 0.06 });
-    for (let i = 0; i < 4; i++) { const A = mir(at(`f${i}a.L`), s), Bp = mir(at(`f${i}b.L`), s), L = [0.9, 1.05, 1, 0.8][i], tip = add(Bp, mul(norm(sub(Bp, A)), 0.17 * L)); tip[0] -= 0.035 * s; sk.bone = b['hand.' + S]; sk.put(cone(w, A, 0.05, 0.04), { k: 0.04 }); sk.bone = b[`f${i}a.${S}`]; sk.put(cone(A, Bp, 0.04, 0.034), { k: 0.025 }).put(ball(A, 0.046), { k: 0.03 }); sk.bone = b[`f${i}b.${S}`]; sk.put(cone(Bp, tip, 0.034, 0.024), { k: 0.02 }).put(ball(Bp, 0.04), { k: 0.025 }); }
-    sk.bone = b['thumb.' + S]; const th = mir(at('thumb.L'), s); sk.put(cone(add(th, [0, 0.06, -0.06]), th, 0.05, 0.04), { k: 0.04 }).put(cone(th, add(th, [0.02 * s, -0.15, 0.09]), 0.04, 0.026), { k: 0.03 });
-    // --- legs: short for the height, planted wide
+    sk.put(cone(c, u, 0.05, 0.06), { bone: b['clav.' + S], k: 0.04 }); sk.bone = b['upperArm.' + S];
+    sk.put(ball(u, 0.075), { k: 0.05 }).put(cone(u, e, 0.062, 0.046)).put(belly(lerp3(u, e, 0.1), lerp3(u, e, 0.75), 0.04, 0.062, 0.035, 0.35), { k: 0.03 }); sk.bone = b['foreArm.' + S];
+    sk.put(ball(e, 0.052), { k: 0.035 }).put(cone(e, w, 0.046, 0.03), { k: 0.03 }).put(belly(lerp3(e, w, 0.05), lerp3(e, w, 0.6), 0.03, 0.052, 0.03, 0.25), { k: 0.025 }).put(ball(add(e, [0, -0.02, -0.035]), 0.03), { k: 0.02 });
+    sk.bone = b['hand.' + S]; sk.put(ell(w, [0.035, 0.045, 0.045]), { k: 0.025 }).put(ell(add(w, [0.03 * s, -0.11, 0]), [0.03, 0.1, 0.07], [0, 0, 0.4 * s]), { k: 0.03 });
+    for (let i = 0; i < 4; i++) {
+      const A = mir(at(`f${i}a.L`), s), Bp = mir(at(`f${i}b.L`), s), L = [1.0, 1.15, 1.1, 0.9][i], tip = add(Bp, mul(norm(sub(Bp, A)), 0.2 * L)); tip[0] -= 0.04 * s;
+      sk.bone = b['hand.' + S]; sk.put(cone(w, A, 0.026, 0.022), { k: 0.02 }); sk.bone = b[`f${i}a.${S}`]; sk.put(cone(A, Bp, 0.021, 0.018), { k: 0.012 }).put(ball(A, 0.025), { k: 0.012 }); sk.bone = b[`f${i}b.${S}`]; sk.put(cone(Bp, tip, 0.018, 0.011), { k: 0.01 }).put(ball(Bp, 0.021), { k: 0.01 });
+    }
+    sk.bone = b['thumb.' + S]; const th = mir(at('thumb.L'), s); sk.put(cone(add(th, [0, 0.05, -0.05]), th, 0.026, 0.022), { k: 0.02 }).put(cone(th, add(th, [0.02 * s, -0.17, 0.1]), 0.021, 0.013), { k: 0.015 });
+    // legs, thin as poles
     const h = mir(at('thigh.L'), s), k = mir(at('shin.L'), s), f = mir(at('foot.L'), s), t = mir(at('toe.L'), s);
-    sk.bone = b['thigh.' + S]; sk.put(ell(add(h, [0.02 * s, 0.02, 0]), [0.22, 0.26, 0.22]), { k: 0.1 }).put(cone(h, k, 0.2, 0.13)).put(belly(add(h, [0.02 * s, -0.05, 0.03]), add(k, [0, 0.08, 0.02]), 0.1, 0.19, 0.08, 0.4), { k: 0.06 });
-    sk.bone = b['shin.' + S]; sk.put(ell(add(k, [0, 0, 0.02]), [0.15, 0.16, 0.16]), { k: 0.07 }).put(cone(add(k, [0, -0.03, 0.02]), add(f, [0, 0, 0.015]), 0.12, 0.075)).put(belly(add(k, [0, -0.02, -0.04]), add(f, [0, 0.05, -0.04]), 0.07, 0.14, 0.04, 0.3), { k: 0.05 });
-    sk.bone = b['foot.' + S]; sk.put(ell(add(f, [0, -0.06, -0.04]), [0.085, 0.09, 0.12]), { k: 0.07 }).put(cone(add(f, [0, -0.02, 0.02]), add(t, [0, 0.02, 0.02]), 0.08, 0.07)); sk.bone = b['toe.' + S];
-    for (let i = 0; i < 5; i++) { const x = t[0] + (i - 2) * 0.045 * s; sk.put(cone([x, 0.05, t[2] - 0.02], [x + (i - 2) * 0.012 * s, 0.03, t[2] + 0.13 - i * 0.012], 0.034, 0.024), { k: 0.025 }); }
+    sk.bone = b['thigh.' + S]; sk.put(ell(add(h, [0, 0.02, 0]), [0.12, 0.14, 0.12]), { k: 0.06 }).put(cone(h, k, 0.11, 0.068), { k: 0.04 });
+    sk.bone = b['shin.' + S]; sk.put(ball(add(k, [0, 0, 0.02]), 0.07), { k: 0.04 }).put(cone(add(k, [0, -0.03, 0.02]), add(f, [0, 0, 0.01]), 0.062, 0.04), { k: 0.03 });
+    sk.bone = b['foot.' + S]; sk.put(ell(add(f, [0, -0.06, -0.03]), [0.05, 0.07, 0.08]), { k: 0.04 }).put(cone(add(f, [0, -0.03, 0.02]), add(t, [0, 0.01, 0.02]), 0.05, 0.045), { k: 0.03 }); sk.bone = b['toe.' + S];
+    for (let i = 0; i < 5; i++) { const x = t[0] + (i - 2) * 0.03 * s; sk.put(cone([x, 0.035, t[2] - 0.02], [x + (i - 2) * 0.01 * s, 0.022, t[2] + 0.15 - i * 0.015], 0.02, 0.013), { k: 0.012 }); }
+    // grave-wraps round the forearm, wet and grey
+    const wp: V3[] = [], ax = norm(sub(w, e)), q1 = norm(cross(ax, [0, 0, 1])), q2 = cross(ax, q1);
+    for (let i = 0; i <= 160; i++) { const tt = i / 160, a = tt * 6.283 * 13, p = lerp3(e, w, 0.3 + 0.62 * tt), r = mix(0.05, 0.036, tt) + 0.004; wp.push(add(p, add(mul(q1, Math.cos(a) * r), mul(q2, Math.sin(a) * r)))); }
+    wrap.put(tube(wp, () => 0.0135), { bone: b['foreArm.' + S], k: 0.008 });
   }
-  // --- a coil of rotted hair at the nape, the beard
-  const hair = new Field(0.01); void hair;
-  // --- the net: two sets of helical cords over the torso and shoulders, knotted where they cross
-  const rx = (y: number) => 0.3 + 0.2 * sstep(1.95, 2.9, y) - 0.12 * sstep(3.0, 3.2, y), rz = (y: number) => 0.24 + 0.1 * sstep(1.95, 2.9, y), zc = (y: number) => 0.06 - 0.12 * sstep(2.3, 3.1, y), boneAt = (y: number) => y < 2.28 ? b.spine1 : y < 2.62 ? b.spine2 : b.chest;
-  if (!bare) for (const dir of [1, -1]) for (let k = 0; k < 13; k++) {
-    const a0 = k / 13 * Math.PI * 2, pts: V3[] = []; for (let i = 0; i <= 44; i++) { const t = i / 44, y = 2.0 + t * 1.2, a = a0 + dir * t * 3.0; pts.push([Math.sin(a) * (rx(y) + 0.024), y, zc(y) + Math.cos(a) * (rz(y) + 0.024)]); }
-    pts.slice(1).forEach((p, i) => net.put(cone(pts[i], p, 0.016, 0.016), { bone: boneAt(p[1]), k: 0.004 }));
+  wrap.displace((x, y, z) => 0.002 * noise(x * 80, y * 80, z * 80), 0.003);
+  // --- a hemp cord at the waist
+  { const pts: V3[] = []; for (let i = 0; i <= 40; i++) { const a = i / 40 * 6.283; pts.push([Math.sin(a) * (bare ? 0.165 : 0.245), 2.04 + 0.03 * Math.sin(a * 2), -0.05 + Math.cos(a) * (bare ? 0.125 : 0.19)]); } rope.put(tube(pts, () => 0.018), { bone: b.spine1 }); rope.put(tube(curve([[0.1, 2.03, bare ? 0.07 : 0.13], [0.13, 1.85, bare ? 0.1 : 0.17], [0.11, 1.6, bare ? 0.11 : 0.19]], 14), () => 0.014), { bone: b.hips }); }
+  rope.displace((x, y, z) => 0.004 * Math.sin((x + y * 1.7 + z) * 140), 0.004);
+  // --- the shroud: a robe to the water in both forms; in round 1 a mantle, wide sleeves and a cowl over it
+  cloth.bone = b.hips; cloth.put(cone([0, 2.2, -0.05], [0, 1.62, -0.05], bare ? 0.17 : 0.23, 0.3), { k: 0.1 }).put(ell([0, 1.0, -0.2], [0.34, 0.75, 0.1]), { k: 0.12 });
+  for (const [S, s] of SIDES) {
+    const h = mir(at('thigh.L'), s), k = mir(at('shin.L'), s), f = mir(at('foot.L'), s);
+    cloth.bone = b['thigh.' + S]; cloth.put(cone(add(h, [0.03 * s, 0.1, 0]), add(k, [0.05 * s, 0, 0.01]), 0.24, 0.27), { k: 0.1 });
+    cloth.bone = b['shin.' + S]; cloth.put(cone(add(k, [0.05 * s, 0.05, 0.01]), add(f, [0.07 * s, -0.12, -0.02]), 0.27, 0.32), { k: 0.1 });
   }
-  if (!bare) for (const [S, s] of SIDES) { const u = mir(at('upperArm.L'), s), e = mir(at('foreArm.L'), s); for (let r = 0; r < 4; r++) { const p = lerp3(u, e, 0.1 + r * 0.2), q: V3[] = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; q.push(add(p, [Math.sin(a) * 0.17, Math.cos(a * 0.5) * 0.02, Math.cos(a) * 0.16])); } q.slice(1).forEach((x, i) => net.put(cone(q[i], x, 0.011, 0.011), { bone: b['upperArm.' + S], k: 0.004 })); } }
-  net.displace((x, y, z) => 0.003 * noise(x * 60, y * 60, z * 60), 0.004); if (bare) parts.splice(parts.findIndex(q => q[0] === net), 1);
-  // --- a heavy sodden hood and a drape of cloth over the back
-  cloth.bone = b.chest; cloth.put(ell([0, 3.14, -0.34], [0.46, 0.2, 0.3], [0.5, 0, 0]), { k: 0.1 }).put(ell([0, 2.86, -0.5], [0.4, 0.5, 0.12], [0.1, 0, 0]), { k: 0.1 });
-  for (const [, s] of SIDES) cloth.put(ell([0.4 * s, 3.1, -0.1], [0.18, 0.1, 0.22], [0, 0, 0.5 * s]), { k: 0.08 });
-  cloth.bone = b.neck2; cloth.put(ell([0, 3.56, 0.0], [0.32, 0.24, 0.3]), { k: 0.1 }); cloth.bone = b.head; cloth.put(ell([0, 3.68, 0.12], [0.3, 0.26, 0.36], [0.25, 0, 0]), { k: 0.1 }).put(ell([0, 3.74, 0.42], [0.25, 0.09, 0.1], [0.4, 0, 0]), { k: 0.08 });
-  cloth.put(ell([0, 3.5, 0.5], [0.18, 0.2, 0.22]), { op: 'sub', k: 0.07 });
-  cloth.bone = b.chest; cloth.put(ell([0, 3.02, -0.05], [0.66, 0.24, 0.46], [0.15, 0, 0]), { k: 0.12 });
-  for (const [S, s] of SIDES) { cloth.bone = b['thigh.' + S]; const h = mir(at('thigh.L'), s), k = mir(at('shin.L'), s); cloth.put(cone(add(h, [0.04 * s, 0.12, 0]), add(k, [0.04 * s, -0.3, 0.02]), 0.3, 0.26), { k: 0.1 }); }
-  cloth.bone = b.hips; cloth.put(cone([0, 2.15, -0.05], [0, 1.75, -0.08], 0.46, 0.5), { k: 0.12 }).put(ell([0, 1.3, -0.24], [0.42, 0.5, 0.1]), { k: 0.1 });
-  cloth.put(any((x, y, z) => ((bare ? 1.15 : 0.62) + 0.18 * fbm(x * 5, 1.3, z * 5, 3) + (bare ? 0.2 : 0.08) * ridged(x * 13, 2, z * 13, 2) - y) * -0.7), { op: 'int', k: 0.02 });
-  cloth.displace((x, y, z) => { const a = Math.atan2(x, z); return 0.03 * fbm(x * 4.5, y * 4.5, z * 4.5, 3) - 0.02 * ridged(a * 3.5, y * 1.6, 1, 2) * sstep(2.3, 1.2, y) - 0.014 * ridged(x * 9, y * 9 + z * 5, z * 9, 2); }, 0.06);
-  // --- chain slung from the shoulder, a coil of it at the hip
-  const link = (pts: V3[], bone: number) => pts.slice(1).forEach((p, i) => iron.put(cone(pts[i], p, 0.034, 0.034), { bone, k: 0.01 }));
-  const sling = curve([[0.38, 3.1, -0.04], [0.4, 2.9, 0.2], [0.15, 2.55, 0.34], [-0.18, 2.2, 0.32], [-0.38, 1.98, 0.1]], 40); link(sling, b.chest);
-  for (let r = 0; r < 3; r++) { const p: V3[] = []; for (let i = 0; i <= 26; i++) { const a = i / 26 * Math.PI * 2; p.push([-0.45 + Math.sin(a) * 0.13, 1.9 + r * 0.05, -0.04 + Math.cos(a) * 0.15]); } link(p, b.hips); }
-  iron.displace((x, y, z) => 0.012 * Math.sin((x * 1.5 + y * 2.3 + z * 1.9) * 95) * 0.7, 0.012);
-  const baked: Baked[] = parts.map(([f, voxel, mat, , soft]) => meshField(f, { voxel, mat, soft, smoothSkin: mat === 27 ? Math.round(0.07 / voxel) : 0 })), samples = baked.map(q => q.sample), out: Mesh[] = [];
-  for (let i = 0; i < baked.length; i++) { bakeAO(baked[i].mesh, samples, 0.34); out.push(await decimate(baked[i].mesh, parts[i][3])); }
-  // --- grey beard and wet hair
+  if (!bare) {
+    cloth.put(ell([0, 2.46, -0.12], [0.235, 0.27, 0.19]), { bone: b.spine2, k: 0.1 }).put(ell([0, 2.15, -0.06], [0.21, 0.2, 0.16]), { bone: b.spine1, k: 0.1 });
+    cloth.bone = b.chest; cloth.put(ell([0, 2.93, -0.15], [0.38, 0.27, 0.25]), { k: 0.12 }).put(ell([0, 2.5, -0.36], [0.36, 0.55, 0.1], [0.08, 0, 0]), { k: 0.12 });
+    cloth.put(ell([0, 3.14, -0.08], [0.25, 0.11, 0.23]), { k: 0.08 }).put(cone([0, 3.0, -0.12], [0, 3.4, 0.0], 0.085, 0.075), { op: 'sub', k: 0.03 });
+    for (const [S, s] of SIDES) cloth.put(ell([0.4 * s, 2.92, -0.13], [0.17, 0.22, 0.2], [0, 0, 0.35 * s]), { bone: b['upperArm.' + S], k: 0.08 });
+    // sleeves: wide, hanging open, cut ragged a little past the elbow so the long forearms come out of them
+    SIDES.forEach(([S, s], i) => {
+      const f = sleeve[i], u = mir(at('upperArm.L'), s), e = mir(at('foreArm.L'), s), w = mir(at('hand.L'), s), ax = norm(sub(w, e)), cut = lerp3(e, w, 0.28);
+      f.bone = b['upperArm.' + S]; f.put(cone(add(u, [0, -0.04, 0]), e, 0.09, 0.1), { k: 0.05 });
+      f.bone = b['foreArm.' + S]; f.put(cone(e, lerp3(e, w, 0.4), 0.1, 0.125), { k: 0.05 });
+      f.put(cone(lerp3(e, w, -0.1), lerp3(e, w, 0.6), 0.04, 0.034), { op: 'sub', k: 0.02 });
+      f.put(any((x, y, z) => ((x - cut[0]) * ax[0] + (y - cut[1]) * ax[1] + (z - cut[2]) * ax[2]) + 0.05 * ridged(x * 9, y * 9, z * 9, 2) - 0.03), { op: 'int', k: 0.02 });
+      f.displace((x, y, z) => 0.02 * fbm(x * 5, y * 5, z * 5, 3) - 0.012 * ridged(x * 10, y * 6, z * 10, 2), 0.035);
+    });
+  }
+  // ragged at the hem, hanging in strips to the water; in round 2 torn off higher
+  cloth.put(any((x, y, z) => { const a = Math.atan2(x, z); return ((bare ? 0.55 : 0.16) + 0.16 * fbm(x * 4, 1.3, z * 4, 3) + 0.22 * Math.pow(Math.abs(Math.sin(a * 5.5 + 0.6 * noise(x * 3, 2, z * 3))), 6) * -1 + (bare ? 0.18 : 0.06) * ridged(x * 11, 2, z * 11, 2) - y) * 0.7; }), { op: 'int', k: 0.02 });
+  cloth.displace((x, y, z) => { const a = Math.atan2(x, z); return 0.026 * fbm(x * 4.5, y * 4.5, z * 4.5, 3) - 0.022 * ridged(a * 4, y * 1.4, 1, 2) * sstep(2.2, 0.8, y) - 0.012 * ridged(x * 9, y * 9 + z * 5, z * 9, 2); }, 0.06);
+  // --- the hat: steep woven reed, sagging with water, a torn notch; under it a veil of fare coins on black cords
+  if (hat && coin) {
+    const { c: C, tilt, R } = HAT, ct = Math.cos(tilt), st = Math.sin(tilt);
+    hat.bone = b.head; hat.put(any((x, y, z) => {
+      const dx = x - C[0], dy = y - C[1], dz = z - C[2], yy = dy * ct + dz * st, zz = dz * ct - dy * st, r = Math.hypot(dx, zz), a = Math.atan2(dx, zz);
+      const edge = R + 0.018 * Math.sin(a * 9) + 0.03 * noise(a * 3, 1, 1) - 0.1 * Math.pow(Math.max(0, Math.cos(a - 2.3)), 14);
+      return Math.max(Math.abs(yy - hatY(r)) * 0.86 - 0.012, r - edge);
+    }, [C[0], C[1] + 0.15, C[2]], R + 0.1));
+    hat.put(ball(hatPt(0, HAT.H + 0.005, 0), 0.03), { k: 0.03 });
+    { const ring: V3[] = []; for (let i = 0; i <= 30; i++) { const a = i / 30 * 6.283; ring.push(hatPt(Math.sin(a) * 0.15, hatY(0.15) - 0.03, Math.cos(a) * 0.15)); } hat.put(tube(ring, () => 0.014), { k: 0.01 }); }
+    hat.displace((x, y, z) => { const dx = x - C[0], dz = z - C[2], r = Math.hypot(dx, dz), a = Math.atan2(dx, dz); return 0.0018 * Math.abs(Math.sin(a * 90 + r * 6)) + 0.0016 * Math.abs(Math.sin(r * 120)) + 0.0015 * fbm(x * 30, y * 30, z * 30, 2); }, 0.005);
+    coin.bone = b.head; const cr = rng(31);
+    for (let k = 0; k < 20; k++) {
+      if (k === 9 || k === 10) continue; // a parting in front of the eyes
+      const a = -2.0 + k / 19 * 4.0, rho = 0.27 + 0.012 * Math.sin(k * 1.7), x = Math.sin(a) * rho, zz = Math.cos(a) * rho, top = hatPt(x, hatY(rho) - 0.012, zz), n = 4 + Math.round(cr() * 1.6 + Math.cos(a) * 0.8);
+      const bot: V3 = [top[0], top[1] - 0.06 * n - 0.03, top[2]]; coin.put(cone(top, bot, 0.0032, 0.0032), { k: 0.002 });
+      for (let j = 0; j < n; j++) coin.put(ell([top[0], top[1] - 0.05 - j * 0.06, top[2]], [0.024, 0.024, 0.0055], [0, a + (cr() - 0.5) * 0.5, (cr() - 0.5) * 0.3]), { k: 0.002 });
+    }
+    coin.displace((x, y, z) => 0.0012 * noise(x * 160, y * 160, z * 160), 0.0015);
+    // a length of mooring chain over the shoulder, a coil of it at the hip
+    const link = (pts: V3[], bone: number) => pts.slice(1).forEach((p, i) => iron!.put(cone(pts[i], p, 0.026, 0.026), { bone, k: 0.008 }));
+    link(curve([[0.3, 3.08, -0.03], [0.25, 2.9, 0.12], [0.05, 2.6, 0.13], [-0.16, 2.3, 0.11], [-0.26, 2.06, 0.04]], 40), b.chest);
+    for (let r = 0; r < 3; r++) { const pp: V3[] = []; for (let i = 0; i <= 26; i++) { const a = i / 26 * Math.PI * 2; pp.push([-0.33 + Math.sin(a) * 0.1, 1.9 + r * 0.045, -0.04 + Math.cos(a) * 0.12]); } link(pp, b.hips); }
+    iron!.displace((x, y, z) => 0.009 * Math.sin((x * 1.5 + y * 2.3 + z * 1.9) * 110) * 0.7, 0.009);
+  }
+  const baked: Baked[] = parts.map(([f, voxel, mat, , soft]) => meshField(f, { voxel, mat, soft, smoothSkin: mat === 31 ? Math.round(0.05 / voxel) : mat === 30 ? Math.round(0.09 / voxel) : 0 })), samples = baked.map(q => q.sample), out: Mesh[] = [];
+  for (let i = 0; i < baked.length; i++) { bakeAO(baked[i].mesh, samples, 0.3); out.push(await decimate(baked[i].mesh, parts[i][3])); }
+  // --- long black hair, wet and hanging: down the back and over the shoulders, and in front of the face in a split curtain
   const hr = rng(9);
-  for (let i = 0; i < 70; i++) {
-    const a = (hr() - 0.5) * 2.6, root: V3 = [Math.sin(a) * 0.15, 3.36 + hr() * 0.05, 0.38 + Math.cos(a) * 0.1], L = 0.35 + hr() * 0.5, p: V3[] = [root]; let v: V3 = [Math.sin(a) * 0.3, -0.3, 0.5]; const ph = hr() * 6;
-    for (let j = 1; j <= 9; j++) { v = norm(add(mul(v, 0.5), [0.07 * Math.sin(ph + j), -0.8, 0.1 + 0.04 * Math.cos(ph * 2 + j)])); p.push(add(p[j - 1], mul(v, L / 9))); }
-    out.push(strand(p, 0.012 + hr() * 0.008, 0.4, 13, t => t < 0.3 ? [[b.head, 1 - t / 0.3], [b.neck2, t / 0.3 + 0.001]] : [[b.neck2, 1]]));
+  for (let i = 0; i < 120; i++) {
+    const front = i < 12, a = front ? (hr() < 0.5 ? -1 : 1) * (0.62 + hr() * 0.4) : (hr() - 0.5) * 4.4 + Math.PI, el = front ? 0.5 + hr() * 0.2 : 0.15 + hr() * 0.55;
+    const root: V3 = [Math.sin(a) * 0.13 * Math.cos(el), 3.66 + 0.15 * Math.sin(el), 0.1 + Math.cos(a) * 0.165 * Math.cos(el)], L = front ? 0.3 + hr() * 0.2 : 0.6 + hr() * 0.55, p: V3[] = [root];
+    let v: V3 = norm([Math.sin(a) * 0.6, 0.1, Math.cos(a) * 0.6]); const ph = hr() * 6;
+    for (let j = 1; j <= 12; j++) {
+      const out_ = norm([p[j - 1][0], 0, p[j - 1][2] - 0.08]), clear = j < 6 ? 0.5 : 0.15;
+      v = norm(add(mul(v, 0.45), add([0.05 * Math.sin(ph + j), -0.9, front ? 0.12 : -0.02], mul(out_, clear * 0.3))));
+      p.push(add(p[j - 1], mul(v, L / 12)));
+    }
+    out.push(strand(p, 0.016 + hr() * 0.01, 0.45, 13, t => { const y = mix(root[1], p[12][1], t); return y > 3.3 ? [[b.head, 1]] : y > 3.05 ? [[b.head, (y - 3.05) / 0.25 + 0.001], [b.neck2, 1 - (y - 3.05) / 0.25]] : [[b.neck2, 0.3], [b.chest, 0.7]]; }));
   }
-  void clamp; void mix;
+  void clamp; void belly;
   return merge(out);
 }
-
 /** Six metres of iron-shod bamboo, grip at the origin (y from -1.4 to 4.6), hook for the lamp near the top. */
 export async function pole(): Promise<Mesh> {
   const f = new Field(0.01), fe = new Field(0.005);

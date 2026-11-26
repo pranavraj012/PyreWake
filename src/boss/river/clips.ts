@@ -2,9 +2,9 @@
 import { clip, makePose, type Clip, type Key } from '../../anim/pose.ts';
 
 /** Stooped, pole planted beside him, a heavy stance. */
-export const FSTAND = makePose({ hy: -0.34, hz: 0.02, hp: 18, hw: 0, sp: 30, sw: -6, np: -50, nw: 0, nr: 4, ra: -30, re: 4, rl: 0.82, ba: -8, be: 80, lg: 1, xl: 6, flx: 0.17, flz: 0.28, flw: 12, frx: -0.17, frz: -0.2, frw: -14 });
+export const FSTAND = makePose({ hy: -0.16, hz: 0.02, hp: 8, hw: 0, sp: 16, sw: -6, np: -22, nw: 0, nr: 4, ra: -32, re: -40, rl: 0.9, ba: -6, be: 84, lg: 0, la: 22, le: -66, ll: 0.93, xl: 6, flx: 0.17, flz: 0.2, flw: 10, frx: -0.17, frz: -0.12, frw: -12 });
 /** Unburdened: straight for the first time in years, low and wide, the pole levelled at you like a spear. */
-export const DUEL = makePose({ hy: -0.2, hz: 0, hp: 10, hw: -34, sp: 10, sw: 4, np: -16, nw: 30, ra: -60, re: -8, rl: 0.78, ba: -6, be: 2, lg: 1, xl: 4, xr: 10, flx: 0.18, flz: 0.34, flw: -10, frx: -0.18, frz: -0.32, frw: -40 });
+export const DUEL = makePose({ hy: -0.2, hz: 0, hp: 10, hw: -34, sp: 10, sw: 4, np: -16, nw: 30, ra: -56, re: -30, rl: 0.72, ba: -6, be: -4, lg: 1, xl: 4, xr: 10, flx: 0.18, flz: 0.34, flw: -10, frx: -0.18, frz: -0.32, frw: -40 });
 const E: Key = { t: 0, hy: -0.34, hz: 0.02, hp: 18, hw: 0, hr: 0, sp: 30, sw: -6, sr: 0, np: -50, nw: 0, nr: 4, ra: -30, re: 4, rl: 0.82, ba: -8, be: 80, bo: 0, lg: 1, la: 40, le: -40, ll: 0.85, xl: 6, tw: 0, air: 0, flx: 0.17, fly: 0, flz: 0.28, flw: 12, flp: 0, frx: -0.17, fry: 0, frz: -0.2, frw: -14, frp: 0 };
 const at = (t: number, k: Key = E): Key => ({ ...k, t });
 const C: Record<string, Clip> = {};
@@ -21,6 +21,8 @@ C.pushOff = clip('pushOff', { dur: 3.4, blend: 0.3, fx: [{ t: 0.82, kind: 'launc
   { t: 1.4, air: 1, hy: 0.05, hp: 14, be: -70, flz: 0.1, frz: -0.2, flp: 10, frp: 10 }, { t: 1.62, air: 1, hy: -0.4, hp: 30, sp: 40, be: -64 }, { t: 1.66, air: 0, hy: -0.84, hp: 40, sp: 44, np: -64, ra: -20, re: 10, be: 60 }, { t: 2.4, hy: -0.7, hp: 34, ra: -26, re: 6, be: 78 }, at(3.4)] });
 C.turnBoat = clip('turnBoat', { dur: 4.6, blend: 0.3, move: [[0, 0], [4.6, 0]], fx: [{ t: 1.55, kind: 'sweep' }, { t: 3.05, kind: 'sweep' }], keys: [at(0),
   { t: 0.7, hy: -0.46, hp: 22, hw: -30, sp: 28, sw: -30, nw: 30, ra: -90, re: -6, rl: 0.95, ba: -90, be: 2, tw: 0, flz: 0.42, frz: -0.42 }, { t: 1.0, tw: -30, hw: -40 }, { t: 1.6, tw: 270, hw: 0, sw: 0, nw: 0 }, { t: 1.95, tw: 360 }, { t: 2.2, tw: 360, hw: -34, sw: -30 }, { t: 3.1, tw: 630 }, { t: 3.5, tw: 720, hw: 0, sw: 0 }, { ...E, t: 4.1, tw: 720 }, at(4.6, { ...E, tw: 720 })] });
+/** For his entrance only: the pole lifted high and driven into the riverbed. No strike in it. */
+C.plant = clip('plant', { dur: 2.4, blend: 0.3, fx: [{ t: 1.15, kind: 'slam' }], keys: [at(0), ...stab(1.15), at(2.4)] });
 // --- the Chain (the pole goes on his back; the anchor is in his hand)
 C.cast = clip('cast', { dur: 3.4, blend: 0.3, move: [[0, 0], [3.4, 0]], fx: [{ t: 0.3, kind: 'creak' }, { t: 1.08, kind: 'slam' }], keys: [at(0),
   { t: 0.45, hy: -0.5, hp: 22, hw: -34, sp: 26, sw: -38, np: -44, nw: 36, ra: -110, re: 40, rl: 0.95, ba: -120, be: 80, flz: 0.4, frz: -0.4 }, { t: 0.95, hy: -0.56, hw: -44, sw: -48, ra: -128, re: 70, ba: -140, be: 100 },
