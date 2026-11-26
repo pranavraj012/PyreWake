@@ -23,7 +23,11 @@
     "analyse": "node tools/analyse.mjs",
     "scenes": "node tools/scenes.mjs",
     "moments": "node tools/m4.mjs",
-    "ruin": "node tools/ruin.mjs"
+    "ruin": "node tools/ruin.mjs",
+    "analyse3": "node tools/analyse3.mjs",
+    "film": "node tools/hours.mjs",
+    "film:scenes": "node tools/hoursScenes.mjs",
+    "peek": "node tools/peek.mjs"
   },
   "dependencies": {
     "three": "0.187.0"

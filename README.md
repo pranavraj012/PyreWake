@@ -84,7 +84,7 @@ npm run dev:lan    # then open the printed Network address on a phone, in landsc
 | Motion | a small clip language over named pose channels, solved with two-bone IK, foot locking, inertialised blending, and simulated cloth and hair |
 | Combat | 60 Hz fixed step with no rendering imports, so whole fights run headless in tests |
 | Rendering | three.js (WebGL 2) with one layered surface shader, own HDR chain, height fog, GPU particles |
-| Sound | 163 designed sounds, each layered from CC0 recordings and synthesis (a snap, a punch, a sub tuned to the score's key, steel or something wet, a tail) and mastered for small speakers by `forge/sound/kitchen.py`; a synthesised set stands in if the pack is missing. Music is eight CC0 recordings that follow the fight. Credits in `LICENSES.md` |
+| Sound | about 270 designed sounds, each layered from CC0 recordings and synthesis (a snap, a punch, a sub tuned to the score's key, steel or something wet, a tail) and mastered for small speakers by `forge/sound/kitchen.py`; a synthesised set stands in if the pack is missing. Music is eight CC0 recordings that follow the fight. Credits in `LICENSES.md` |
 | Checks | unit tests, bots that play hundreds of headless fights, per-tier performance budgets, scripted screenshots |
 
 ```
@@ -95,7 +95,8 @@ src/player/   movement and state
 src/boss/     simulation, moves, brain, drawing
 src/anim/     rig, IK, clips, cloth, gaits
 src/render/   shaders, post, effects
-src/game/     camera, effects director, cutscenes
+src/game/     camera, effects director, cutscenes, each fight's script
+src/river.ts, src/hours.ts   the second and third fights' pages (`?boss=2`, `?boss=3`)
 src/audio/    synthesis, score
 src/ui/ src/input/ src/arena/ src/core/
 ```
@@ -117,10 +118,14 @@ src/ui/ src/input/ src/arena/ src/core/
 | `npm run pad` | plays the whole game, menus included, on a controller |
 | `npm run ruin` | breaks the court piece by piece and captures it |
 | `npm run moments` | drives the game to each key moment and captures it |
+| `npm run analyse3` | headless fights against the Sister of Hours and the Pall, as four kinds of player |
+| `npm run film -- <form> [move t...]` | the third boss's portraits, or one move held at each given second (`CAMS1` sets the camera) |
+| `npm run film:scenes -- intro\|turn\|ending [t...]` | contact sheet of a third-fight scene |
+| `npm run peek -- "<address>" "<js>" [out]` | one frame of any page after running some code in it |
 | `python forge/sound/kitchen.py` | recook the sound pack (needs the CC0 sources in `assets_src/sfx`) |
 | `npm run forge [names]` | rebake models (`textures` needs the CC0 sources in `assets_src/`) |
 
-Address options: `?nointro`, `?still`, `?touch`, `?tier=phone|mid|high`, `?bench=player`, `?bench=king`, `?bench=beneath`, `?shot=<name>`, `?round2` (start in round 2), `?turn` (one hit from the cutscene), `?fps`.
+Address options: `?boss=2` (the Ferryman), `?boss=3` (the Sister of Hours), `?nointro`, `?still`, `?touch`, `?tier=phone|mid|high`, `?bench=player`, `?bench=king`, `?bench=beneath`, `?shot=<name>`, `?round2` (start in round 2), `?turn` (one hit from the cutscene), `?fps`.
 
 ## Licence
 
