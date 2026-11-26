@@ -1,11 +1,13 @@
 // Recorded music (all CC0, see LICENSES.md): streamed from a few shared players, crossfaded, looped with an overlap.
-export type TrackName = 'menu' | 'vigil' | 'king' | 'crawl' | 'hang' | 'beneath' | 'eclipse' | 'morning' | 'ferry' | 'hours' | 'pall' | 'pall2';
+export type TrackName = 'menu' | 'vigil' | 'king' | 'crawl' | 'hang' | 'beneath' | 'eclipse' | 'morning' | 'ferry' | 'hours' | 'pall' | 'pall2' | 'region' | 'hub';
 /** `start` is where it comes in, `from` where a loop picks up, `end` where it lets go, `xf` the overlap in seconds (0: plays once). */
-const LIST: Record<TrackName, { start: number; from: number; end: number; xf: number }> = {
+export const LIST: Record<TrackName, { start: number; from: number; end: number; xf: number }> = {
   menu: { start: 0, from: 0, end: 81.0, xf: 0.3 }, vigil: { start: 0, from: 0, end: 53, xf: 0 }, king: { start: 0, from: 15.2, end: 87, xf: 3 }, crawl: { start: 18, from: 0, end: 107.9, xf: 0.25 },
   hang: { start: 0, from: 0, end: 40.5, xf: 3 }, beneath: { start: 0, from: 0, end: 123.3, xf: 0.2 }, eclipse: { start: 0, from: 0, end: 124.1, xf: 0.2 }, morning: { start: 0, from: 0, end: 83, xf: 5 },
   // pieces of their own for the river and the Waiting House: used when public/music/<name>.mp3 is there (end 0: loop at the file's own length)
   ferry: { start: 0, from: 0, end: 0, xf: 2 }, hours: { start: 0, from: 0, end: 0, xf: 2 }, pall: { start: 0, from: 0, end: 0, xf: 2 }, pall2: { start: 0, from: 0, end: 0, xf: 2 },
+  // module K: the Ashfields (Junkala, "Sneaking Around") and the Last Pyre (Junkala, "Home Town"); the whole piece, looped with a 3 s overlap
+  region: { start: 0, from: 0, end: 0, xf: 3 }, hub: { start: 0, from: 0, end: 0, xf: 3 },
 };
 const SILENCE = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 interface Deck { el: HTMLAudioElement; g: GainNode; lp: BiquadFilterNode; name: TrackName | null; level: number; stopAt: number; /** Being slowed to a halt: since when, over how long. */ tape?: [number, number] }
