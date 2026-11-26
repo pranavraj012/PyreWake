@@ -75,6 +75,9 @@ export class Fight {
   private advance(dt: number, mx: number, mz: number, presses: Press[]): number {
     const m = this.m, k = this.king;
     if (this.phase === 'scene' || this.phase === 'won') { this.queue.length = 0; presses = []; mx = this.sceneMove.x; mz = this.sceneMove.z; }
+    this.moments();
+    // while a staged moment is on, the hero's presses are not his: a release still counts (it lets go of a charge or a guard)
+    if (this.momentKey) { for (const p of presses) if (p.up) m.drop(p.a); presses = []; }
     this.queue.push(...presses);
     if (this.stop > 0) { this.stop -= dt; m.events.length = 0; k.cues.length = 0; return 0; }
     if (this.slowT > 0) { this.slowT -= dt; dt *= this.slowK; }
@@ -98,19 +101,31 @@ export class Fight {
     }
     if (!k.helpless) this.hero = false;
     const frozen = m.clip?.name === 'rites' && m.t < 3.6; // the world holds its breath
-    if (!this.passive && !m.dead && live && !frozen) { this.brain.step(dt, k, m.x, m.z, this.hits, this.bossHp / this.maxHp); if (this.brain.began) this.ev.push({ k: 'style', style: this.brain.began }); if (this.brain.style === 'eclipse' && this.bossHp / this.maxHp < 0.36 && this.wake < 100 && !this.granted) { this.granted = true; this.wake = 100; } }
+    if (!this.passive && !m.dead && live && !frozen && !this.momentKey) { this.brain.step(dt, k, m.x, m.z, this.hits, this.bossHp / this.maxHp); if (this.brain.began) this.ev.push({ k: 'style', style: this.brain.began }); if (this.brain.style === 'eclipse' && this.bossHp / this.maxHp < 0.36 && this.wake < 100 && !this.granted) { this.granted = true; this.wake = 100; } }
     // every fire is in your hands before the King falls
     if (this.phase === 'r1' && !this.passive && !this.gifted && this.bossHp < this.maxHp * D.gift) { this.gifted = true; this.wake = 100; this.fire = Math.max(this.fire, D.sunder.cost); }
     if (this.phase === 'finish' && k.mode === k.kneelMode && k.mt > k.holdKneel) k.mt = k.prev = k.holdKneel;
     if (this.phase === 'won' && k.mode === k.dieMode && k.mt > k.holdDie) k.mt = k.prev = k.holdDie;
     if (!frozen) { k.pace = (this.round === 2 ? (this.brain.style === 'eclipse' ? 1.1 : 1.04) : 1) * D.temper[this.brain.temper].pace; k.step(dt, m.x, m.z); k.tick?.(this, dt); } else { k.cues.length = k.live.length = 0; k.ended = null; }
     this.sync();
-    if (this.props.length && this.phase !== 'won') this.stone(dt, live);
-    if (live) { this.playerHits(); this.bossHits(); if (!frozen) this.zones(dt); this.fly(dt); if (this.boom > 0 && (this.boom -= dt) <= 0) this.detonate(); this.burn(dt); }
+    // during a staged moment the blades, the blasts and the boss's strikes stand still: the moment is the only thing that happens to the hero and the boss
+    const fighting = live && !this.momentKey;
+    if (this.props.length && this.phase !== 'won') this.stone(dt, fighting);
+    if (fighting) { this.playerHits(); this.bossHits(); if (!frozen) this.zones(dt); this.fly(dt); if (this.boom > 0 && (this.boom -= dt) <= 0) this.detonate(); this.burn(dt); }
     else if (this.phase === 'finish') { if (m.clip?.name === 'finale' && m.t > 2.0) { this.phase = 'won'; k.set(k.dieMode); this.ev.push({ k: 'hit', power: 3.4, dmg: 1, reel: false, kind: 'fire', head: false }, { k: 'won' }); this.stop = 0.2; this.slow(0.25, 1.6); } }
     for (const [a, ok] of [['skill1', this.fire >= c1], ['skill2', this.fire >= c2], ['ultimate', this.wake >= 100]] as const) { if (ok && !this.wasReady[a] && live) this.ev.push({ k: 'ready', a }); this.wasReady[a] = ok; }
     if (this.deadT >= 0 && (this.deadT += dt) > 3.0) this.reset();
+    this.moments();
     return dt;
+  }
+  /** What the boss is staging right now (a grab, a reward being played, or one on offer), or null. Read by shape, so a boss that stages moments needs no hook. */
+  private staged(): string | null { const b = this.king as { staging?: string | null; reward?: string | null }; return b.staging ? b.staging : b.reward ? 'offer:' + b.reward : null; }
+  /** The moment that is on, or null. Changes when a moment starts, and again when an offer is taken (it becomes the reward's own scene). */
+  private momentKey: string | null = null;
+  /** A moment starts (and again when an offer is taken): the hero is taken out of whatever he is doing, and his pending blasts and shots are cancelled. */
+  private moments() {
+    const key = this.staged(); if (key === this.momentKey) return; this.momentKey = key;
+    if (key) { this.m.interrupt(); this.boom = -1; this.blasts = []; this.shots.length = 0; }
   }
   private granted = false; private gifted = false;
   private playerHits() {

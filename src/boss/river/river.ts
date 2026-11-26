@@ -99,6 +99,7 @@ export class River implements Boss {
   }
   /** The grab connected (the drag's line): the boss takes the hero into a staged moment. It always plays out and always costs. */
   seize(kind: string, f: Fight) {
+    if (this.mode !== 'dragDeep') this.set('dragDeep'); // a blow may have reeled him out of the windup: he holds the hero in the drag's pose
     this.stage = this.sp = 0; this.grabbedOnce = true; this.held = 'drag'; f.brain.seen.add('dragDeep');
     f.invuln = Math.max(f.invuln, 0.15);
   }
