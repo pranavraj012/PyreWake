@@ -102,6 +102,8 @@ export class King {
     if (r === 'rope') this.set('rope'); else this.set('kneel');
     this.rite = r; return r;
   }
+  /** A fresh start: no moment is playing and no reward is on offer. */
+  clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; }
   /** Which staged moment is playing, if any (the page stages the camera and the hero for it). */
   get staging(): 'noose' | 'hands' | 'rope' | 'ride' | null { return this.held ?? this.rite; }
   /** Runs the moments' timings and what they do to the hero and the boss. Called once a step, after the boss moves. */

@@ -25,7 +25,9 @@ import { sound } from './audio/sound.ts';
 import { onSettings, saveSettings, settings } from './core/settings.ts';
 import { DEFAULT_SPELLS, SPELLS } from './combat/spells.ts';
 import { Turn, actionCam } from './game/cinema.ts';
-import { Ending, Intro, Prologue } from './game/scenes.ts';
+import { Ending, Intro, Prologue, kingMoments } from './game/scenes.ts';
+import { Moment, Prompt } from './game/moment.ts';
+import { KING_PRESS } from './game/kingScript.ts';
 import { Lessons } from './game/lessons.ts';
 import { DAWN, ECLIPSE } from './render/sky.ts';
 import { Director } from './game/director.ts';
@@ -88,6 +90,8 @@ async function boot() {
   const m = new Motor(KHANDA);
   const fight = new Fight(m, king.sim), prompts = new Prompts(), hud = new Hud(app, input); fight.furnish(court.ruin.props); fight.passive = !!(SHOT || BENCH || Q.has('still'));
   const follow = new FollowCam(); follow.blockers = m.blockers;
+  // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
+  const moment = new Moment(), qte = new Prompt(app), kSpecs = kingMoments(king.sim, m); let staged: 'noose' | 'hands' | 'rope' | 'ride' | null = null, qteFor: string | null = null;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath], court }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => { saveSettings({ beaten: settings.beaten | 1 }); ending.start(); }; hud.next = 'On to the river'; hud.onNext = () => { location.search = '?boss=2'; }; const arm = () => { const sp = lessons.active ? DEFAULT_SPELLS : settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); }; onSettings(() => { fight.brain.temper = settings.temper; arm(); }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0, turned = false;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
@@ -95,13 +99,13 @@ async function boot() {
   /** First light, over whatever the sky is doing. */
   const dawn = (k: number, force = false) => { if (!force && Math.abs(k - dawnK) < 0.002) return; dawnK = k; const o = omenK; kick.intensity = 0.55 + 0.2 * o + 1.5 * k; kick.color.setRGB(0.86 + 0.1 * k, 0.7 - 0.16 * o, 0.6 - 0.28 * o - 0.1 * k); hemi.intensity = 0.3 - 0.04 * o + 0.3 * k; post.exposure.value = 1.75 + 0.25 * k; DAWN.value = k; };
   document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && !menu.open && !turn.active && fight.phase !== 'won' && !intro.active && !story.active && !ending.active && !hud.paused && !m.dead) hud.setPaused(true); });
-  hud.onRestart = () => { if (lessons.active) { train(); return; } ending.stop(); dawn(0); turnWait = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
+  hud.onRestart = () => { if (lessons.active) { train(); return; } moment.stop(); staged = null; qte.hide(); king.sim.clearMoments(); ending.stop(); dawn(0); turnWait = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
   const direct0 = !!(SHOT || BENCH);
   const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
   const menu = new Menu(app, () => hud.controls()), still = fight.passive; menu.fights([['The Hanged King', null], ['The Ferryman', () => { location.search = '?boss=2'; }], ['The Sister of Hours', () => { location.search = '?boss=3'; }]]);
   /** Back to the very start: the court at night, the hero at the gate. */
-  const toMenu = () => { hud.setPaused(false); if (lessons.active) { lessons.active = false; lessons.frozen = null; } hud.lesson(null); hud.verse(''); ending.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.kneel(); king.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
+  const toMenu = () => { hud.setPaused(false); moment.stop(); staged = null; qte.hide(); king.sim.clearMoments(); if (lessons.active) { lessons.active = false; lessons.frozen = null; } hud.lesson(null); hud.verse(''); ending.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.kneel(); king.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen;
   // put down mid-fight: wait
   document.addEventListener('visibilitychange', () => { if (document.hidden && !menu.open && !turn.active && !intro.active && !story.active && !ending.active && fight.phase !== 'won' && !direct0) hud.setPaused(true); });
@@ -128,7 +132,7 @@ async function boot() {
     if (padNav(input)) ev = ev.filter(e => e.a === 'pause' && !menu.open);
     if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && !intro.active && !story.active && fight.phase !== 'won') hud.setPaused(!hud.paused);
     if (hud.paused) return;
-    const pace = turn.active ? turn.rate : 1; t += dt * pace; FOG.uFogP.value.w = SHARED.uTime.value = t;
+    const pace = turn.active ? turn.rate : moment.active ? moment.rate(king.sim.stage) : 1; t += dt * pace; FOG.uFogP.value.w = SHARED.uTime.value = t;
     if (menu.open) intro.kneel();
     else if (story.active) {
       if (story.t > 0.6 && ev.some(e => !e.up)) story.skip(); else story.step(dt, t);
@@ -142,14 +146,22 @@ async function boot() {
     } else { const s = Math.sin(follow.yaw), c = Math.cos(follow.yaw), mv = input.move; mx = mv.x * c - mv.y * s; mz = -mv.x * s - mv.y * c; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
     if (lessons.active) ev = lessons.gate(ev as { a: string; up: boolean }[]) as typeof ev;
+    // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
+    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && king.sim.takeReward()) qte.hide();
+    if (moment.active) { ev = []; mx = mz = 0; }
     const held = lessons.active && !!lessons.frozen, sd = held ? 0 : fight.step(dt * pace, mx, mz, ev), kv = dir.kv; if (held) fight.ev.length = 0;
+    { const want = king.sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(kSpecs[want]); } else moment.stop(); } }
+    if (!king.sim.reward) qteFor = null; else if (!moment.active && !qte.on && qteFor !== king.sim.reward) { qteFor = king.sim.reward; qte.show('attack', KING_PRESS[king.sim.reward], king.sim.rewardLeft, input.lastDevice); }
+    pv.tumble = moment.hero(king.sim.stage, pv.offset);
+    // the hands: dust where he sinks, and the floor breaking open as they let him go
+    if (king.sim.held === 'hands') { const s = king.sim.stage; if (s < 1.0 && Math.random() < 0.5) fx.puffs.emit(new THREE.Vector3(m.x + (Math.random() - 0.5) * 1.2, 0.2, m.z + (Math.random() - 0.5) * 1.2), 1, 1.0 + Math.random(), 0.6, t); if (s >= 1.0 && s < 1.06) fx.puffs.emit(new THREE.Vector3(m.x, 0.3, m.z), 14, 3, 1.2, t); }
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     lessons.step(dt, sd); hud.lesson(lessons.active ? lessons.card : null);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
     turn.step(dt, t); ending.step(dt, t); if (!story.active) dir.mono = Math.max(turn.mono, lessons.mono); if (turn.active) { omen(turn.omen); dawn(turn.dawn); court.flames(turn.flame); post.exposure.value = (1.75 + 0.25 * turn.dawn) * turn.dim + turn.flash * (settings.flash ? 3.2 : 0.6); dir.dark = turn.dark; turned = true; } else if (turned) { turned = false; court.flames(1); dir.dark = 0; post.exposure.value = 1.75; } else if (ending.active) { omen(1 - ending.clear); dawn(ending.dawn); } else if (fight.round === 2 && omenK < 1) omen(1);
     if (sound.score && /^(still|vigil|lesson)$/.test(sound.score.mood) && !menu.open && !intro.active && !story.active && !turn.active && !lessons.active && fight.round === 1) sound.score.set('spar'); if (sound.score && (story.active || intro.active)) sound.score.set('vigil'); if (sound.score && lessons.active) sound.score.set('lesson'); if (sound.score && sound.score.mood === 'spar' && fight.hits > 2) sound.score.set('r1');
     { const c = m.clip?.name, on = (c === 'rites' && m.t < 4.4) || c === 'finale'; if (on !== document.body.classList.contains('cut')) document.body.classList.toggle('cut', on); }
-    if (!menu.open && !intro.active && !story.active && !lessons.active) prompts.step(sd, fight);
+    if (!menu.open && !intro.active && !story.active && !lessons.active && !moment.active && !qte.on) prompts.step(sd, fight); else if (moment.active || qte.on) prompts.current = null;
     court.ruin.step(sd, t, [{ x: m.x, z: m.z, r: m.y > 0.6 ? -9 : 0.35, push: 1 + m.speed * 0.25 }, { x: king.sim.x, z: king.sim.z, r: king.sim.y > 0.6 || king.sim.hanging ? -9 : 0.8, push: 3.2 }]); follow.blockers = m.blockers;
     court.storm(fight.round === 2 && fight.phase !== 'won' ? (fight.brain.style === 'eclipse' ? 1 : 0.3) : 0); post.heat.value = omenK * 0.8;
     dir.step(sd, dt, t);
@@ -173,6 +185,7 @@ async function boot() {
     else if (ending.active) ending.camera(cam, t);
     else if (story.active) story.camera(cam, t);
     else if (intro.active) intro.camera(cam, t, baseFov);
+    else if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), king.sim.stage)) { /* a staged moment's shot */ }
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, baseFov)) { /* composed shot */ follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: king.sim.hx, z: king.sim.hz, solid: !king.sim.hanging && king.sim.y < 0.5, h: king.sim.y * 0.6 + (king.sim.hanging ? 1.7 : king.sim.crawling ? 1.2 : /kneel|fall|crash/.test(king.sim.mode) ? 1.5 : king.sim.form === 2 ? 1.9 : 2.2) }, input.takeLook(), t, baseFov);
     if (!SHOT && !BENCH && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
