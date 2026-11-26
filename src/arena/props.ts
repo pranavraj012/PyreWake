@@ -22,3 +22,11 @@ export function makeGhatProps(): Prop[] {
   for (const [x, z, y] of [[-12.5, -12.5, 0.5], [13.5, -11.5, -0.35], [-13.5, 9.5, 1.2], [12.8, 13.2, -0.9], [0.5, -17.5, 1.6]]) add('boat', 0, x, z, 1.5, 0.7, 4, y);
   return o;
 }
+/** The Waiting House: rope cots in two broken rows round the court (they burst at a touch, like a lamp), and sandstone columns at its edge. */
+export function makeHouseProps(): Prop[] {
+  const o: Prop[] = [], add = (kind: PropKind, shape: number, x: number, z: number, r: number, h: number, hp: number, yaw: number) => o.push({ id: o.length, kind, shape, x, z, r, yaw, h, hp, max: hp, broken: false });
+  // cots: their long sides toward the dial's foot, as the ward was laid out
+  for (const [R, n, off] of [[10.2, 9, 0.18], [13.6, 12, 0.05]] as const) for (let i = 0; i < n; i++) { const a = off + (i + 0.5) / n * Math.PI * 1.55 + Math.PI * 0.22 + (i % 3 === 1 ? 0.04 : 0); if (Math.abs(Math.sin(a * 7.1 + R)) < 0.18) continue; const x = Math.sin(a) * R, z = Math.cos(a) * R; add('lamp', 0, x, z, 0.72, 0.6, 2, a + Math.PI / 2 + (Math.sin(i * 3.7) * 0.12)); }
+  for (let i = 0; i < 10; i++) { const a = (i + 0.5) / 10 * Math.PI * 2 + 0.31, shape = [0, 1, 0, 2, 0, 0, 1, 0, 2, 0][i]; add('pillar', shape, Math.sin(a) * 16.6, Math.cos(a) * 16.6, 0.7, [5.65, 4.2, 2.7][shape], 5, a); }
+  return o;
+}

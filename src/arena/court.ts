@@ -11,13 +11,13 @@ const seeded = (s: number) => () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imu
 
 type P2 = [number, number];
 /** Worn floor slabs. Some are split into shards that have settled at different angles. */
-export function slabs(r: () => number, lo: boolean) {
+export function slabs(r: () => number, lo: boolean, mat = 16) {
   const pos: number[] = [], nrm: number[] = [], info: number[] = [], idx: number[] = [];
   const poly = (p: P2[], y: number, tilt: number) => {
     const n = p.length, cx = p.reduce((a, q) => a + q[0], 0) / n, cz = p.reduce((a, q) => a + q[1], 0) / n, tx = (r() - 0.5) * tilt, tz = (r() - 0.5) * tilt, b = 0.016 + r() * 0.014;
     const ring = (inset: number, dy: number, out: number, ao: number, cv: number) => p.forEach(([x, z]) => {
       const dx = x - cx, dz = z - cz, l = Math.hypot(dx, dz) || 1, k = Math.max(0, 1 - inset / l), v = new THREE.Vector3(dx / l * out - tx, out > 0.9 ? 0.04 : 1 - out * 0.55, dz / l * out - tz).normalize();
-      pos.push(cx + dx * k, y + dy + dx * tx + dz * tz, cz + dz * k); nrm.push(v.x, v.y, v.z); info.push(ao * 255, cv * 255, 0, 16);
+      pos.push(cx + dx * k, y + dy + dx * tx + dz * tz, cz + dz * k); nrm.push(v.x, v.y, v.z); info.push(ao * 255, cv * 255, 0, mat);
     });
     const base = pos.length / 3;
     ring(0, -0.2, 0.98, 0.15, 0.3); ring(0, -b, 0.75, 0.55, 0.72); ring(b, 0, 0.12, 0.85, 0.78); if (!lo) { ring(b + 0.03, 0.001, 0, 0.95, 0.52); ring(b + 0.16, 0.002, 0, 1, 0.5); }
