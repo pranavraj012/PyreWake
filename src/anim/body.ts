@@ -8,7 +8,7 @@ export const dirOf = (az: number, el: number, out = V()) => out.set(Math.sin(az 
 
 /** A solid the hands may not enter: bone, centre and radii in that bone's frame (rest pose). */
 export type Solid = [string, [number, number, number], [number, number, number]];
-export interface BodySpec { armDir: [number, number, number]; grip: [number, number]; ankle: number; feet: [number, number]; heel: number; spine: number; /** The torso, for keeping hands out of it. */ torso?: Solid[]; /** Wrist deviation limits in degrees, [toward the little finger, toward the thumb]: the rest of the angle turns the weapon in the fist. */ wrist?: [number, number] }
+export interface BodySpec { armDir: [number, number, number]; grip: [number, number]; ankle: number; feet: [number, number]; heel: number; spine: number; /** The torso, for keeping hands out of it. */ torso?: Solid[]; /** Wrist deviation limits in degrees, [toward the little finger, toward the thumb]: the rest of the angle turns the weapon in the fist. */ wrist?: [number, number]; /** Where the second hand closes along the weapon from the first, metres (+ up a shaft, - toward the pommel). */ second?: number }
 export const HUMAN_SPEC: BodySpec = { armDir: [0.643, -0.766, 0], grip: [0.085, 0.027], ankle: 0.09, feet: [0.105, -0.025], heel: 0.17, spine: 1, wrist: [30, 22], torso: [['chest', [0, 1.31, 0.0], [0.2, 0.21, 0.16]], ['spine2', [0, 1.17, 0.0], [0.17, 0.14, 0.14]], ['spine1', [0, 1.05, 0.01], [0.17, 0.12, 0.14]], ['hips', [0, 0.95, 0.0], [0.19, 0.13, 0.15]]] };
 export const KING_SPEC: BodySpec = { armDir: [0.42, -0.9, 0.11], grip: [0.2, 0.03], ankle: 0.14, feet: [0.25, -0.06], heel: 0.3, spine: 1 };
 
@@ -96,7 +96,7 @@ export class Body {
       }
       this.gripPos.copy(off(-1)).applyQuaternion(r.rot[r.i('hand.R')]).add(r.pos[r.i('hand.R')]);
       tL.copy(tL0); qL = null;
-      if (lg > 0.01) { qL = Rig.frame(FWD, dL, this.blade, kn, new THREE.Quaternion()); tL.lerp(this.gripPos.clone().addScaledVector(this.blade, -0.12).sub(off(1).applyQuaternion(qL)), lg); }
+      if (lg > 0.01) { qL = Rig.frame(FWD, dL, this.blade, kn, new THREE.Quaternion()); tL.lerp(this.gripPos.clone().addScaledVector(this.blade, this.spec.second ?? -0.12).sub(off(1).applyQuaternion(qL)), lg); }
       if (this.limbs.handL) tL.lerp(this.limbs.handL, this.limbs.handW);
     };
     grip();

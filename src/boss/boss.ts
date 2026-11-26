@@ -11,6 +11,7 @@ export interface Boss {
   /** Modes the referee puts it in. */ readonly reelMode: string; readonly kneelMode: string; readonly downMode: string; readonly dieMode: string; readonly reeling: boolean; /** Seconds a held kneel / death pose is kept. */ readonly holdKneel: number; readonly holdDie: number;
   set(mode: string, rate?: number): void; break(): void; turn(step: number, to: number): number; step(dt: number, px: number, pz: number): void; covers(q: Strike, px: number, pz: number, r?: number): boolean;
   /** Back to a clean start: bosses with mechanics of their own clear them. */ reset?(): void;
+  /** Called by the referee each time a blow lands, with what kind it was. */ struck?(f: Fight, kind: 'blade' | 'fire'): void;
   /** Called by the referee after step: bosses with their own mechanics (chains, lanterns, coins) act here. */ tick?(f: Fight, dt: number): void;
 }
 export interface BossBrain {

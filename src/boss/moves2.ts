@@ -84,7 +84,7 @@ export function addMoves2(K: Record<string, Clip>) {
 }
 
 /** Ground danger. Circles and lines go off after `delay`; a ring rolls outward from the boss. */
-export interface Zone { shape: 'circle' | 'line' | 'ring'; at: 'mark' | 'self' | 'player'; r?: number; len?: number; half?: number; yaw?: number; delay: number; speed?: number; max?: number }
+export interface Zone { shape: 'circle' | 'line' | 'ring' | 'sweep'; at: 'mark' | 'self' | 'player'; r?: number; len?: number; half?: number; yaw?: number; delay: number; speed?: number; max?: number; /** A circle with a safe middle this wide; a sweep that misses inside this radius. */ inner?: number; /** A sweep turns this far (radians) over `dur` seconds after its delay. */ spin?: number; dur?: number }
 /** white: dodge or guard. red: dodge only. ground: leave the glowing area, or dodge as it goes off. */
 export interface Strike {
   kind: 'white' | 'red' | 'ground'; t: [number, number]; cue: number; dmg: number; down?: boolean; mark: 'cleaver' | 'handL' | 'head';
