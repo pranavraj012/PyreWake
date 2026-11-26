@@ -45,15 +45,32 @@ const JOBS: Record<string, () => Promise<Mesh>> = {
   drowned: async () => (await import('./models/river.ts')).drowned(),
   hull: async () => (await import('./models/river.ts')).hull(),
   section: async () => (await import('./models/river.ts')).section(),
+  sister: async () => (await import('./models/hours.ts')).sister(),
+  hook: async () => (await import('./models/hours.ts')).hook(),
+  pall: async () => (await import('./models/hours.ts')).pall(),
+  pallFrame: async () => (await import('./models/hours.ts')).pallFrame(),
+  cot: async () => (await import('./models/house.ts')).cot(),
+  cotBits: async () => (await import('./models/house.ts')).cotBits(),
+  hcol0: async () => (await import('./models/house.ts')).hcol(1, 0),
+  hcol1: async () => (await import('./models/house.ts')).hcol(2, 3.0),
+  hcol2: async () => (await import('./models/house.ts')).hcol(3, 1.5),
+  hcol0Bits: async () => (await import('./models/house.ts')).hcolBits(1, 0),
+  hcol1Bits: async () => (await import('./models/house.ts')).hcolBits(2, 3.0),
+  hcol2Bits: async () => (await import('./models/house.ts')).hcolBits(3, 1.5),
+  arcade: async () => (await import('./models/house.ts')).arcade(),
+  dial: async () => (await import('./models/house.ts')).dial(),
+  bowl: async () => (await import('./models/house.ts')).bowl(),
+  beam: async () => (await import('./models/house.ts')).beam(),
 };
+const CHAR = ['player', 'king', 'beneath', 'ferryman', 'ferryman2', 'sister', 'pall'];
 
 const OUT = 'public/baked';
 fs.mkdirSync(OUT, { recursive: true });
 if (process.argv[2] === '--one') {
   const n = process.argv[3], t = Date.now(), m = await JOBS[n](), s = packMesh(m, `${OUT}/${n}.bin`);
-  packMesh(await decimate(m, Math.round(m.idx.length / 3 * (n === 'player' || n === 'king' || n === 'beneath' || (n === 'ferryman' || n === 'ferryman2') ? 0.29 : n.startsWith('block') ? 0.36 : 0.45))), `${OUT}/${n}.lo.bin`);
+  packMesh(await decimate(m, Math.round(m.idx.length / 3 * (CHAR.includes(n) ? 0.29 : n.startsWith('block') ? 0.36 : 0.45))), `${OUT}/${n}.lo.bin`);
   // afterimages and shadow stand-ins
-  const xs = n === 'player' || n === 'king' || n === 'beneath' || (n === 'ferryman' || n === 'ferryman2') ? 4500 : n.startsWith('pillar') && !n.endsWith('Bits') ? 260 : n === 'stele' ? 160 : n === 'boat' ? 300 : 0; if (xs) packMesh(await decimate(m, xs), `${OUT}/${n}.xs.bin`);
+  const xs = CHAR.includes(n) ? 4500 : (n.startsWith('pillar') || n.startsWith('hcol')) && !n.endsWith('Bits') ? 260 : n === 'stele' ? 160 : n === 'boat' ? 300 : n === 'cot' ? 200 : 0; if (xs) packMesh(await decimate(m, xs), `${OUT}/${n}.xs.bin`);
   console.log(`${n.padEnd(9)} ${String(s.tris).padStart(6)} tris  ${String(s.kb).padStart(5)} KB  ${((Date.now() - t) / 1000).toFixed(1)}s`);
 } else if (process.argv[2] === 'textures') {
   await (await import('./textures.ts')).bakeTextures('assets_src', OUT + '/tex');
