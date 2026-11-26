@@ -543,6 +543,27 @@ def _(i): s = 3.0; return Pot(s).add(doom(2.2, D1, 1), 0.9).add(choirOfBreath(2.
 @cook('clothBed')
 def _(i): L = 12; g = lambda a: ring(fit(np.tile(hp(load(USC + 'gust.wav', start=a), 120), 3), 14) * .7 + .5 * fit(lp(np.tile(load(CL + 'cloth.wav', 0.55), 60), 1800), 14), L); return bed(L, g(2), g(6), -27)
 
+# ---------------------------------------------------------------- the world: regions, the Last Pyre, lesser foes (module K)
+# Beds for the Ashfields, the hub and the danger layer (score.setDanger). Added after every older recipe, so their random draws are unchanged.
+LOOPS |= {'ashBed', 'hubBed', 'dreadBed'}
+@cook('ashBed')
+def _(i): L = 12; g = lambda a, b: ring(lp(load(USC + 'spooky.wav', 0.8, start=a), 1500)[:int(16 * SR)] + .25 * hp(load(USC + 'fire.wav', start=b), 2400)[:int(16 * SR)], L); return bed(L, g(2, 20), g(30, 8), -26)
+@cook('hubBed')
+def _(i): L = 10; g = lambda a, b: ring(hp(load(USC + 'firelow.wav', 0.9, start=a), 60)[:int(12 * SR)] * .8 + .3 * lp(load(USC + 'spooky.wav', 0.7, start=b), 700)[:int(12 * SR)], L); return bed(L, g(3, 10), g(20, 26), -25)
+@cook('dreadBed')
+def _(i): L = 12; g = lambda a: ring(lp(load(USC + 'spooky.wav', 0.5, start=a), 260)[:int(14 * SR)], L); return bed(L, g(12), g(40), -28, 0.4)
+# Lesser foes: one idea each, low life, the same cue language as the bosses.
+@cook('mourn', 3)
+def _(i): return Pot(1.6).add(moan(i, 0.62, 1.2) * ad(int(1.2 * SR), 0.12, 0.45), 0.8).add(lp(load('rpg_sound_pack/cloth-heavy.wav', 0.75 + .05 * i, dur=0.7), 1400), 0.7, 0.05).add(sub(0.9, D1 * 2, 100, 0.25, 0.04, 1.5), 0.6, 0.1).verb(1.2, 0.2).glue(1.5).out(0.7)
+@cook('mournGrab', 2)
+def _(i): return Pot(0.9).add(load('rpg_sound_pack/cloth.wav', 1.2 + .1 * i, dur=0.35), 0.9).add(moan(i + 3, 0.7, 0.6) * ad(int(0.6 * SR), 0.02, 0.2), 0.7, 0.02).add(sub(0.5, D1 * 2, 130, 0.12), 0.8, 0.05).verb(0.8, 0.12).glue(1.4).out(0.62)
+@cook('houndYelp', 3)
+def _(i): return creature([[CR2 + 'monster_15.ogg', CR2 + 'monster_09.ogg', CR1 + 'monster_06.ogg'][i], CR1 + 'scream_0%d.ogg' % (1 + i % 2)], [1.45, 1.35, 1.5][i], 0.8, 0.12, 1.5, 120, 5600).out(0.8)
+@cook('houndLunge', 2)
+def _(i): return creature([CR1 + 'roar_0%d.ogg' % (1 + i), LOOSE + 'silent_beast_growl_%d.mp3' % (2 + i)], 0.8 + .05 * i, 0.9, 0.35, .2, 1.8, 80, 3200).out(0.8)
+@cook('hanging', 2)
+def _(i): s = 1.6; return Pot(s).add(load(WMS + 'wood_cracking_0%d.ogg' % (2 + i), 0.7, dur=0.6), 0.9).add(groan(0.45, i, 1.0), 0.6, 0.05).add(sub(0.9, D1, 110, 0.25, 0.04, 1.8), 1.0, 0.42).add(lp(load('rpg_sound_pack/cloth-heavy.wav', 0.9 + .1 * i), 900), 0.5, 0.38).verb(1.2, 0.18, bright=2800).glue(1.6).out(0.78)
+
 # ---------------------------------------------------------------- serve
 from scipy.signal import sosfiltfilt
 #: Share of energy wanted above 250 Hz (a laptop or phone hears little else), and how far the loudest tenth of a second sits under the peak.
