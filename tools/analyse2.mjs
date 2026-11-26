@@ -15,7 +15,7 @@ function bout(kind, seed) {
     if (act === i) p = o.jump && k.mode === 'lowWater' ? tap('jump') : tap('dodge'); else if (f.hp < 35 && f.heals > 0 && m.state === 'free') p = tap('heal');
     else if (o.spell && m.can.ultimate && d < 8) p = tap('ultimate'); else if (o.spell && m.can.skill2 && (k.mode === 'tide' || k.committed)) p = tap('skill2');
     else if (d < 2.8 && i - last > 9 && i > wait) { last = i; p = tap('attack'); }
-    f.step(DT, Math.sin(a) * go, Math.cos(a) * go, p); R.modes[k.mode] = (R.modes[k.mode] ?? 0) + DT;
+    const mo = k.held || k.rite; f.step(DT, mo ? 0 : Math.sin(a) * go, mo ? 0 : Math.cos(a) * go, mo ? [] : p); R.modes[k.mode] = (R.modes[k.mode] ?? 0) + DT;
     const did = Math.max(0, prev - f.bossHp); prev = f.bossHp; if (did) R.dmg[k.mode] = (R.dmg[k.mode] ?? 0) + did;
     if (f.phase === 'finish' || f.phase === 'won') { R.win = true; break; } if (m.dead) { deaths++; break; }
   }
