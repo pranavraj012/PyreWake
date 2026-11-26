@@ -8,7 +8,7 @@ import { HOURS_ATTACKS as A } from './moves.ts';
 
 export const DIAL = 17.5;
 const wrap = (a: number) => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;
-const QUIET = ['idle', 'stalk', 'strafe', 'reel', 'reel2', 'kneel', 'fall', 'rise', 'die', 'lostCount', 'burnt', 'sag'];
+const QUIET = ['sit', 'idle', 'stalk', 'strafe', 'reel', 'reel2', 'kneel', 'fall', 'rise', 'die', 'lostCount', 'burnt', 'sag'];
 /** A move rather than footwork or a wound. */
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the line drawn at the cue is where it lands. */
@@ -93,7 +93,7 @@ export class Sister implements Boss {
       } else if (m in LOCK) { if (mt < LOCK[m]) this.turn(3.2 * dt, face); if (m === 'sweepWard' && mt > 1.5 && mt < 2.05) this.turn(5 * dt, face); }
       else if (m === 'turnPyre' && mt > 1.1 && mt < 1.6) this.turn(2.0 * dt, face);
       else { const next = s.find(q => q.t[0] > mt); if (next && mt < next.t[0] - 0.2) this.turn(2.4 * dt, face); else if (!s.length && mt < 0.8) this.turn(1.4 * dt, face); }
-      if (mt >= c.dur && !['kneel', 'fall', 'die', 'rise'].includes(m)) this.end(m);
+      if (mt >= c.dur && !['kneel', 'fall', 'die', 'rise', 'sit'].includes(m)) this.end(m);
       void dx; void dz;
     }
   }

@@ -53,6 +53,9 @@ C.reel = clip('reel', { dur: 1.4, blend: 0.1, keys: [at(0, { hy: -0.1, hp: -18, 
 C.kneel = clip('kneel', { dur: 3.0, blend: 0.3, keys: [at(0), { t: 0.6, hy: -0.7, hp: 30, sp: 30, np: -30, ra: -20, re: -10, be: 80, flz: 0.4, frz: -0.6, frp: 60 }, { t: 2.6, hy: -0.7, hp: 30 }, at(3.0)] });
 C.fall = clip('fall', { dur: 6.0, blend: 0.3, keys: [at(0), { t: 0.6, hy: -0.7, hp: 30, sp: 30, np: -30, be: 80, frp: 60, frz: -0.6 }, { t: 5.6, hy: -0.7, hp: 34, sp: 36, np: -40 }, at(6.0, { hy: -0.7, hp: 34, sp: 36 })] });
 
+/** Kneeling, the cord across her lap, head bowed: how she sits with the dying, and how she is found at the end. */
+C.sit = clip('sit', { dur: 4.0, blend: 0.4, keys: [at(0, { hy: -0.72, hp: 4, hw: 0, sp: 12, sw: 0, np: -22, nw: 0, ra: -8, re: -62, rl: 0.42, xr: 20, ba: 20, be: -70, lg: 0, la: 8, le: -62, ll: 0.42, xl: 20, flz: 0.05, frz: -0.35, frp: 70, flp: 0 }), { t: 2, sp: 14, np: -26 }, at(4.0, { hy: -0.72, hp: 4, hw: 0, sp: 12, sw: 0, np: -22, nw: 0, ra: -8, re: -62, rl: 0.42, xr: 20, ba: 20, be: -70, lg: 0, la: 8, le: -62, ll: 0.42, xl: 20, flz: 0.05, frz: -0.35, frp: 70, flp: 0 })] });
+
 // --- the Pall: timing only
 for (const [n, dur] of [['hourHand', 4.4], ['drawSheet', 4.1], ['wardStands', 2.4], ['noon', 2.4], ['lastBreath', 3.0], ['hemLash', 2.0], ['longCount', 6.8], ['sag', 3.0], ['reel2', 1.4], ['rise', 3.0], ['die', 6.0]] as const)
   C[n] = clip(n, { dur, blend: 0.3, keys: [at(0), at(dur)] });
