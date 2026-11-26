@@ -12,6 +12,7 @@ import { DAWN } from '../render/sky.ts';
 import { LEVEL } from '../render/water.ts';
 import type { Hud } from '../ui/hud.ts';
 import { Cues, Lens } from './scenes.ts';
+import { RIVER_ENDING, RIVER_INTRO, RIVER_TURN, speak } from './riverScript.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 export interface RiverKit { f: Fight; pv: PlayerView; k1: RiverView; k2: RiverView; fx: Fx; hud: Hud; ghats: Awaited<ReturnType<typeof buildGhats>>; rd: RiverDirector }
@@ -45,10 +46,7 @@ export class RiverIntro {
   step(dt: number, time: number): number {
     const { f, fx, hud, ghats, k1 } = this.kit, m = f.m, k = f.king as River, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.6);
     // words: few, and only where nothing else is speaking
-    c.at(t, 0.8, 'w1', () => hud.verse('After the fire comes the crossing.'));
-    c.at(t, 4.0, 'w1x', () => hud.verse(''));
-    c.at(t, 4.8, 'w2', () => hud.verse('Set a lamp on the water, and the ferry will come.'));
-    c.at(t, 8.4, 'w2x', () => hud.verse(''));
+    speak(RIVER_INTRO.lines, t, (at, id, f) => c.at(t, at, id, f), v => hud.verse(v));
     c.at(t, 0.05, 'hush', () => { sound.duck(0.5, 3); sound.play('wave', { gain: 0.35, wet: 0.8 }); });
     const walk = t > 1.0 && t < 6.6 ? -0.5 : 0;
     // the hero's lamp: set down, drifting out ahead of the dark
@@ -76,12 +74,12 @@ export class RiverIntro {
     // under the hat, behind the coins, he opens his eyes; he says the law
     this.eyeK += ((t >= B.eyes ? 1 : 0) - this.eyeK) * Math.min(1, dt * (t >= B.eyes ? 7 : 20)); k1.eyes(this.eyeK * (t >= B.eyes && t < B.eyes + 0.35 ? 0.6 + 0.4 * Math.sin((t - B.eyes) * 40) : 1));
     c.at(t, B.eyes, 'eyes', () => { sound.play('kBreath', { gain: 0.6, wet: 0.5, bus: 'voice' }); });
-    c.at(t, B.line, 'line', () => { hud.verse('"Only ash may cross."'); sound.play('fCall', { gain: 0.95, wet: 0.55, bus: 'voice' }); });
+    c.at(t, B.line, 'line', () => { hud.verse(RIVER_INTRO.law.text); sound.play(RIVER_INTRO.law.voice, { gain: 0.95, wet: 0.55, bus: 'voice' }); });
     c.at(t, B.lift, 'lift', () => { hud.verse(''); k.set('plant'); sound.play('creak', { gain: 0.8, wet: 0.5 }); });
     // the pole goes into the riverbed: the lamps run back out to the far bank, brighter than before
     c.at(t, B.slam, 'slam', () => { sound.play('braam', { gain: 0.85 }); sound.play('boom', { gain: 0.8 }); sound.play('flare', { gain: 0.7, wet: 0.6 }); sound.duck(0.5, 1.4); this.lens.trauma = 1; ghats.setOut(0, 0, 0); ghats.flames(1); ghats.bowlsLit(true); ghats.ripple(0, -3.6, 4.5, time); fx.puffs.emit(V(0, 0.3, -3.4), 26, 4, 2, time); fx.sparks.emit(V(0, 0.4, -3.4), V(0, 1, 0), 60, 6, 2.2, 0.6, time); });
     if (t >= B.slam) ghats.setFront(t < B.title + 2 ? Math.max(0.01, (t - B.slam) * 60) : 0);
-    c.at(t, B.title, 'title', () => { hud.say('The Ferryman', 2.6, 'title', 'He has never lost a fare.'); sound.play('rise', { gain: 0.6, wet: 0.6 }); });
+    c.at(t, B.title, 'title', () => { hud.say(RIVER_INTRO.title.name, 2.6, 'title', RIVER_INTRO.title.sub); sound.play('rise', { gain: 0.6, wet: 0.6 }); });
     if (t >= INTRO_LEN) this.finish();
     return walk;
   }
@@ -108,7 +106,7 @@ export class RiverTurn {
   constructor(kit: RiverKit) { this.kit = kit; }
   get active() { return this.t >= 0; }
   start() { const { f } = this.kit, m = f.m, k = f.king as River; this.t = 0; this.off = false; this.c.clear(); this.lens.cut = 0; this.mono = 0; if (Math.hypot(m.x - k.x, m.z - k.z) < 3.4) { m.revive(k.x, k.z + 3.6, Math.PI); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.score?.set('scene'); }
-  stop() { this.t = -1; this.mono = 0; document.body.classList.remove('cine'); }
+  stop() { this.t = -1; this.mono = 0; this.kit.rd.turnK = 0; document.body.classList.remove('cine'); }
   skip() { if (!this.active || this.t < 0.8) return; this.become(); this.c.off = true; this.kit.hud.verse(''); this.t = TURN_LEN; }
   private become() { const { f, k1, k2, ghats } = this.kit, k = f.king as River, m = f.m; if (k.form === 2) return; k1.show(false); k.form = 2; k.set('riseW'); k.x = 0; k.z = -5; k.y = 0; k.yaw = 0; k.reset(); k2.show(true); k2.settle(); ghats.lamps(0.28, true); if (Math.hypot(m.x, m.z - 5) > 0.8) { m.revive(0, 5, Math.PI); this.kit.pv.reset(); } }
   step(dt: number, time: number) {
@@ -116,14 +114,15 @@ export class RiverTurn {
     if (!this.off && k.form === 1 && (k.mode === 'fall') && k.mt > 3.0) k.mt = k.prev = 3.0;
     c.at(t, 0.1, 'hush', () => { sound.duck(0.3, 4); sound.play('fDeath', { gain: 1, wet: 0.6, bus: 'voice' }); });
     c.at(t, 1.5, 'lampsOut', () => { ghats.lamps(0.0); sound.play('lampOut', { gain: 1, wet: 0.6 }); });
-    c.at(t, 4.2, 'line1', () => hud.verse('"She weighs nothing. Feel. She weighs nothing."'));
-    c.at(t, 7.4, 'hands', () => { sound.play('moan', { gain: 0.6, wet: 0.9 }); hud.verse('Every one of them has paid. He sets them down.'); for (let i = 0; i < 6; i++) ghats.ripple((Math.random() - 0.5) * 18, -4 + (Math.random() - 0.5) * 18, 1.2, time + i * 0.1); });
-    c.at(t, 9.6, 'swell', () => { this.become(); hud.verse(''); sound.play('drain', { gain: 1, wet: 0.7 }); this.lens.trauma = 0.6; });
+    speak(RIVER_TURN.lines, t, (at, id, f) => c.at(t, at, id, f), v => hud.verse(v));
+    c.at(t, 7.4, 'hands', () => { sound.play('moan', { gain: 0.6, wet: 0.9 }); for (let i = 0; i < 6; i++) ghats.ripple((Math.random() - 0.5) * 18, -4 + (Math.random() - 0.5) * 18, 1.2, time + i * 0.1); });
+    c.at(t, 9.6, 'swell', () => { this.become(); sound.play('drain', { gain: 1, wet: 0.7 }); this.lens.trauma = 0.6; });
+    this.kit.rd.turnK = E(10.4, 15.8, t);
     if (t > 9.6 && t < 13.4 && Math.random() < 0.5) ghats.ripple((Math.random() - 0.5) * 8, -5 + (Math.random() - 0.5) * 8, 1.6, time);
     c.at(t, 11.0, 'net', () => { sound.play('snap', { gain: 0.9, wet: 0.6 }); sound.play('wave', { gain: 0.7, wet: 0.7 }); this.lens.trauma = 0.8; ghats.ripple(0, -5, 3, time); fx.puffs.emit(V(0, 0.4, -5), 24, 4, 2, time); for (let i = 0; i < 40; i++) fx.sparks.emit(V((Math.random() - 0.5) * 1.6, 1 + Math.random() * 2.4, -5 + (Math.random() - 0.5) * 1.6), V((Math.random() - 0.5), 0.6, (Math.random() - 0.5)), 2, 4, 1.6, 0.9, time); });
     c.at(t, 12.1, 'rise', () => { sound.play('wRoar', { gain: 0.9, wet: 0.7, bus: 'voice' }); sound.play('braam', { gain: 0.9 }); sound.duck(0.35, 1.2); this.lens.trauma = 1; ghats.lamps(0.6); ghats.ripple(0, -5, 4, time); fx.sparks.emit(V(0, 2, -5), V(0, 1.5, 0), 120, 7, 2, -1.2, time); });
     c.at(t, 15.6, 'lamps', () => { sound.play('aura2', { gain: 0.8, wet: 0.7 }); });
-    c.at(t, 17.2, 'title', () => { hud.say('The Unburdened', 2.8, 'title', 'Every fare he ever took has come up out of the river to him.'); sound.play('boom', { gain: 0.8 }); });
+    c.at(t, 17.2, 'title', () => { hud.say(RIVER_TURN.title.name, 2.8, 'title', RIVER_TURN.title.sub); sound.play('boom', { gain: 0.8 }); });
     this.mono = t < 2 ? 0.0 : t < 9.6 ? 0.55 * E(1.5, 4, t) : 0.4 * (1 - E(12.1, 16, t));
     if (t >= TURN_LEN) { this.stop(); hud.verse(''); f.beginRound2(); k.set('riseW'); k.mt = k.prev = 3.2; this.onEnd(); }
   }
@@ -151,19 +150,16 @@ export class RiverEnding {
   step(dt: number, time: number) {
     if (!this.active) return; const { f, fx, hud, ghats, k2 } = this.kit, m = f.m, k = f.king as River, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.4);
     c.at(t, 0.05, 'hush', () => { sound.duck(0.05, 3); });
+    speak(RIVER_ENDING.lines, t, (at, id, f) => c.at(t, at, id, f), v => hud.verse(v));
     c.at(t, 0.5, 'apart', () => { sound.play('wDeath', { gain: 1, wet: 0.7, bus: 'voice' }); sound.play('breach', { gain: 0.9, wet: 0.6 }); ghats.ripple(k.x, k.z, 4, time); fx.puffs.emit(V(k.x, 0.3, k.z), 30, 5, 2.4, time); this.lens.trauma = 0.8; });
     c.at(t, 4.4, 'people', () => { sound.play('moan', { gain: 0.5, wet: 0.9 }); k2.standing(true); });
     c.at(t, 7.2, 'boat', () => { sound.play('boatRise', { gain: 0.9, wet: 0.6 }); k2.boat(true); ghats.ripple(0, -9, 3, time); });
-    c.at(t, 9.6, 'line1', () => hud.verse('He is an old man of ordinary size, with a bundle in his arms.'));
-    c.at(t, 12.4, 'line2', () => hud.verse(''));
     // you walk out to it; this is the one blow you do not swing
     f.sceneMove = t > 9.4 && t < 14.4 ? { x: 0, z: -0.5 } : { x: 0, z: 0 };
     c.at(t, 15.0, 'touch', () => { const p = V(m.x, 1.0, m.z - 1.1); fx.bursts.add('fire', p, 2, 0.8, time); fx.bursts.add('flare', p, 4, 0.4, time); fx.sparks.emit(p, V(0, 0.6, -0.4), 60, 3, 2, -0.6, time); sound.play('fire', { gain: 0.8, wet: 0.5 }); sound.play('lampSet', { gain: 0.8, wet: 0.5 }); this.lens.trauma = 0.3; });
     if (t > 15.3) this.front = (t - 15.3) * 14; ghats.setFront(this.front);
     c.at(t, 15.6, 'run', () => { sound.play('fireRun', { gain: 1, wet: 0.7 }); ghats.lamps(1); });
     this.dawn = E(17.5, 26, t); DAWN.value = this.dawn;
-    c.at(t, 22.5, 'line3', () => hud.verse('"Call her by it. It is a good name."'));
-    c.at(t, 26.6, 'quiet', () => hud.verse(''));
     if (t >= END_LEN && !this.over) { this.over = true; this.dawn = 1; document.body.classList.remove('cine'); hud.won(f); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {

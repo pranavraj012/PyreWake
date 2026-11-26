@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { loadGeo, loadJson, type TexSet } from '../render/assets.ts';
 import { DEPTH, FOG, surface } from '../render/surface.ts';
+import { LINE } from '../render/sky.ts';
 import { Ruin } from './ruin.ts';
 import { makeGhatProps } from './props.ts';
 import { slabs } from './court.ts';
@@ -95,11 +96,22 @@ void main(){ float t = uT.w, fl = .8 + .2 * sin(t * 7. + vf * 40.) + .1 * sin(t 
   ruin.onLamp = (i, lit) => { for (let k = 0; k < 3; k++) lampAt.setY(i * 3 + k, lit ? lampY[i * 3 + k] : -60); lampAt.needsUpdate = true; };
   const lights = ruin.lamps.slice(0, tier.lights).map(() => { const l = new THREE.PointLight(0xff9448, 0, 18, 1.8); group.add(l); return l; });
   group.updateMatrixWorld(true); group.traverse(o => { if (!(o as THREE.PointLight).isPointLight && !(o as THREE.Bone).isBone) o.matrixAutoUpdate = false; }); water.mesh.matrixAutoUpdate = true; water.mesh.updateMatrix();
+  // --- round 2: every fare he ever took, come up out of the river: coins strewn over the drowned landing (hidden below the stone until then)
+  const coinGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.007, 10); { const n = coinGeo.attributes.position.count, a = new Uint8Array(n * 4); for (let i = 0; i < n; i++) a.set([235, 128, 0, 29], i * 4); coinGeo.setAttribute('aInfo', new THREE.BufferAttribute(a, 4, true)); }
+  const coins = new THREE.InstancedMesh(coinGeo, wood, ph ? 800 : 2400); { const rc = (() => { let x = 7; return () => (x = (x * 16807) % 2147483647) / 2147483647; })(); for (let i = 0; i < coins.count; i++) { const a = rc() * 6.283, R = 1.5 + Math.pow(rc(), 0.7) * 19, s = 0.8 + rc() * 0.6; coins.setMatrixAt(i, M(Math.sin(a) * R, 0.004 + rc() * 0.01, Math.cos(a) * R - 2, rc() * 6, s, (rc() - 0.5) * 0.5, (rc() - 0.5) * 0.5)); } }
+  coins.frustumCulled = false; coins.receiveShadow = true; coins.visible = false; group.add(coins);
+  const fog0 = FOG.uFogCol.value.clone(), fogCold = new THREE.Color(0.003, 0.011, 0.034); let fieldK = -1;
   let lampTo = 1, flameK = 1, lastT = 0, lit = 1;
   return {
     group, ruin, water, /** The lamps you can see, 0-1 lit. The next call eases to it; `at` jumps. */ lamps(k: number, at = false) { lampTo = k; if (at) { lit = k; lamp.u.uLit.value = k; } },
     /** 0-1: pyre light. Unused here; the lamp posts burn. */ flames(k: number) { flameK = k; (lampFire.material as THREE.ShaderMaterial).uniforms.uGain.value = k; }, omen(_k: number) { /* no eclipse on the river */ }, storm(_k: number) { }, breach() { }, tear() { },
     /** The fire running from lamp to lamp: how far out from the boat it has caught, in metres. 0 is off. */ setFront(d: number) { lamp.u.uFront.value = d; },
+    /** 0-1, the Unburdened's river: the water rises over the landing, the fare coins lie on the bed, the last daylight goes, the fog turns cold. */
+    unburden(k: number) {
+      if (Math.abs(k - fieldK) < 0.002) return; if (fieldK < 0) fog0.copy(FOG.uFogCol.value); fieldK = k; const up = 0.1 * k;
+      water.mesh.position.y = LEVEL + up; water.u.uLevel.value = LEVEL + up; lamp.u.uLevel.value = LEVEL + up; bowls.position.y = up; bowls.updateMatrix();
+      coins.visible = k > 0.01; coins.position.y = -0.06 * (1 - k); coins.updateMatrix(); LINE.value = 1 - 0.85 * k; water.line.value = 1 - 0.85 * k; FOG.uFogCol.value.copy(fog0).lerp(fogCold, k);
+    },
     /** One more clay lamp like those on the water, for a scene to hold. */ bowlMesh() { return new THREE.Mesh(bowl, wood); },
     /** The clay bowls glow while their lamps burn; out, they are only clay. */ bowlsLit(on: boolean) { bowls.visible = on; },
     /** A darkness spreading over the water from (x, z): every lamp within `r` metres is out. r = 0 is off. */ setOut(x: number, z: number, r: number) { lamp.u.uOut.value.set(x, z, r); },
