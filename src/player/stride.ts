@@ -16,8 +16,9 @@ export class Stride {
   /** Character space into world space: `root`. `run` 0 walk to 1 run; `spr` sprint on top. Feet come back in character space in `L`, `R`. */
   update(dt: number, vel: THREE.Vector3, root: THREE.Matrix4, run: number, spr: number, L: THREE.Vector3, R: THREE.Vector3) {
     this.inv.copy(root).invert(); this.landed.length = 0; const speed = Math.hypot(vel.x, vel.z), f = this.f.set(vel.x, 0, vel.z).transformDirection(this.inv); f.y = 0; f.normalize();
-    const cyc = mix(1.0 * Math.sqrt(Math.max(0.3, speed / 1.75)), 1.56, run) + 0.2 * spr, D = this.duty = mix(0.6, 0.26, run) - 0.03 * spr, T = 1 / cyc;
-    const len = speed * D * T, front = len * mix(0.45, 0.36, run), back = front - len, w = mix(SIDE, 0.07, run);
+    const cyc = mix(1.28 * Math.sqrt(Math.max(0.3, speed / 1.75)), 1.5, run) + 0.25 * spr, D = this.duty = mix(0.58, 0.2, run) - 0.02 * spr, T = 1 / cyc;
+    // contact length short enough that the leg reaches both ends without the hips sinking: lands a little ahead, leaves on the toes behind
+    const len = speed * D * T, front = len * mix(0.42, 0.33, run), back = front - len, w = mix(SIDE, 0.07, run);
     this.phase = (this.phase + dt * cyc) % 1;
     for (let i = 0; i < 2; i++) {
       const u = (this.phase + i * 0.5) % 1, s = i === 0 ? 1 : -1, local = this.q;
@@ -35,8 +36,8 @@ export class Stride {
         const z0 = this.from[i].z, x0 = this.from[i].x, ex = w * s + front * f.x, ez = front * f.z;
         // walk: a low arc. run: up behind first, then the knee carries it through, reaching past the landing and pawing back
         const yW = 0.085 * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.12)), 1.2) + 0.03 * (1 - t) * ss(0, 0.2, t);
-        const yR = (0.3 + 0.1 * spr) * Math.sin(Math.PI * Math.pow(t, 0.62)) * (1 - 0.35 * ss(0.6, 1, t));
-        const eW = ss(0, 1, t), eR = ss(0.12, 0.88, t), e = mix(eW, eR, run), reach = run * (0.12 + 0.06 * spr) * Math.pow(Math.sin(Math.PI * ss(0.42, 1, t)), 2);
+        const yR = (0.26 + 0.1 * spr) * Math.sin(Math.PI * Math.pow(t, 0.62)) * (1 - 0.6 * ss(0.5, 1, t));
+        const eW = ss(0, 1, t), eR = ss(0.08, 0.8, t), e = mix(eW, eR, run), reach = run * (0.06 + 0.05 * spr) * Math.pow(Math.sin(Math.PI * ss(0.42, 1, t)), 2);
         local.set(mix(x0, ex, e) + f.x * reach, ANKLE + mix(yW, yR, run), mix(z0, ez, e) + f.z * reach);
         this.pitch[i] = mix(t < 0.3 ? mix(34, 8, ss(0, 0.3, t)) : mix(8, -16, ss(0.3, 1, t)), t < 0.35 ? mix(46, 88, ss(0, 0.35, t)) : mix(88, -8, ss(0.35, 1, t)), run);
         this.pos[i].copy(local).applyMatrix4(root);

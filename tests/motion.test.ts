@@ -18,7 +18,7 @@ const ankle = (v: PlayerView, S: string) => v.rig.bones[v.rig.i('foot.' + S)].ge
 describe('player motion', () => {
   for (const [name, stick] of [['walk', 0.4], ['run', 0.9], ['sprint', 1]] as const) it(`${name}: planted feet do not slide`, () => {
     const { m, v } = make(); let t = 0, worst = 0, sum = 0, n = 0; const prev = [new THREE.Vector3(), new THREE.Vector3()], was = [false, false];
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 420; i++) {
       m.step(DT, 0, -stick, []); t += DT; v.update(DT, m, t);
       ['L', 'R'].forEach((S, k) => {
         const a = ankle(v, S), st = v.stride.stance[k] && v.stride.pitch[k] <= 0; // heel still down
@@ -32,6 +32,13 @@ describe('player motion', () => {
     const { m, v } = make(); m.guardHeld = true; let t = 0, sum = 0, n = 0; const prev = [new THREE.Vector3(), new THREE.Vector3()], was = [false, false];
     for (let i = 0; i < 240; i++) { m.step(DT, Math.sin(m.yaw + a), Math.cos(m.yaw + a), []); t += DT; v.update(DT, m, t); ['L', 'R'].forEach((S, k) => { const q = ankle(v, S), st = v.stride.stance[k] && v.stride.pitch[k] <= 0; if (i > 90 && st && was[k]) { sum += Math.hypot(q.x - prev[k].x, q.z - prev[k].z); n++; } prev[k].copy(q); was[k] = st; }); }
     expect(n).toBeGreaterThan(20); expect(sum / n).toBeLessThan(0.008);
+  });
+  it('the hands never go inside the body: walking, running, turning, and in every move', () => {
+    const inside = (v: PlayerView) => { let worst = 9; for (const S of ['L', 'R']) { const h = v.rig.bones[v.rig.i('hand.' + S)].getWorldPosition(new THREE.Vector3()); for (const [bone, c, rad] of v.body.spec.torso!) { const b = v.rig.bones[v.rig.i(bone)], rest = v.rig.rest[v.rig.i(bone)], l = b.worldToLocal(h.clone()).sub(new THREE.Vector3(c[0] - rest.x, c[1] - rest.y, c[2] - rest.z)); worst = Math.min(worst, Math.hypot(l.x / (rad[0] + 0.03), l.y / (rad[1] + 0.03), l.z / (rad[2] + 0.03))); } } return worst; };
+    const { m, v } = make(); let t = 0, worst = 9, at = '';
+    for (let i = 0; i < 600; i++) { const a = Math.floor(i / 60) * 1.7, k = i % 120 < 60 ? 1 : 0.4; m.step(DT, Math.sin(a) * k, Math.cos(a) * k, []); t += DT; v.update(DT, m, t); const w = inside(v); if (w < worst) { worst = w; at = 'move ' + i; } }
+    for (const n of Object.keys(KHANDA.clips)) { m.revive(0, 0, 0); v.reset(); m.begin(n); for (let i = 0; i < KHANDA.clips[n].dur * 60 && m.clip; i++) { m.step(DT, 0, 0, []); t += DT; v.update(DT, m, t); const w = inside(v); if (w < worst) { worst = w; at = n + ' ' + m.t.toFixed(2); } } }
+    expect(worst, at).toBeGreaterThanOrEqual(0.97);
   });
   it('turning hard while running does not tear the legs', () => {
     const { m, v } = make(); let t = 0; const rest = v.rig.rest[v.rig.i('thigh.L')].distanceTo(v.rig.rest[v.rig.i('shin.L')]);

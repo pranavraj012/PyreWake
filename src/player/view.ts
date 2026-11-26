@@ -16,9 +16,9 @@ import type { Weapon } from '../weapons/weapon.ts';
 const mix = (a: number, b: number, t: number) => a + (b - a) * t, DEG = Math.PI / 180, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /** Unhurried and level: weight low, eyes ahead, the blade carried rather than swung. */
-const WALKP = makePose({ hy: -0.05, hp: 5, sp: 6, np: -8, ra: -96, re: -66, rl: 0.94, ba: -156, be: -30, la: 26, le: -74, ll: 0.9, xl: 10, flz: 0.02, frz: 0.02, frw: -7, flw: 7 });
+const WALKP = makePose({ hy: -0.02, hp: 5, sp: 6, np: -8, ra: -96, re: -66, rl: 0.94, ba: -156, be: -30, la: 26, le: -74, ll: 0.9, xl: 10, flz: 0.02, frz: 0.02, frw: -7, flw: 7 });
 /** Driving forward off the ball of the foot, sword hand low behind, blade trailing along the line of travel. */
-const RUNP = makePose({ hy: -0.1, hp: 12, sp: 11, np: -18, ra: -128, re: -60, rl: 0.84, ba: -170, be: -12, la: 30, le: -46, ll: 0.66, xl: 14, flz: 0.04, frz: 0.04, frw: -3, flw: 3 });
+const RUNP = makePose({ hy: -0.06, hp: 12, sp: 11, np: -18, ra: -128, re: -60, rl: 0.84, ba: -170, be: -12, la: 30, le: -46, ll: 0.66, xl: 14, flz: 0.04, frz: 0.04, frw: -3, flw: 3 });
 
 const FEET = CH.map(c => /^f[lr]/.test(c)), LOWER = CH.map(c => /^h/.test(c));
 
@@ -69,10 +69,10 @@ export class PlayerView {
     const bank = Math.max(-1, Math.min(1, this.lean / 12)) * mv, outL = Math.max(0, -bank) * 0.5, outR = Math.max(0, bank) * 0.4;
     // the free hand runs a real path from the shoulder: up and in toward the chest going forward, elbow closing; down by the hip going back, elbow opening
     const fwd = Math.max(0, -c), bwd = Math.max(0, c), hx = (0.05 - 0.13 * run * fwd + 0.04 * bwd) + outL * 0.25, hy = mix(-0.42, -0.2, run) * fwd + mix(-0.47, -0.42, run) * bwd + mix(-0.47, -0.36, run) * (1 - fwd - bwd), hz = (0.12 + 0.12 * run) * fwd - (0.14 + 0.08 * run) * bwd;
-    const hl = Math.hypot(hx, hy, hz); set('la', Math.atan2(hx, hz) / DEG, w); set('le', Math.asin(hy / hl) / DEG + 30 * outL, w); set('ll', Math.min(0.97, hl / this.body.armLen), w); set('xl', 16 + 12 * run, w);
+    const chest = (out[IX.hw] + out[IX.sw]) * w, hl = Math.hypot(hx, hy, hz); set('la', Math.atan2(hx, hz) / DEG + chest, w); set('le', Math.asin(hy / hl) / DEG + 30 * outL, w); set('ll', Math.min(0.97, hl / this.body.armLen), w); set('xl', 16 + 12 * run, w);
     // the sword hand stays out by the hip and pumps a little against the free one; the blade hangs back and down, tip near the stone
     const thR = c * (8 + 8 * run) - 24 - 6 * run, [raz, rel] = arm(thR, -0.3 - outR);
-    set('ra', raz, w); set('re', rel + 6 * run + 20 * outR, w); set('rl', 0.9 - 0.08 * run, w); set('xr', -8, w); set('ba', -164 + c * 4 * w, w); set('be', -30 + 6 * run + Math.sin(2 * T * ph) * 3 * w - 4 * spr, w);
+    set('ra', raz + chest * 0.6, w); set('re', rel + 6 * run + 20 * outR, w); set('rl', 0.9 - 0.08 * run, w); set('xr', -8, w); set('ba', -148 + c * 4 * w, w); set('be', -22 + 4 * run + Math.sin(2 * T * ph) * 3 * w - 3 * spr, w);
     add('sr', bank * 6); add('nr', -bank * 5);
     // guard: the upper body belongs to the weapon, the hips keep walking
     this.guardK += ((m.guarding ? 1 : 0) - this.guardK) * Math.min(1, dt * (m.guarding ? 26 : 12)); const g = this.guardK;
@@ -112,7 +112,9 @@ export class PlayerView {
     }
     this.wasGait = gaiting;
     // never let the hips outrun the planted feet
-    let over = 0; for (const f of [L, R]) { const reach = 0.83, hipY = 0.92 + p[IX.hy], d = Math.hypot(f.x, f.z, hipY - f.y); if (d > reach) over = Math.max(over, Math.min(0.14, (d - reach) * 0.9)); }
+    // a foot in the air that the leg cannot reach is drawn in toward the hip (the knee folds); only a foot bearing weight may pull the hips down
+    let over = 0; [L, R].forEach((f, k) => { const reach = 0.83, hipY = 0.92 + p[IX.hy], hx = k ? -0.095 : 0.095, d = Math.hypot(f.x - hx, f.z, hipY - f.y);
+      if (d <= reach) return; if (gaiting && !this.stride.stance[k]) { const q = (reach * 0.995) / d; f.set(hx + (f.x - hx) * q, hipY - (hipY - f.y) * q, f.z * q); } else over = Math.max(over, Math.min(0.14, (d - reach) * 0.9)); });
     this.drop += (over - this.drop) * Math.min(1, dt * 22); p[IX.hy] -= this.drop;
     this.body.solve(p);
     const sp = Math.hypot(m.vx, m.vz); this.chains.update(root, dt, t, 1.1, -0.5, sp * 0.05); this.rig.apply(); this.group.updateMatrixWorld(true);
