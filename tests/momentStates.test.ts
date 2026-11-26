@@ -73,7 +73,7 @@ function run(boss: Boss, moment: Moment, state: State) {
     // the page stops the hero's walk while a moment is on
     const mz = state === 'walk' && trig < 0 ? -1 : 0;
     f.step(DT, 0, busyBefore ? 0 : mz, pressesNow);
-    if (r.onset >= 0 && busyBefore) { if (m.events.some(e => e === 'swing' || (e.startsWith('clip:') && !IDLE.test(e)))) r.swings++; if (k.mode === k.reelMode) r.reeled = true; }
+    if (r.onset >= 0 && busyBefore) { if (m.events.some(e => e === 'swing' || (e.startsWith('clip:') && !IDLE.test(e)))) r.swings++; if (m.state === 'clip' && !IDLE.test(m.clip?.name ?? '')) r.swings++; if (k.mode === k.reelMode) r.reeled = true; }
     if (r.onset >= 0 && !(k.staging || k.reward)) { r.end = t; r.hpEnd = f.bossHp; r.takenEnd = f.taken; break; }
   }
   void base;
