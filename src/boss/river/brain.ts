@@ -2,6 +2,7 @@
 import { D } from '../../combat/difficulty.ts';
 import type { Boss, BossBrain } from '../boss.ts';
 import { isMove, type River } from './river.ts';
+import { FIRST_GRAB_BY } from '../brain.ts';
 
 export type RiverStyle = 'pole' | 'chain' | 'lantern' | 'bare' | 'last';
 interface Option { seq: string[]; w: number; near: number; far: number; below?: number; need?: (k: River) => boolean }
@@ -32,7 +33,8 @@ export class RiverBrain implements BossBrain {
   constructor(seed = 11) { this.s = seed; }
   private rnd() { this.s = (this.s + 0x6d2b79f5) | 0; let t = Math.imul(this.s ^ (this.s >>> 15), 1 | this.s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   private rest(form: 1 | 2) { const r = form === 2 ? [0.35, 0.8] : [0.45, 0.95]; this.wait = (r[0] + this.rnd() * (r[1] - r[0])) * D.temper[this.temper].rest + (this.ease > 0 ? (this.ease--, D.boss.assist) : 0); }
-  reset(form: 1 | 2) { this.wait = 1.2; this.calmT = 0; this.queue = []; this.recent = []; this.ease = 0; this.style = form === 2 ? 'bare' : 'pole'; this.began = null; this.cool = {}; }
+  /** Round 1 seconds spent without the drag thrown yet (see FIRST_GRAB_BY in boss/brain.ts). */ private noGrab = 0;
+  reset(form: 1 | 2) { this.noGrab = 0; this.wait = 1.2; this.calmT = 0; this.queue = []; this.recent = []; this.ease = 0; this.style = form === 2 ? 'bare' : 'pole'; this.began = null; this.cool = {}; }
   hurt(time: number) { this.hurts = [...this.hurts.filter(t => time - t < 6), time]; if (this.hurts.length >= 2) { this.ease = 2; this.hurts = []; } }
   struck(_k: Boss, _dmg: number) { this.wait -= 0.1; return false; }
   broken() { this.queue = []; this.wait = 0.5; }
@@ -41,6 +43,7 @@ export class RiverBrain implements BossBrain {
     const k = b as River; this.began = null;
     if (k.ended && !this.queue.length) { if (isMove(k.ended)) this.rest(k.form); else this.wait = Math.max(this.wait, 0.35); }
     if (this.queue.length && isMove(k.mode) && !k.committed && k.mt > (k.strikes.at(-1)?.t[1] ?? 0) + 0.2) { this.go(k, this.queue.shift()!); return; }
+    if (k.form === 1 && !k.grabbedOnce) this.noGrab += dt;
     const free = k.mode === 'idle' || k.mode === 'stalk' || k.mode === 'strafe'; if (!free) return;
     const dist = Math.hypot(px - k.hx, pz - k.hz), off = Math.abs(wrapPi(Math.atan2(px - k.x, pz - k.z) - k.yaw)); this.calmT += dt; this.wait -= dt; for (const c in this.cool) this.cool[c] -= dt;
     // --- the style script
@@ -54,6 +57,8 @@ export class RiverBrain implements BossBrain {
       if (k.mode === 'idle' && dist > D.boss.near + 1.6) k.set('stalk'); else if (k.mode === 'stalk' && dist < D.boss.near) k.set(this.rnd() < 0.5 ? 'strafe' : 'idle'); else if (k.mode === 'idle' && this.wait > 0.4 && this.rnd() < 0.02) k.set('strafe'); return;
     }
     if (off > 1.0 && !k.tauts) { k.turn((k.form === 2 ? 5 : 2.4) * dt, Math.atan2(px - k.x, pz - k.z)); return; }
+    // the drag is never left out of a fight: if it has not been thrown by the deadline, it is thrown as soon as the hero is in reach
+    if (k.form === 1 && !k.grabbedOnce && this.noGrab > FIRST_GRAB_BY && !k.tauts && dist <= 12 && off < 1.0 && !this.queue.length) { this.go(k, 'dragDeep'); return; }
     const dark = k.dark > 0, opts = BOOK[this.style as RiverStyle].filter(o => dist >= o.near && dist <= o.far && (o.below === undefined || frac < o.below) && (!o.need || o.need(k)) && !(this.recent.at(-1) === o.seq.join()) && !(this.cool[o.seq[0]] > 0));
     if (!opts.length) { if (k.mode === 'idle') k.set('stalk'); return; }
     const weight = (o: Option) => o.w * (o.seq.length > 1 ? D.temper[this.temper].long : 1) * (o.seq.some(q => !this.seen.has(q)) ? (o.seq.length > 1 ? 0.02 : 3) : 1) * (this.recent.includes(o.seq.join()) ? 0.4 : 1) * (dark && /^(lowWater|sounding|turnBoat)$/.test(o.seq[0]) ? 2.2 : 1);

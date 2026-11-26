@@ -26,8 +26,8 @@ import { onSettings, saveSettings, settings } from './core/settings.ts';
 import { DEFAULT_SPELLS, SPELLS } from './combat/spells.ts';
 import { Turn, actionCam } from './game/cinema.ts';
 import { Ending, Intro, Prologue, kingMoments } from './game/scenes.ts';
-import { Moment, Prompt } from './game/moment.ts';
-import { KING_LESSON, KING_PRESS } from './game/kingScript.ts';
+import { Moment, Offer, Prompt, offerSpec } from './game/moment.ts';
+import { KING_LESSON, KING_LINES, KING_PRESS } from './game/kingScript.ts';
 import { Lessons } from './game/lessons.ts';
 import { DAWN, ECLIPSE } from './render/sky.ts';
 import { Director } from './game/director.ts';
@@ -91,7 +91,16 @@ async function boot() {
   const fight = new Fight(m, king.sim), prompts = new Prompts(), hud = new Hud(app, input); fight.furnish(court.ruin.props); fight.passive = !!(SHOT || BENCH || Q.has('still'));
   const follow = new FollowCam(); follow.blockers = m.blockers;
   // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
-  const moment = new Moment(), qte = new Prompt(app), kSpecs = kingMoments(king.sim, m); let staged: 'noose' | 'rope' | 'ride' | null = null, qteFor: string | null = null;
+  const moment = new Moment(), qte = new Prompt(app), kSpecs = kingMoments(king.sim, m);
+  /** The King's staged moments' cues (scenes.ts names them): the sound, the dust, the shake, the words. */
+  const kingCue = (name: string) => {
+    const L = king.sim.landAt;
+    if (name === 'seize') { sound.play('kBreath', { gain: 0.9, wet: 0.7, bus: 'voice' }); hud.verse(KING_LINES.seized); }
+    else if (name === 'swing') sound.play('creak', { gain: 0.7, wet: 0.8, x: king.sim.x, z: king.sim.z });
+    else if (name === 'throw') { sound.play('groan', { gain: 0.6, x: king.sim.x, z: king.sim.z }); hud.verse(''); }
+    else if (name === 'land') { sound.play('slam', { gain: 0.9, x: L.x, z: L.z }); sound.play('thud', { gain: 0.9, x: L.x, z: L.z }); fx.puffs.emit(new THREE.Vector3(L.x, 0, L.z), 18, 2.6, 1.4, t); fx.bursts.add('ground', new THREE.Vector3(L.x, 0.06, L.z), 9, 0.9, t, 0, 0.7, 0.3, 0.1); moment.kick(0.9); }
+  }; let staged: 'noose' | 'rope' | 'ride' | null = null;
+  const kOffer = new Offer(moment, offerSpec(m, () => ({ x: king.sim.hx, y: king.sim.hanging ? 4.2 : 1.9, z: king.sim.hz, tilt: king.sim.hanging ? 60 : undefined, back: king.sim.hanging ? 3.6 : undefined })), (r, secs) => qte.show('attack', KING_PRESS[r as 'rope' | 'ride'], secs, input.lastDevice));
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath], court }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => { saveSettings({ beaten: settings.beaten | 1 }); ending.start(); }; hud.next = 'On to the river'; hud.onNext = () => { location.search = '?boss=2'; }; const arm = () => { const sp = lessons.active ? DEFAULT_SPELLS : settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); }; onSettings(() => { fight.brain.temper = settings.temper; arm(); }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0, turned = false;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
@@ -151,7 +160,11 @@ async function boot() {
     if (moment.active) { ev = []; mx = mz = 0; }
     const held = lessons.active && !!lessons.frozen, sd = held ? 0 : fight.step(dt * pace, mx, mz, ev), kv = dir.kv; if (held) fight.ev.length = 0;
     { const want = king.sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(kSpecs[want]); } else moment.stop(); } }
-    if (!king.sim.reward) qteFor = null; else if (!moment.active && !qte.on && qteFor !== king.sim.reward) { qteFor = king.sim.reward; qte.show('attack', KING_PRESS[king.sim.reward], king.sim.rewardLeft, input.lastDevice); }
+    // a staged moment's cues: its sound, its dust, its shake; and its letterbox (the bars slide in and out by themselves)
+    for (const name of moment.due(king.sim.stage)) kingCue(name);
+    document.body.classList.toggle('letter', moment.letterbox);
+    // a reward on offer: the slow low shot, then the press (plain English), until the chance lapses
+    kOffer.step(dt, king.sim.reward, king.sim.rewardLeft, king.sim.staging !== null);
     pv.tumble = moment.hero(king.sim.stage, pv.offset);
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     lessons.step(dt, sd); hud.lesson(lessons.active ? lessons.card : null);
@@ -183,9 +196,10 @@ async function boot() {
     else if (ending.active) ending.camera(cam, t);
     else if (story.active) story.camera(cam, t);
     else if (intro.active) intro.camera(cam, t, baseFov);
-    else if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), king.sim.stage)) { /* a staged moment's shot */ }
+    else if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), king.sim.stage, t)) { /* a staged moment's shot */ }
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, baseFov)) { /* composed shot */ follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: king.sim.hx, z: king.sim.hz, solid: !king.sim.hanging && king.sim.y < 0.5, h: king.sim.y * 0.6 + (king.sim.hanging ? 1.7 : king.sim.crawling ? 1.2 : /kneel|fall|crash/.test(king.sim.mode) ? 1.5 : king.sim.form === 2 ? 1.9 : 2.2) }, input.takeLook(), t, baseFov);
+    moment.settle(cam, Math.min(ms / 1000, 0.05));
     if (!SHOT && !BENCH && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
     { const fz = cam.userData.focus as THREE.Vector3 | undefined, film = menu.open || turn.active || ending.active || story.active || intro.active, on = film || cam.userData.frame === true, want = on && fz ? (menu.open ? 0.4 : film ? 0.8 : 0.6) : 0; cam.userData.frame = false; post.dof.amt += (want - post.dof.amt) * (want && post.dof.amt < 0.02 ? 1 : Math.min(1, ms / 90)); if (fz) post.dof.focus = Math.max(0.5, fz.distanceTo(cam.position)); }
     sky.position.copy(cam.position); cam.updateMatrixWorld();

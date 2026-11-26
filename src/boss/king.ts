@@ -14,7 +14,8 @@ const sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.mi
 /** Pivot height of the hang, and how far below it the head swings. */
 export const ROPE = 10.6, HEAD_DROP = 8.9;
 /** The staged moments (module A). Times are the moment's own clock, `stage`, in seconds from the seizing or the press. */
-export const NOOSE = { climb: [0.5, 2.4] as [number, number], release: 3.6, land: 4.6, end: 5.2 }, RIP = { cut: 1.0, len: 2.7 }, RIDE = { hit: 0.9, len: 2.8 };
+/** The noose (seized at 0): the hero is lifted by the throat, swung once round the King, flung out (release), lands hard (land), lies a beat and is free (end). reach: how far out the hero hangs. throw: where he lands, from the King. */
+export const NOOSE = { lift: 1.2, swing: [1.2, 3.1] as [number, number], release: 3.2, land: 4.0, end: 5.5, reach: 1.6, throw: 5.0 }, RIP = { cut: 1.0, len: 2.7 }, RIDE = { hit: 0.9, len: 2.8 };
 /** Grabs always cost this much; a reward takes this share of the boss's life; a reward stays on offer this long. */
 export const GRAB_DMG = { noose: 44 }, REWARD_SHARE = 0.09, OFFER = 1.8;
 
@@ -26,9 +27,11 @@ export class King {
   /** Has the cleaver: the Executioner does, the Crawler and the Hanged do not. */ armed = true; crawling = false;
   /** Hang: seconds since the roots took it, pendulum angle and direction. */ ht = 0; th = 0; dir = 0;
   /** Where a leap is going. */ mark = { x: 0, z: 0 }; private from = { x: 0, z: 0 }; private moved = 0; private side = 1; private sideT = 0;
-  set(mode: KingMode, rate = 1) { const was = this.hanging; this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; this.held = null; if (this.hanging && !was) { this.ht = 0; this.th = 0; this.offered = false; } if (was && !this.hanging) { this.x = this.hx; this.z = this.hz; this.th = 0; } }
+  set(mode: KingMode, rate = 1) { this.go(mode, rate); this.held = null; }
+  /** The mode change itself. A staged moment's own transitions use this, so they never cancel the moment. */
+  private go(mode: KingMode, rate = 1) { const was = this.hanging; this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; if (this.hanging && !was) { this.ht = 0; this.th = 0; this.offered = false; } if (was && !this.hanging) { this.x = this.hx; this.z = this.hz; this.th = 0; } }
   /** Staged moments: the grab that holds the hero, the moment's own clock, the reward in progress, and the reward on offer. */
-  held: 'noose' | null = null; stage = 0; rite: 'rope' | 'ride' | null = null; reward: 'rope' | 'ride' | null = null; rewardLeft = 0; private offered = false; private sp = 0;
+  held: 'noose' | null = null; stage = 0; rite: 'rope' | 'ride' | null = null; reward: 'rope' | 'ride' | null = null; rewardLeft = 0; private offered = false; private sp = 0; /** Where the noose throws the hero, and the King's facing when he seized him. */ landAt = { x: 0, z: 0 }; yaw0 = 0;
   get hanging() { return this.mode === 'hang' || this.mode === 'hangSwing' || this.mode === 'hangSwipe'; }
   /** The part you can reach: the swinging head when hanging, otherwise the body. */
   get hx() { return this.hanging ? this.x + Math.sin(this.dir) * Math.sin(this.th) * HEAD_DROP : this.x; }
@@ -92,7 +95,7 @@ export class King {
   seize(kind: string, f: Fight) {
     this.stage = this.sp = 0; f.brain.seen.add('grab');
     this.grabbedOnce = true; this.set('noose'); this.dir = this.yaw;
-    this.held = 'noose';
+    this.held = 'noose'; this.yaw0 = this.yaw; this.landAt = { x: this.x + Math.sin(this.yaw) * NOOSE.throw, z: this.z + Math.cos(this.yaw) * NOOSE.throw };
   }
   /** A perfect dodge of the sideways lunge leaves him behind you, exposed: a chance to ride him. */
   dodged(_f: Fight) { if (this.mode === 'cross' && !this.held && !this.rite) { this.reward = 'ride'; this.rewardLeft = OFFER; } }
@@ -109,6 +112,13 @@ export class King {
   clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; }
   /** Which staged moment is playing, if any (the page stages the camera and the hero for it). */
   get staging(): 'noose' | 'rope' | 'ride' | null { return this.held ?? this.rite; }
+  /** The noose's path at its clock t: where the hero is, and the King's turn (round once while he swings, then square for the throw). */
+  nooseAt(t: number): { x: number; z: number; yaw: number } {
+    const R = NOOSE.reach, [s0, s1] = NOOSE.swing, u = Math.max(0, Math.min(1, (t - s0) / (s1 - s0))), yaw = this.yaw0 + Math.PI * 2 * u, r = R + 0.7 * Math.sin(Math.PI * u);
+    if (t < NOOSE.release) return { x: this.x + Math.sin(yaw) * r, z: this.z + Math.cos(yaw) * r, yaw };
+    const g = { x: this.x + Math.sin(this.yaw0) * R, z: this.z + Math.cos(this.yaw0) * R }, L = this.landAt, v = Math.max(0, Math.min(1, (t - NOOSE.release) / (NOOSE.land - NOOSE.release)));
+    return { x: g.x + (L.x - g.x) * v, z: g.z + (L.z - g.z) * v, yaw: this.yaw0 };
+  }
   /** Runs the moments' timings and what they do to the hero and the boss. Called once a step, after the boss moves. */
   tick(f: Fight, dt: number) {
     const m = f.m, cross = (a: number) => this.sp < a && this.stage >= a;
@@ -117,9 +127,11 @@ export class King {
     if (this.held || this.rite) this.stage += dt * this.pace;
     if (this.held === 'noose') {
       f.invuln = Math.max(f.invuln, 0.15);
-      if (this.stage < NOOSE.release) { m.x = this.x + Math.sin(this.yaw) * 1.5; m.z = this.z + Math.cos(this.yaw) * 1.5; }
+      // the King turns and swings him round on the noose, then throws him to where he lands
+      const p = this.nooseAt(this.stage); m.x = p.x; m.z = p.z; this.yaw = p.yaw;
       if (cross(NOOSE.land)) { f.invuln = 0; f.strikePlayer(GRAB_DMG.noose, true, Math.atan2(this.x - m.x, this.z - m.z), 'grab'); }
-      if (this.stage >= NOOSE.end) { this.set('hang'); this.ht = 1.2; }
+      // the King climbs the rope from here (the view eases him up over the next second)
+      if (this.stage >= NOOSE.end) { this.held = null; this.go('hang'); this.ht = 0; }
     }
     const pool = f.round === 2 ? D.boss.hp2 : D.boss.hp1;
     if (this.rite === 'rope') { if (cross(RIP.cut)) { this.set('crash'); f.damage(Math.round(pool * REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); } if (this.stage >= RIP.len) this.rite = null; }

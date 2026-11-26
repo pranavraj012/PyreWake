@@ -23,12 +23,12 @@ const BOOK: Record<Style, Option[]> = {
 
 export class Brain {
   /** Chosen in the menu: 0 measured, 1 fierce, 2 relentless. */ temper = 1;
-  seen = new Set<KingMode>(); style: Style = 'executioner'; private wait = 1.0; private queue: KingMode[] = []; private recent: string[] = []; private s: number; private calmT = 0; private hangDmg = 0; private hangsLeft = 2; private ease = 0; private hurts: number[] = []; private strings = 0;
+  seen = new Set<KingMode>(); style: Style = 'executioner'; /** Round 1 seconds spent without the grab thrown yet: after FIRST_GRAB_BY it is thrown as soon as the hero is in reach. */ private noGrab = 0; private wait = 1.0; private queue: KingMode[] = []; private recent: string[] = []; private s: number; private calmT = 0; private hangDmg = 0; private hangsLeft = 2; private ease = 0; private hurts: number[] = []; private strings = 0;
   /** Set when a style begins, for prompts and the director. */ began: Style | null = null;
   constructor(seed = 7) { this.s = seed; }
   private rnd() { this.s = (this.s + 0x6d2b79f5) | 0; let t = Math.imul(this.s ^ (this.s >>> 15), 1 | this.s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   private rest(form: 1 | 2) { const r = form === 2 ? D.boss.rest2 : D.boss.rest; this.wait = (r[0] + this.rnd() * (r[1] - r[0])) * D.temper[this.temper].rest + (this.ease > 0 ? (this.ease--, D.boss.assist) : 0); }
-  reset(form: 1 | 2) { this.wait = 1.1; this.calmT = 0; this.queue = []; this.recent = []; this.hangsLeft = 2; this.hangDmg = 0; this.ease = 0; this.style = form === 2 ? 'blades' : 'executioner'; this.began = null; this.strings = 0; }
+  reset(form: 1 | 2) { this.noGrab = 0; this.wait = 1.1; this.calmT = 0; this.queue = []; this.recent = []; this.hangsLeft = 2; this.hangDmg = 0; this.ease = 0; this.style = form === 2 ? 'blades' : 'executioner'; this.began = null; this.strings = 0; }
   /** Quiet assist: two blows taken close together and the boss eases off for a couple of strings. */
   hurt(time: number) { this.hurts = [...this.hurts.filter(t => time - t < 6), time]; if (this.hurts.length >= 2) { this.ease = 2; this.hurts = []; } }
   /** It answers being hit instead of standing there. Returns true when the roots give way. */
@@ -44,7 +44,7 @@ export class Brain {
   }
   /** `frac` is health left in this form, 1 to 0. */
   step(dt: number, k: King, px: number, pz: number, hitsLanded: number, frac: number) {
-    this.began = null;
+    this.began = null; if (k.form === 1 && !k.grabbedOnce) this.noGrab += dt;
     if (k.ended && !this.queue.length) { if (isAttack(k.ended)) { this.rest(k.form); this.strings++; } else if (k.ended !== 'hop') this.wait = Math.max(this.wait, 0.35); }
     // strings: cut out of the recovery into the next attack
     if (this.queue.length && isAttack(k.mode) && !k.committed && k.mt > k.strikes[k.strikes.length - 1].t[1] + 0.2 && k.y === 0) { this.go(k, this.queue.shift()!); return; }
@@ -72,6 +72,8 @@ export class Brain {
     }
     // never swings at something it isn't looking at
     if (!k.hanging && k.mode !== 'crawl' && off > 1.0) { k.turn(2.4 * dt, Math.atan2(px - k.x, pz - k.z)); return; }
+    // the grab is never left out of a fight: if it has not been thrown by FIRST_GRAB_BY, it is thrown as soon as the hero is in reach
+    if (k.form === 1 && !k.grabbedOnce && this.noGrab > FIRST_GRAB_BY && dist <= 2.6 && off < 1.0) { this.start(k, ['grab']); return; }
     const opts = BOOK[this.style].filter(o => dist >= o.near && dist <= o.far && (o.below === undefined || frac < o.below) && !(this.recent.at(-1) === o.seq.join()));
     if (!opts.length) { if (k.mode === 'idle' || k.mode === 'strafe') k.set('stalk'); if (k.form === 2 && dist > 6) this.start(k, ['cross']); return; }
     // unseen attacks come up sooner, alone; repeats less often
@@ -82,4 +84,6 @@ export class Brain {
   private start(k: King, seq: KingMode[]) { this.recent = [...this.recent.slice(-2), seq.join()]; const a = seq.shift()!; this.queue = seq; this.go(k, a); }
   private go(k: King, a: KingMode) { k.set(a, !isAttack(a) || this.seen.has(a) ? 1 : D.teach.rate); }
 }
+/** Seconds into round 1 by which the grab must have been thrown (outside training). */
+export const FIRST_GRAB_BY = 20;
 const wrapPi = (a: number) => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;

@@ -14,7 +14,7 @@ const QUIET = ['reel', 'reel2', 'snap', 'kneel', 'fall', 'cradle', 'riseW', 'die
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the mark it threw is where it lands: the line is drawn at the cue. */
 const LOCK: Record<string, number> = { cast: 0.3, dragDeep: 0.4, haulIn: 0 };
-/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { under: 0.55, hold: 0.85, dmg: 1.0, heave: 2.2, end: 3.4 }, CHAIN = { hit: 1.6, len: 3.0 }, LANTERN = { hit: 0.9, len: 2.4 };export const GRAB_DRAG = { drag: 44 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
+/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { under: 0.55, hold: 1.6, dmg: 1.7, heave: 3.6, end: 5.2 }, CHAIN = { hit: 1.6, len: 3.0 }, LANTERN = { hit: 0.9, len: 2.4 };export const GRAB_DRAG = { drag: 44 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
 
 export interface Chain { x: number; z: number; len: number; hp: number; t: number; cut: number }
 export interface Lantern { x: number; z: number; real: boolean; t: number; gone: number }
