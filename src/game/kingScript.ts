@@ -28,7 +28,7 @@ export const KING_TITLES = {
   dawn: 'Morning, at Last',
   dawnSub: 'The dead lie still. The fire remembers their names.',
   flame: 'Second Flame',
-  quenched: 'Extinguished',
+  quenched: 'Quenched',
 };
 export const KING_CALLS = { broken: 'Broken', crushed: 'Crushed', lastRites: 'Last Rites ready' };
 export const KING_LESSON = { skipped: 'It hath seen thy fire', taught: 'Thy hands remember. It hath seen thy fire.' };
