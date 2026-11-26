@@ -14,7 +14,10 @@ export class Marks {
       vertexShader: `attribute vec4 aP, aQ; varying vec2 u, s; flat varying float kd; varying float k; void main(){ kd = aQ.x; k = aQ.y; s = aQ.zw; float c = cos(aP.w), n = sin(aP.w); vec2 q = kd > .5 && kd < 1.5 ? vec2(position.x * aQ.z, (position.z * .5 + .5) * aQ.w) : position.xz * aQ.z; u = kd > .5 && kd < 1.5 ? vec2(position.x, position.z * .5 + .5) : position.xz; vec3 w = aP.xyz + vec3(q.x * c + q.y * n, .12, -q.x * n + q.y * c); gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.); }`,
       fragmentShader: `varying vec2 u, s; flat varying float kd; varying float k; uniform vec4 uT; ${NOISE}
 void main(){ vec3 c; float f = fbm(u * 5. + vec2(0., -uT.w * .8)), pu = .8 + .2 * sin(uT.w * 18.), hot = smoothstep(.75, 1., k);
- if (kd < .5) { float d = length(u); if (d > 1.) discard; float edge = smoothstep(.07, 0., abs(d - .95)), ring = smoothstep(.05, 0., abs(d - k * .95)), fill = smoothstep(1., .1, d) * .16 + .2 * smoothstep(.45, .75, f) * step(d, k); c = vec3(1., .13, .02) * (edge * 1.5 + ring * 1.0 + fill * (1. + 2. * hot)) * pu; }
+ if (kd < .5) { float d = length(u); if (d > 1.) discard; float ir = s.y / max(s.x, .01);
+   if (ir > .01) { float w = .045 / ir * .06 + .004; float safe = smoothstep(ir + w, ir, d); float rim = smoothstep(w * 1.6, 0., abs(d - ir)), gl = smoothstep(ir, ir + .25, d) * smoothstep(1., .6, d), creep = step(1. - k, (d - ir) / (1. - ir));
+     c = vec3(1., .13, .02) * (.08 + .22 * smoothstep(.45, .75, f) * (.6 + 1.4 * hot)) * gl * (1. - safe) * (.35 + .65 * creep) * pu + vec3(.9, .85, .75) * rim * (.5 + .5 * hot) * .9; }
+   else { float edge = smoothstep(.07, 0., abs(d - .95)), ring = smoothstep(.05, 0., abs(d - k * .95)), fill = smoothstep(1., .1, d) * .16 + .2 * smoothstep(.45, .75, f) * step(d, k); c = vec3(1., .13, .02) * (edge * 1.5 + ring * 1.0 + fill * (1. + 2. * hot)) * pu; } }
  else if (kd < 1.5) { float e = 1. - abs(u.x), edge = smoothstep(.14, .0, e), fade = smoothstep(1., .85, u.y); float run = smoothstep(.04, 0., abs(u.y - k)); c = vec3(1., .13, .02) * (edge * .75 + run * .8 + .03 + .16 * smoothstep(.45, .75, f) * step(u.y, k) * (1. + 2. * hot)) * fade * pu; }
  else { float d = length(u) * s.x; float q = d - s.y, w = smoothstep(.55, 0., abs(q)) ; float flame = smoothstep(.3, .8, fbm(vec2(atan(u.y, u.x) * 9., d * 2. - uT.w * 5.))); c = mix(vec3(1., .12, .01), vec3(1., .6, .2), w * flame) * w * (.5 + flame) * 1.6 + vec3(1., .13, .02) * smoothstep(1.6, 0., max(q, 0.)) * step(0., q) * .15; }
  gl_FragColor = vec4(c * .85, 1.); }` });
@@ -23,8 +26,9 @@ void main(){ vec3 c; float f = fbm(u * 5. + vec2(0., -uT.w * .8)), pu = .8 + .2 
   update(hz: Hazard[]) {
     let i = 0; for (const h of hz) { if (i >= this.n) break; const k = Math.min(1, h.t / h.delay);
       if (h.shape === 'ring') { const R = Math.max(0, h.speed * (h.t - h.delay)); if (R <= 0) { this.a.setXYZW(i, h.x, 0, h.z, 0); this.b.setXYZW(i, 0, k, 1.0, 0); } else { this.a.setXYZW(i, h.x, 0, h.z, 0); this.b.setXYZW(i, 2, 0, R + 1.8, R); } }
+      else if (h.shape === 'sweep') { const u = Math.max(0, Math.min(1, (h.t - h.delay) / (h.dur || 1))); if (u >= 1) continue; const yw = h.yaw + (h.spin ?? 0) * u, ir = h.inner ?? 0, on = h.t >= h.delay; this.a.setXYZW(i, h.x + Math.sin(yw) * ir, 0, h.z + Math.cos(yw) * ir, yw); this.b.setXYZW(i, 1, on ? 1 : k * 0.9, h.half, h.len - ir); }
       else if (h.shape === 'line') { if (h.t > h.delay + 0.12) continue; const back = h.visual ? h.len : 0; this.a.setXYZW(i, h.x - Math.sin(h.yaw) * back, 0, h.z - Math.cos(h.yaw) * back, h.yaw); this.b.setXYZW(i, 1, k, h.half, h.len + back); }
-      else { if (h.t > h.delay + 0.12) continue; this.a.setXYZW(i, h.x, 0, h.z, 0); this.b.setXYZW(i, 0, k, h.r, 0); }
+      else { if (h.t > h.delay + 0.12) continue; this.a.setXYZW(i, h.x, 0, h.z, 0); this.b.setXYZW(i, 0, k, h.r, h.inner ?? 0); }
       i++; }
     this.g.instanceCount = i; this.mesh.visible = i > 0; this.a.needsUpdate = this.b.needsUpdate = true;
   }
