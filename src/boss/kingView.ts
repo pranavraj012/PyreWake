@@ -7,7 +7,7 @@ import { Rig } from '../anim/rig.ts';
 import { BENEATH, KING } from '../anim/skeletons.ts';
 import type { Fx } from '../render/fx.ts';
 import { CRAWL, HANG, KING_CLIPS as K, STAND } from './clips.ts';
-import { King, ROPE } from './king.ts';
+import { King, NOOSE, ROPE } from './king.ts';
 import { STAND2 } from './moves2.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -118,11 +118,16 @@ export class KingView {
       else { this.footing.stepTime = 0.3; this.footing.lift = 0.2; this.footing.slack = 0.3; this.footing.update(lim.footL, lim.footR, root, dt, p[IX.air], 0.14); this.steps += this.footing.events.length; for (const i of this.footing.events) { this.fx.puffs.emit(this.footing.world[i], 4, 1, 0.9, t); this.shake = 0.12; } }
     }
     lim.handL = this.crawlK > 0.01 ? this.handW[0].clone().applyMatrix4(inv) : null; lim.handR = this.crawlK > 0.01 ? this.handW[1].clone().applyMatrix4(inv) : null;
+    // the grip: the left hand reaches for the hero's throat as the grab lands, then holds it (the sim says where the throat is)
+    if (m === 'grab' && !S0.held && S0.mt > 0.9) { lim.handL = V(px, NOOSE.throat, pz).applyMatrix4(inv); lim.handW = sst(0.9, 1.36, S0.mt); }
+    else if (S0.gripW > 0.001) { const H = S0.nooseAt(Math.min(S0.stage, NOOSE.release)); lim.handL = V(H.x, H.y, H.z).applyMatrix4(inv); lim.handW = S0.gripW; }
     this.body.solve(p);
     // fingers: right closes on the cleaver, left is a loose claw; both splay when crawling
     const gripK = S0.armed && this.form === 1 ? 1 : 0; this.cleaver.visible = gripK > 0;
     for (let i = 0; i < 4; i++) { const w = Math.sin(t * 2.1 + i * 1.3) * 0.08; this.rig.euler(`f${i}a.L`, -0.12 + i * 0.07, 0, -0.35 - w).euler(`f${i}b.L`, 0, 0, -0.5 + w); this.rig.euler(`f${i}a.R`, (i * 0.07 - 0.12) * (1 - gripK), 0, 0.35 + gripK).euler(`f${i}b.R`, 0, 0, 0.5 + gripK); }
-    this.rig.euler('thumb.R', 0.4 * gripK, 0, 0.5 * gripK); this.rig.euler('graft1', -0.3 + Math.sin(t * 0.8) * 0.12, 0.2, 0.1).euler('graft2', -0.5 + Math.sin(t * 1.9) * 0.2, 0, 0);
+    this.rig.euler('thumb.R', 0.4 * gripK, 0, 0.5 * gripK);
+    // the left hand is a fist round the throat while it holds the hero
+    const fist = S0.gripW; if (fist > 0.001) for (let i = 0; i < 4; i++) this.rig.euler(`f${i}a.L`, -0.12 + i * 0.07, 0, -0.35 - fist * 1.1).euler(`f${i}b.L`, 0, 0, -0.5 - fist * 0.7); this.rig.euler('graft1', -0.3 + Math.sin(t * 0.8) * 0.12, 0.2, 0.1).euler('graft2', -0.5 + Math.sin(t * 1.9) * 0.2, 0, 0);
     if (this.crawlK > 0.5) for (const S of ['L', 'R'] as const) { const k = this.rig.i('hand.' + S), s = S === 'L' ? 1 : -1; this.rig.setRot(k, new THREE.Quaternion().setFromEuler(new THREE.Euler(-1.15, 0.2 * s, -0.42 * s))); }
     if (this.form === 2) this.sixArms(t);
     this.rig.fk(); this.chains.update(root, dt, t, 0.5, -0.3); this.rig.apply(); g.updateMatrixWorld(true);

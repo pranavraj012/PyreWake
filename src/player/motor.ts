@@ -126,6 +126,9 @@ export class Motor {
   guardHit(from: number, parry: boolean) { this.yaw = from; this.moveYaw = from; this.buf = null; this.didFlick = false; this.begin(parry ? 'parry' : 'block'); }
   die() { this.dead = true; this.buf = null; this.hold = -1; this.guarding = false; this.begin('die'); }
   revive(x: number, z: number, yaw: number) { Object.assign(this, { x, z, yaw, vx: 0, vz: 0, speed: 0, dead: false, hold: -1, combo: 0, safe: 0, calm: 99, guarding: false, y: 0, vy: 0, sky: 0 }); this.didFlick = true; this.buf = null; this.end(); }
+  /** A staged moment takes him out of whatever he is doing (attack, charge, dodge, jump, guard, spell, flask, flinch) and sets him on the
+   * floor, still. Nothing he held or buffered goes on afterwards; a button still down is read again only when pressed again. */
+  interrupt() { this.buf = null; this.hold = -1; this.combo = 0; this.charge = 0; this.comboT = 0; this.guarding = false; this.guardHeld = false; this.safe = 0; this.reckoning = 0; this.gap = 0; this.sprintT = 0; this.y = 0; this.vy = 0; this.airV = { x: 0, z: 0 }; this.speed = 0; this.vx = 0; this.vz = 0; this.didFlick = true; this.end(); }
   /** A button came up while the world was waiting. */
   drop(a: string) { if (a === 'guard') { this.guardHeld = false; this.guardGap = 1; } if (a === 'attack') this.hold = -1; }
   /** Guard stops a blow in these states, including mid-flinch while the button is still down. */
