@@ -46,6 +46,8 @@ export function robeAt(u: number, v: number, fold = 1): P3 {
   const a = u * Math.PI * 2, e = Math.pow(v, 0.8), rx = mix(0.17, 0.66, e), rz = mix(0.14, 0.6, e), w = 1 + fold * (0.07 * Math.sin(a * 9 + 0.4) + 0.04 * Math.sin(a * 17 + 2.1) + 0.03 * Math.sin(a * 5 + 1.2)) * Math.pow(v, 0.7);
   return [Math.sin(a) * rx * w, SKIRT.top - (SKIRT.top + 0.12) * v, -0.02 + Math.cos(a) * rz * w];
 }
+/** How far the Pall's drawn hem reaches from her centre, in metres: the widest point of the robe's foot, at the runtime scale. The sim's hits and the view share it. */
+export const PALL_HEM = (() => { let r = 0; for (let i = 0; i < 360; i++) { const p = robeAt(i / 360, 1); r = Math.max(r, Math.hypot(p[0], p[2])); } return +(r * PALL_SCALE).toFixed(2); })();
 /** Six arms of linen: where each leaves her, on which bone, and the way it lies at rest (out, back and down). */
 export const ARMS = [1, -1].flatMap(s => [
   { root: [0.12 * s, 1.43, -0.1], bone: 'chest', dir: [0.62 * s, 0.25, -0.74] }, { root: [0.2 * s, 1.31, -0.1], bone: 'chest', dir: [0.92 * s, -0.05, -0.38] }, { root: [0.13 * s, 1.15, -0.1], bone: 'spine2', dir: [0.66 * s, -0.42, -0.62] },

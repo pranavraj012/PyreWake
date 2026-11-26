@@ -5,6 +5,7 @@ import type { Strike } from '../moves2.ts';
 import type { Fight } from '../../combat/fight.ts';
 import { HOURS_CLIPS as C } from './clips.ts';
 import { HOURS_ATTACKS as A } from './moves.ts';
+import { PALL_HEM } from './frame.ts';
 
 export const DIAL = 17.5;
 const wrap = (a: number) => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;
@@ -50,7 +51,7 @@ export class Sister implements Boss {
   reset() { this.laid = []; this.severed = [-1, -1, -1, -1, -1, -1]; this.cuts = 0; this.open = 0; this.counted = 0; this.embers = 7; this.strips = []; this.stake = null; this.lit = 0; this.exposed = 0; this.hidden = false; this.whorl = null; this.sunk = 0; this.hugT = 0; this.out = []; this.y = 0; this.cut.clear(); }
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
-  get hx() { return this.x; } get hz() { return this.z; } get hr() { return this.r; }
+  get hx() { return this.x; } get hz() { return this.z; } /** What a blow reaches: the drawn hem for the Pall, her frame's radius for the Sister. Her movement keeps using r. */ get hr() { return this.form === 2 ? PALL_HEM : this.r; }
   get hanging() { return false; } get airborne() { return this.y > 1.2; }
   get strikes(): Strike[] {
     const s = A[this.mode] ?? []; if (this.mode !== 'hourHand' || !this.sunk) return s;
@@ -115,7 +116,7 @@ export class Sister implements Boss {
         for (const t of [1.27, 1.62, 1.97]) if (p < t && mt >= t) this.yaw += 0.61;
       } else if (m in LOCK) { if (mt < LOCK[m]) this.turn(3.2 * dt, face); if (m === 'reap' && mt > 1.3 && mt < 1.75) this.turn(4 * dt, face); }
       else { const next = s.find(q => q.t[0] > mt); if (next && mt < next.t[0] - 0.2) this.turn(2.4 * dt, face); else if (!s.length && mt < 0.8) this.turn(1.4 * dt, face); }
-      if (mt >= c.dur && !['kneel', 'fall', 'die', 'rise', 'sit'].includes(m)) this.end(m);
+      if (mt >= c.dur && !['kneel', 'fall', 'die', 'sit'].includes(m)) this.end(m);
       void dx; void dz;
     }
   }

@@ -6,6 +6,7 @@ import { HoursBrain } from '../src/boss/hours/brain.ts';
 import { HOURS_ATTACKS as A } from '../src/boss/hours/moves.ts';
 import { HOURS_CLIPS as C } from '../src/boss/hours/clips.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
+import { PALL_HEM } from '../src/boss/hours/frame.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }];
 const mk = (gap = 3, form: 1 | 2 = 1, ang = 0) => { const f = new Fight(new Motor(), new Sister(), new HoursBrain()); f.passive = true; const k = f.king as Sister; if (form === 2) f.beginRound2(); k.x = 0; k.z = -4; k.yaw = 0; f.m.x = Math.sin(ang) * gap; f.m.z = -4 + Math.cos(ang) * gap; f.m.yaw = Math.PI; f.invuln = 0; return { f, k }; };
@@ -63,6 +64,19 @@ describe('the Sister of Hours and the Pall', () => {
     const { f, k } = go(4, 'gather', 2, 0.6); f.invuln = 3; run(f, 1.2); expect(k.laid.length).toBe(1);
     const l = k.laid[0]; f.m.x = l.x + Math.sin(l.yaw) * 5 + Math.cos(l.yaw) * 0.6; f.m.z = l.z + Math.cos(l.yaw) * 5 - Math.sin(l.yaw) * 0.6; f.m.yaw = Math.atan2(-Math.cos(l.yaw), Math.sin(l.yaw));
     let cut = false; run(f, 1, i => i === 2 ? tap('attack') : [], () => { if (k.severed[l.arm] >= 0) cut = true; return [0, 0]; }); expect(cut).toBe(true);
+  });
+  it('the Pall rises after the turn and can be hurt: its rise ends, and a blow or a spell lands', () => {
+    for (const kind of ['attack', 'skill1']) {
+      const { f, k } = mk(2.4, 2); f.fire = 100; k.set('rise'); k.mt = k.prev = 2.6; const hp = f.bossHp;
+      run(f, 4, i => i === 150 ? tap(kind) : []);
+      expect(k.mode, kind).not.toBe('rise'); expect(k.vulnerable, kind).toBe(true); expect(f.bossHp, kind).toBeLessThan(hp);
+    }
+  });
+  it('the Pall is hit where her drawn hem is: a blade that reaches the visible edge lands, from outside her hitbox', () => {
+    // the swing lunges the hero about 0.8 m as it lands, so measure how far he stands when the first blow lands
+    const { f, k } = mk(1, 2), reach = f.m.weapon.reach; f.m.x = 0; f.m.z = k.z + PALL_HEM + reach + 0.5; f.m.yaw = Math.PI; f.m.target = null;
+    let hitAt = -1; for (let i = 0; i < 90; i++) { const before = f.bossHp; f.step(DT, 0, 0, i === 30 ? tap('attack') : []); if (hitAt < 0 && f.bossHp < before) hitAt = Math.hypot(k.x - f.m.x, k.z - f.m.z); }
+    expect(hitAt).toBeGreaterThan(k.r + reach); expect(hitAt).toBeLessThan(PALL_HEM + reach + 0.2);
   });
   it('a hero who answers the cues wins in a sensible time', () => {
     let wins = 0, T = 0; const N = 6;
