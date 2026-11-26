@@ -564,6 +564,18 @@ def _(i): return creature([CR1 + 'roar_0%d.ogg' % (1 + i), LOOSE + 'silent_beast
 @cook('hanging', 2)
 def _(i): s = 1.6; return Pot(s).add(load(WMS + 'wood_cracking_0%d.ogg' % (2 + i), 0.7, dur=0.6), 0.9).add(groan(0.45, i, 1.0), 0.6, 0.05).add(sub(0.9, D1, 110, 0.25, 0.04, 1.8), 1.0, 0.42).add(lp(load('rpg_sound_pack/cloth-heavy.wav', 0.9 + .1 * i), 900), 0.5, 0.38).verb(1.2, 0.18, bright=2800).glue(1.6).out(0.78)
 
+# ---------------------------------------------------------------- the Ferryman's dark (module A, the reveal). Added last, so every older recipe's draws are unchanged.
+@cook('poleDrag')
+def _(i):
+    """A pole drawn along a riverbed: friction in the water, swelling and slipping. No knock, no metal."""
+    s = 3.4; t = T(s); env = np.sin(np.pi * np.clip(t / s, 0, 1)) ** 1.6 * (0.6 + 0.4 * np.sin(2 * np.pi * 1.1 * t))
+    return Pot(s).add(bp(noise(s), 130, 720, 2) * env, 1).add(bp(noise(s), 35, 140, 2) * env, 0.9).verb(1.6, 0.3).out(0.55)
+@cook('dreadSting')
+def _(i):
+    """The low sting under a sudden sight: a sub that falls, and a breath pushed out hard. Low and dry: no bells, no metal, no click."""
+    s = 2.6; t = T(s)
+    return Pot(s).add(sub(2.2, D1, 62, 0.7, 0.05, 2.2), 1.2).add(breathy(1.2, 0.03, low(0.5), 1.0), 0.7).add(bp(noise(s), 90, 420, 2) * np.exp(-t / 0.22), 0.5).verb(2.2, 0.25).out(0.8)
+
 # ---------------------------------------------------------------- serve
 from scipy.signal import sosfiltfilt
 #: Share of energy wanted above 250 Hz (a laptop or phone hears little else), and how far the loudest tenth of a second sits under the peak.

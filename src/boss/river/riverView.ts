@@ -21,6 +21,7 @@ export class RiverView implements BossView {
   group = new THREE.Group(); form: 1 | 2; sim: River; rig = new Rig(KING); body: Body; mesh: THREE.SkinnedMesh; cleaver: THREE.Mesh; man = new THREE.Group(); fxv: RiverFx; light: THREE.PointLight | null = null;
   wounds = { w: { value: Array.from({ length: 5 }, () => new THREE.Vector4()) }, n: { value: Array.from({ length: 5 }, () => new THREE.Vector3(0, 1, 0)) } }; private wi = 0; ember = { value: 0.8 }; flash = { value: new THREE.Vector4(1, 0.4, 0.1, 0) }; flashAt = { value: new THREE.Vector4(0, 0, 0, 1) }; dissolve = { value: 0 };
   pose: Pose = new Float32Array(N); private src = new Float32Array(N); private inert = new Inertial(); private last = ''; footing = new Footing(); gait2 = new Gait([0, 0.5]); private vel = V(); private rootM = new THREE.Matrix4(); private head = { w: 0 }; private visible = true; private orbit: THREE.Sprite[] = []; private lantern: THREE.Mesh; private sections: THREE.Mesh[] = []; private hull: THREE.Mesh | null = null;
+  /** The lantern is put out of sight (the scene that cuts to his eyes in the dark). */ lampHidden = false;
   shake = 0; steps = 0; fxFired: string[] = []; private fl = [0, 0, 0, 0]; private fv = [0, 0, 0, 0]; private jit = 0; private fx: Fx; private surf = 1; private lampK = 1; private scene: THREE.Scene; /** The ending: he is an old man in a boat, and the dead stand about. */ private old = false; private boatT = 0; private boatM: THREE.Mesh; private water: { ripple(x: number, z: number, a: number, t: number): void } | null = null; private hands = [V(), V()]; private glow: THREE.Sprite; private eyeM: THREE.Mesh[] = [];
   /** Between the eyes, in the world. */ eyeAt(out: THREE.Vector3) { const a = this.eyeM[0].getWorldPosition(V()), b = this.eyeM[1].getWorldPosition(V()); return out.copy(a).add(b).multiplyScalar(0.5); }
   /** The eyes under the hat, 0 shut to 1 burning. */ eyes(k: number) { for (const e of this.eyeM) { e.visible = k > 0.02; e.scale.set(1, Math.max(0.05, k), 1); } }
@@ -152,7 +153,7 @@ export class RiverView implements BossView {
   }
   /** Hung from the hook of the pole, or at his belt when his hands are busy with the chain. */
   private placeLantern(t: number, dt: number) {
-    const S0 = this.sim, k = this.lampK, on = this.form === 1, p = V(); this.lantern.visible = this.glow.visible = this.visible && on;
+    const S0 = this.sim, k = this.lampK, on = this.form === 1, p = V(); this.lantern.visible = this.glow.visible = this.visible && on && !this.lampHidden;
     if (on) {
       if (this.cleaver.visible) this.cleaver.localToWorld(p.set(0.24, 3.55, 0)); else this.rig.bones[this.rig.i('hips')].localToWorld(p.set(0.5, 0.1, 0.1));
       this.lantern.position.copy(p); this.lantern.rotation.set(Math.sin(t * 1.3) * 0.08, 0, Math.cos(t * 1.1) * 0.08); this.glow.position.copy(p).add(V(0, 0.02, 0));

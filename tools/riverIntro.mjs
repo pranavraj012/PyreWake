@@ -9,7 +9,7 @@ const errs = [], ctx = await b.newContext(phone ? { viewport: { width: 844, heig
 p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text().slice(0, 300)));
 await p.goto(`http://localhost:5209/?boss=2&tier=${phone ? 'phone' : 'high'}${phone ? '&touch' : ''}`); await p.waitForFunction(() => document.body.classList.contains('ready') && window.__f && window.__frames > 5, null, { timeout: 90000 }); await p.waitForTimeout(500);
 await p.evaluate(() => document.querySelector('#menu [data-b=play]').click());
-const times = [2, 7, 12, 17, 22, 26, 28.5, 31, 33.5, 36.5, 38.6, 39.5, 41, 42.8, 44, 46.6, 47.8, 48.4, 49.4, 50, 50.6, 51, 51.3, 51.5], W = 480, H = 270, c = [];
+const times = [2, 7, 12, 17, 22, 26, 28.5, 31, 33.5, 35.5, 36.8, 37.4, 38.6, 39.6, 40.8, 42.5, 44.6, 46.6, 48.4, 49.5, 50.4, 51.2, 52.4, 53.2], W = 480, H = 270, c = [];
 for (let i = 0; i < times.length; i++) {
   try { await p.waitForFunction(t => __intro.t >= t, times[i], { timeout: 60000, polling: 4 }); } catch { console.log('stuck', await p.evaluate(() => [__intro.t, __intro.active, __f.phase]), errs.join(' | ')); process.exit(1); }
   const img = await sharp(await p.screenshot({ type: 'jpeg', quality: 90 })).resize(W, H, { fit: 'cover' }).composite([{ input: Buffer.from(`<svg width="90" height="22"><text x="4" y="16" font-size="15" fill="#fd6">${times[i]}</text></svg>`), left: 0, top: 0 }]).toBuffer();
