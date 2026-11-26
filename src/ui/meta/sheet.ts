@@ -76,10 +76,11 @@ export class Sheet {
     const dir = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
     if (!dir) return;
     e.preventDefault();
-    const list = [...this.el.querySelectorAll<HTMLElement>('button')].filter(b => b.offsetParent !== null && !b.disabled);
+    const list = [...this.el.querySelectorAll<HTMLButtonElement>('button')].filter(b => b.offsetParent !== null && !b.disabled);
     if (!list.length) return;
-    const i = list.indexOf(document.activeElement as HTMLElement);
+    const i = list.indexOf(document.activeElement as HTMLButtonElement);
     const next = i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length;
+    // list holds buttons only
     list[next].focus({ preventScroll: true }); list[next].scrollIntoView({ block: 'nearest' });
   }
 }

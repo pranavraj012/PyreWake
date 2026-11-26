@@ -98,5 +98,4 @@ export const UI = {
     here: 'You are here',
     travel: 'Travel',
   },
-  fares: { fares: 'Fares', iron: 'Pyre-iron' },
 };

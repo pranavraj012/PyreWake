@@ -16,7 +16,7 @@ export class Fares {
     this.el = document.createElement('div');
     this.el.className = 'meta-fares';
     this.el.setAttribute('aria-live', 'polite');
-    this.el.innerHTML = `<span class="f"><b>${UI.fares.fares}</b><i></i></span><span class="iron"><b>${UI.fares.iron}</b><i></i></span>`;
+    this.el.innerHTML = `<span class="f"><b>${UI.fares}</b><i></i></span><span class="iron"><b>${UI.iron}</b><i></i></span>`;
     app.append(this.el);
     this.off = progress.on(p => this.changed(p));
     this.changed(progress.get());

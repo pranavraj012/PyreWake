@@ -21,7 +21,7 @@ export class Inventory extends Sheet {
     const owned = p.spells.filter(id => id in SPELLS) as SpellId[];
     if (!owned.length) return `<p class="meta-hint">${UI.inventory.noSpells}</p>`;
     return owned.map(id => {
-      const s = SPELLS[id], at = p.equipped.indexOf(id), now = at >= 0 ? `<small class="meta-tag">${UI.inventory.slotNow(at + 1)}</small>` : '';
+      const s = SPELLS[id], at = p.equipped.indexOf(id), now = at >= 0 ? `<span class="meta-tag">${UI.inventory.slotNow(at + 1)}</span>` : '';
       return `<section class="meta-row"><div><h3>${s.name} <small>${s.cost} fire</small></h3><p>${s.info}</p>${now}</div><div class="meta-pair">${this.button('slot', '0:' + id, UI.inventory.slot1)}${this.button('slot', '1:' + id, UI.inventory.slot2)}</div></section>`;
     }).join('');
   }
@@ -30,7 +30,7 @@ export class Inventory extends Sheet {
     if (!p.charms.length) return `<p class="meta-hint">${UI.inventory.noCharms}</p>`;
     return p.charms.map(id => {
       const it = ITEMS['charm.' + id] ?? { name: id, text: '' }, on = p.worn.includes(id);
-      return `<section class="meta-row"><div><h3>${it.name}</h3><p>${it.text}</p>${on ? `<small class="meta-tag">${UI.inventory.worn}</small>` : ''}</div>${on ? this.button('off', id, UI.inventory.off) : this.button('wear', id, UI.inventory.wear)}</section>`;
+      return `<section class="meta-row"><div><h3>${it.name}</h3><p>${it.text}</p>${on ? `<span class="meta-tag">${UI.inventory.worn}</span>` : ''}</div>${on ? this.button('off', id, UI.inventory.off) : this.button('wear', id, UI.inventory.wear)}</section>`;
     }).join('');
   }
 

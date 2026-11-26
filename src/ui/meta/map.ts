@@ -35,7 +35,7 @@ export class WorldMap extends Sheet {
 
   private row(s: ShrineInfo, p: Readonly<Progress>): string {
     const here = p.at.shrine === s.id;
-    return `<section class="meta-row"><div><h3>${s.name}</h3>${here ? `<small class="meta-tag">${UI.map.here}</small>` : ''}</div>${here ? '' : this.button('travel', s.id, UI.map.travel)}</section>`;
+    return `<section class="meta-row"><div><h3>${s.name}</h3>${here ? `<span class="meta-tag">${UI.map.here}</span>` : ''}</div>${here ? '' : this.button('travel', s.id, UI.map.travel)}</section>`;
   }
 
   protected act(act: string, id: string) {
