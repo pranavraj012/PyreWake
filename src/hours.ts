@@ -30,7 +30,7 @@ import { PallView } from './boss/hours/pallView.ts';
 import { HoursDirector } from './boss/hours/hoursDirector.ts';
 import { HOURS_NAMES } from './game/hoursScript.ts';
 import { HoursIntro, HoursTurn, HoursEnding } from './game/hoursScenes.ts';
-import type { Ctx } from './river.ts';
+import type { Ctx } from './core/boot.ts';
 
 export async function bootHours(c: Ctx) {
   const { Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, post, dyn, resize, input, app, focus, status, SHOT } = c;
@@ -82,6 +82,7 @@ export async function bootHours(c: Ctx) {
   intro.onEnd = () => { begin(); };
   const bill = () => { const o: [number, string][] = []; scene.traverseVisible(x => { const q = x as THREE.InstancedMesh; if (!q.isMesh) return; const g = q.geometry, n = (g.index?.count ?? g.attributes.position.count) / 3 * (q.isInstancedMesh ? q.count : 1); o.push([n * (q.castShadow ? 2 : 1), `${Math.round(n)}${q.castShadow ? ' x2 (shadow)' : ''}  ${q.type}${q.isInstancedMesh ? ' x' + q.count : ''}`]); }); return o.sort((x, y) => y[0] - x[0]).slice(0, 14).map(x => x[1]); };
 
+  const still = Q.has('still');
   const step = (dt: number) => {
     input.poll(); let ev = input.drain(); let mx = 0, mz = 0;
     if (padNav(input)) ev = ev.filter(e => e.a === 'pause' && !menu.open);
@@ -93,7 +94,7 @@ export async function bootHours(c: Ctx) {
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
-    { const fz = (window as unknown as { __freezeAt?: number }).__freezeAt; if (fz !== undefined && sim.mt >= fz) { sim.mt = sim.prev = fz; } }
+    if (still) { /* tools/hours.mjs films a move held at an exact moment */ const fz = (window as unknown as { __freezeAt?: number }).__freezeAt; if (fz !== undefined && sim.mt >= fz) sim.mt = sim.prev = fz; }
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
     turn.step(dt, t); ending.step(dt, t); hd.step(sd, dt, t); if (!intro.active) dir.mono = Math.max(turn.mono, 0);
@@ -126,7 +127,7 @@ export async function bootHours(c: Ctx) {
     acc += ms; n++; frames++;
     if (acc > 500) { fps.textContent = `${Math.round(1000 * n / acc)} fps  ${tier.name}  x${dyn.scale.toFixed(2)}  ${renderer.info.render.calls} draws  ${(renderer.info.render.triangles / 1000) | 0}k tris`; acc = n = 0; }
     if (!SHOT && frames > 60 && dyn.update(ms)) resize();
-    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: house, __king: sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __hd: hd, __camPos: () => cam.position.toArray(), __bill: bill, __v1: v1, __v2: v2, __post: post, __light: light, __moon: moon, __hemi: hemi, __kick: kick, __scene: scene, __FOG: FOG });
+    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: house, __king: sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __hd: hd, __camPos: () => cam.position.toArray(), __bill: bill, __v1: v1, __v2: v2, __post: post, __light: light });
   };
   startLoop(dt => step(dt), draw);
 }

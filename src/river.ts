@@ -3,14 +3,12 @@ import * as THREE from 'three';
 import { regainFullscreen } from './core/fullscreen.ts';
 import { onSettings, saveSettings, settings } from './core/settings.ts';
 import { DEFAULT_SPELLS, SPELLS } from './combat/spells.ts';
-import type { DynamicScale, Tier } from './core/quality.ts';
+import type { Ctx } from './core/boot.ts';
 import { startLoop } from './core/loop.ts';
-import type { Input } from './input/input.ts';
 import { loadGeo, loadTextures } from './render/assets.ts';
 import { DEPTH, FOG, SHARED, surface } from './render/surface.ts';
 import { LINE } from './render/sky.ts';
 import { RIVER_NAMES } from './game/riverScript.ts';
-import type { Post } from './render/post.ts';
 import { Dust, Puffs, Sparks } from './render/fx.ts';
 import { Bursts } from './render/impact.ts';
 import { skinnedShadow } from './render/shadowProxy.ts';
@@ -34,10 +32,7 @@ import { RiverView } from './boss/river/riverView.ts';
 import { RiverDirector } from './boss/river/riverDirector.ts';
 import { RiverIntro, RiverEnding, RiverTurn } from './game/riverScenes.ts';
 
-export interface Ctx {
-  Q: URLSearchParams; tier: Tier; renderer: THREE.WebGLRenderer; scene: THREE.Scene; cam: THREE.PerspectiveCamera; moon: THREE.DirectionalLight; moonDir: THREE.Vector3; hemi: THREE.HemisphereLight; kick: THREE.DirectionalLight; sky: THREE.Object3D;
-  post: Post; dyn: DynamicScale; resize: () => void; input: Input; app: HTMLElement; baseFov: () => number; focus: THREE.Vector3; status: (s: string) => void; SHOT: string | null; BENCH: string | null;
-}
+export type { Ctx };
 
 export async function bootRiver(c: Ctx) {
   const { Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, post, dyn, resize, input, app, focus, status, SHOT } = c;
