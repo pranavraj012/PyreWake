@@ -44,7 +44,7 @@ export async function bootRiver(c: Ctx) {
   status('Lighting the river'); if (!SHOT) sound.load();
   const tex = await loadTextures(tier, Math.min(8, renderer.capabilities.getMaxAnisotropy()));
   const lod = tier.name === 'high' ? '.lo' : '.xs';
-  const [ghats, gPlayer, gPlayerLo, gKhanda, gFerry, sFerry, gPole, gAnchor, gBoat, gLantern, gArm, gBare, sBare, sPlayer] = await Promise.all([buildGhats(tex, tier, moonDir), loadGeo('player'), loadGeo('player', '.xs'), loadGeo(KHANDA.geo), loadGeo('ferryman'), loadGeo('ferryman', lod), loadGeo('pole'), loadGeo('anchor'), loadGeo('boat'), loadGeo('lantern'), loadGeo('arm'), loadGeo('ferryman2'), loadGeo('ferryman2', lod), loadGeo('player', lod)]);
+  const [ghats, gPlayer, gPlayerLo, gKhanda, gFerry, sFerry, gPole, gAnchor, gBoat, gLantern, gArm, gBare, sBare, sPlayer, gDrowned] = await Promise.all([buildGhats(tex, tier, moonDir), loadGeo('player'), loadGeo('player', '.xs'), loadGeo(KHANDA.geo), loadGeo('ferryman'), loadGeo('ferryman', lod), loadGeo('pole'), loadGeo('anchor'), loadGeo('boat'), loadGeo('lantern'), loadGeo('arm'), loadGeo('ferryman2'), loadGeo('ferryman2', lod), loadGeo('player', lod), loadGeo('drowned')]);
   scene.add(ghats.group); LINE.value = 1; FOG.uGlowP.value.forEach((g, i) => { const l = ghats.ruin.lamps[i]; if (l) g.set(l.p.x, l.p.y + 0.4, l.p.z, 0.0042); else g.set(0, 0, 0, 0); }); FOG.uFogCol.value.setRGB(0.008, 0.016, 0.026); FOG.uFogMoon.value.setRGB(0.05, 0.075, 0.1); FOG.uFogP.value.x = 0.0065; moon.intensity = 2.0; post.exposure.value = 1.85;
   const dis = { value: 0 }, pFlash = { value: new THREE.Vector4(1, 0.3, 0.1, 0) }, pAt = { value: new THREE.Vector4(0, 0, 0, 1) }, aura = { value: 0 };
   const wounds = () => ({ w: { value: Array.from({ length: 5 }, () => new THREE.Vector4()) }, n: { value: Array.from({ length: 5 }, () => new THREE.Vector3(0, 1, 0)) } });
@@ -54,8 +54,8 @@ export async function bootRiver(c: Ctx) {
   const pv = new PlayerView(scene, gPlayer, gPlayerLo, gKhanda, pMat, pHeld, DEPTH, fx, tier.name === 'phone' ? 2 : 4, KHANDA); pv.dis = dis; pv.flash = pFlash; pv.flashAt = pAt; pv.aura = aura;
   if (tier.name !== 'phone') { pv.glow = new THREE.PointLight(0xff9450, 1, 6, 1.6); scene.add(pv.glow); }
   const sim = new River(), brain = new RiverBrain(), m = new Motor(KHANDA), fight = new Fight(m, sim, brain), prompts = new Prompts(), hud = new Hud(app, input); fight.furnish(ghats.ruin.props); fight.passive = !!(SHOT || Q.has('still'));
-  const fMat = skin({ value: 0 }, { value: new THREE.Vector4(1, 0.4, 0.1, 0) }, { value: new THREE.Vector4(0, 0, 0, 1) }), geo = { boat: gBoat, body: gFerry, pole: gPole, anchor: gAnchor, lantern: gLantern, arm: gArm, }, mats = { skin: fMat, held, wood };
-  const v1 = new RiverView(scene, geo, mats, DEPTH, fx, sim, 1).withWater(ghats), v2 = new RiverView(scene, { ...geo, body: gBare }, mats, DEPTH, fx, sim, 2).withWater(ghats);
+  const fMat = skin({ value: 0 }, { value: new THREE.Vector4(1, 0.4, 0.1, 0) }, { value: new THREE.Vector4(0, 0, 0, 1) }), geo = { boat: gBoat, body: gFerry, pole: gPole, anchor: gAnchor, lantern: gLantern, arm: gArm, drowned: gDrowned }, mats = { skin: fMat, held, wood };
+  const v1 = new RiverView(scene, geo, mats, DEPTH, fx, sim, 1).withWater(ghats), v2 = new RiverView(scene, { ...geo, body: gBare }, mats, DEPTH, fx, sim, 2).withWater(ghats); v2.oldGeo = gFerry;
   for (const v of [v1, v2]) { v.mesh.material = skin({ value: 0 }, v.flash, v.flashAt, { wounds: v.wounds, ember: v.ember }) }
   if (tier.name !== 'phone') { v1.light = new THREE.PointLight(0xffa860, 16, 14, 1.7); scene.add(v1.light); }
   pv.shadow = skinnedShadow(pv.mesh, sPlayer, DEPTH.skin); skinnedShadow(v1.mesh, sFerry, DEPTH.skin); skinnedShadow(v2.mesh, sBare, DEPTH.skin); v2.show(false);

@@ -11,7 +11,7 @@ for (const tier of ['phone', 'mid', 'high']) {
   p.on('response', async r => { try { if (/baked|\.js|\.css/.test(r.url())) bytes += (await r.body()).length; } catch { } });
   p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
   const cdp = await ctx.newCDPSession(p); const t0 = Date.now();
-  await p.goto(`http://localhost:${process.env.PORT ?? 5198}/?nointro&tier=${tier}${phone ? '&touch' : ''}`);
+  await p.goto(`http://localhost:${process.env.PORT ?? 5198}/?nointro&tier=${tier}${process.env.Q ? "&" + process.env.Q : ""}${phone ? '&touch' : ''}`);
   await p.waitForFunction(() => window.__frames > 30, null, { timeout: 60000 }); const load = Date.now() - t0;
   if (phone) await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   const before = await p.evaluate(() => window.__pos);

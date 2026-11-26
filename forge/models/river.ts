@@ -253,3 +253,14 @@ export async function section(): Promise<Mesh> {
   f.displace((x, y, z) => 0.012 * fbm(x * 6, y * 6, z * 6, 3) + 0.01 * Math.abs(Math.sin(z * 11 + x * 3)), 0.03);
   return finish([[f, 0.034, 24, 5200], [g, 0.014, 9, 3200]], 0.4);
 }
+
+/** One of the drowned, standing in the shallows: grave-linen to the water, head bowed under it, hands folded. 1.8 m, origin at the feet. */
+export async function drowned(): Promise<Mesh> {
+  const f = new Field(0.05), h = new Field(0.02);
+  f.put(cone([0, 0.0, 0.0], [0, 1.25, -0.01], 0.3, 0.2), { k: 0.1 }).put(ell([0, 1.36, -0.02], [0.24, 0.12, 0.15]), { k: 0.1 }).put(ell([0, 1.0, 0.05], [0.2, 0.3, 0.14]), { k: 0.08 });
+  f.put(ell([0, 1.55, 0.06], [0.13, 0.15, 0.14], [0.45, 0, 0]), { k: 0.08 }).put(ell([0, 1.6, 0.1], [0.15, 0.16, 0.16], [0.5, 0, 0]), { k: 0.06 }).put(ell([0, 1.52, 0.2], [0.09, 0.1, 0.07], [0.5, 0, 0]), { op: 'sub', k: 0.04 });
+  for (const s of [1, -1]) f.put(cone([0.22 * s, 1.34, -0.02], [0.17 * s, 0.95, 0.12], 0.08, 0.07), { k: 0.06 });
+  f.displace((x, y, z) => { const a = Math.atan2(x, z); return 0.016 * fbm(x * 5, y * 5, z * 5, 3) - 0.02 * ridged(a * 4, y * 1.3, 1, 2) * sstep(1.3, 0.3, y); }, 0.04);
+  for (const s of [1, -1]) h.put(ell([0.045 * s, 0.93, 0.19], [0.04, 0.055, 0.03], [0, 0, 0.3 * s]), { k: 0.02 });
+  return finish([[f, 0.022, 18, 1300], [h, 0.012, 9, 200]], 0.3);
+}

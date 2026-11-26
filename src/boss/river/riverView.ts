@@ -39,7 +39,13 @@ export class RiverView implements BossView {
   }
   standing(on: boolean) { this.fxv.crowd = on; }
   /** The boat rises with him in it: no longer the Ferryman, a man. */
-  boat(on: boolean) { this.old = on; this.boatT = 0; this.boatM.visible = on; if (on) { this.visible = true; this.group.visible = true; this.man.scale.setScalar(0.52); } else this.man.scale.setScalar(SCALE); }
+  /** The body he is drawn with once the boat rises: the Ferryman again, not the coin-mail. */ oldGeo: THREE.BufferGeometry | null = null; private baseGeo: THREE.BufferGeometry | null = null; private bundle: THREE.Mesh | null = null;
+  boat(on: boolean) {
+    this.old = on; this.boatT = 0; this.boatM.visible = on; this.baseGeo ??= this.mesh.geometry; this.mesh.geometry = on && this.oldGeo ? this.oldGeo : this.baseGeo; this.eyes(on ? 0.35 : 1);
+    if (on && !this.bundle) { const g = new THREE.SphereGeometry(1, 14, 10).scale(0.13, 0.11, 0.24), n = g.attributes.position.count, a = new Uint8Array(n * 4); for (let i = 0; i < n; i++) a.set([220, 150, 0, 2], i * 4); g.setAttribute('aInfo', new THREE.BufferAttribute(a, 4, true)); this.bundle = new THREE.Mesh(g, this.lantern.material as THREE.Material); const ch = KING.find(b => b.name === 'chest')!.pos; this.bundle.position.set(0.05, 2.28 - ch[1], 0.38 - ch[2]); this.bundle.rotation.set(0.2, 0.5, 0); this.rig.bones[this.rig.i('chest')].add(this.bundle); }
+    if (this.bundle) this.bundle.visible = on;
+    if (on) { this.visible = true; this.group.visible = true; this.man.scale.setScalar(0.52); } else this.man.scale.setScalar(SCALE);
+  }
   withWater(w: { ripple(x: number, z: number, a: number, t: number): void }) { this.water = w; return this; }
   /** Lights the lamps and the lantern's glow, 0-1. */ lampLight(k: number) { this.lampK = k; }
   show(v: boolean) { this.visible = v; this.group.visible = v; this.lantern.visible = this.glow.visible = v; this.fxv.group.visible = v; for (const s of this.orbit) s.visible = v; if (this.light) this.light.visible = v; }
@@ -134,10 +140,10 @@ export class RiverView implements BossView {
   private oldMan(dt: number, px: number, pz: number, t: number) {
     this.boatT += dt; const u = sst(0, 3.2, this.boatT), p = this.pose, g = this.group, rig = this.rig, lim = this.body.limbs, y = LEVEL - 1.5 + 1.55 * u + Math.sin(t * 1.1) * 0.03;
     this.boatM.position.set(0, y, -9.4); this.boatM.rotation.set(0, 0.06, 0); g.position.set(0, y + 0.35, -9.4); g.rotation.set(0, Math.atan2(px, pz + 9.4) * 0.5, 0); g.visible = true; this.man.visible = true; for (const s of this.orbit) s.visible = false;
-    p.set(FSTAND); p[IX.hp] = 6; p[IX.sp] = 10; p[IX.np] = -16; p[IX.hy] = -0.1; p[IX.ra] = -24; p[IX.re] = 22; p[IX.rl] = 0.7; p[IX.lg] = 0; p[IX.la] = 14; p[IX.le] = 44; p[IX.ll] = 0.95; p[IX.be] = 0; p[IX.ba] = 0; p[IX.hw] = 0; p[IX.sw] = 0; p[IX.nw] = 0; p[IX.flz] = 0.1; p[IX.frz] = -0.1; p[IX.flw] = 0; p[IX.frw] = 0; p[IX.sp] += Math.sin(t * 0.9) * 1.2;
+    p.set(FSTAND); p[IX.hp] = 6; p[IX.sp] = 10; p[IX.np] = -16; p[IX.hy] = -0.1; p[IX.ra] = -6; p[IX.re] = -18; p[IX.rl] = 0.55; p[IX.xr] = 30; p[IX.lg] = 0; p[IX.la] = 18; p[IX.le] = 8; p[IX.ll] = 0.9; p[IX.be] = 0; p[IX.ba] = 0; p[IX.hw] = 0; p[IX.sw] = 0; p[IX.nw] = 0; p[IX.flz] = 0.1; p[IX.frz] = -0.1; p[IX.flw] = 0; p[IX.frw] = 0; p[IX.sp] += Math.sin(t * 0.9) * 1.2;
     g.updateMatrixWorld(true); const rm = this.rootM.copy(this.man.matrixWorld); this.body.footTargets(p, lim.footL, lim.footR); lim.handL = lim.handR = null; this.body.solve(p); this.cleaver.visible = false;
     for (let i = 0; i < 4; i++) { this.rig.euler(`f${i}a.L`, -0.2, 0, -0.5).euler(`f${i}b.L`, 0, 0, -0.6); this.rig.euler(`f${i}a.R`, 0, 0, 1.1).euler(`f${i}b.R`, 0, 0, 1.2); } void rm; rig.fk(); rig.apply(); g.updateMatrixWorld(true);
-    const hp = this.rig.bones[this.rig.i('hand.L')].getWorldPosition(V()); this.lantern.visible = this.glow.visible = true; this.lantern.position.copy(hp).add(V(0, -0.22, 0)); this.lantern.rotation.set(0, 0, 0); this.glow.position.copy(this.lantern.position); this.glow.scale.setScalar(2.2 * (0.9 + 0.1 * Math.sin(t * 8)) * (0.5 + 0.5 * u));
+    const hp = this.rig.bones[this.rig.i('hand.L')].getWorldPosition(V()); this.lantern.visible = this.glow.visible = true; this.lantern.position.copy(hp).add(V(0, -0.22, 0)); this.lantern.rotation.set(0, 0, 0); this.glow.position.copy(this.lantern.position); this.glow.scale.setScalar(0.9 * (0.9 + 0.1 * Math.sin(t * 8)) * (0.5 + 0.5 * u));
     this.fxv.update(this.sim, dt, t, hp, false, this.water, { x: px, z: pz });
   }
   /** Hung from the hook of the pole, or at his belt when his hands are busy with the chain. */

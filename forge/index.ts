@@ -42,6 +42,7 @@ const JOBS: Record<string, () => Promise<Mesh>> = {
   boat: async () => (await import('./models/river.ts')).boat(),
   boatBits: async () => (await import('./models/river.ts')).boatBits(),
   arm: async () => (await import('./models/river.ts')).arm(),
+  drowned: async () => (await import('./models/river.ts')).drowned(),
   hull: async () => (await import('./models/river.ts')).hull(),
   section: async () => (await import('./models/river.ts')).section(),
 };
