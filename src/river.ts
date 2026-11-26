@@ -97,13 +97,8 @@ export async function bootRiver(c: Ctx) {
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active) { ending.press(ev, t); if (ending.waiting) ev = []; }
     // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
-<<<<<<< HEAD
     qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up)) { const rr = sim.takeReward(); if (rr) { qte.hide(); beginReward(rr, m); rewardRun.begin(rr); } }
-    if (moment.active) { ev = []; mx = mz = 0; }
-=======
-    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.takeReward()) qte.hide();
     if (moment.active) mx = mz = 0; // the fight drops his presses while a moment is on, and keeps the releases
->>>>>>> origin/phase0
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
     // a reward scene: the hero's clip runs on the scene's clock, and its beats (the shatter, the snap) fire on the frame they land
     if (sim.rite) { syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end();
