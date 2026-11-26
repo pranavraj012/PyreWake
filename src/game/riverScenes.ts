@@ -13,6 +13,9 @@ import { LEVEL } from '../render/water.ts';
 import type { Hud } from '../ui/hud.ts';
 import { Cues, Lens } from './scenes.ts';
 import { RIVER_ENDING, RIVER_INTRO, RIVER_TURN, speak } from './riverScript.ts';
+import { CHAIN, DRAG, FARE, LANTERN, type River as RiverSim } from '../boss/river/river.ts';
+import type { Motor } from '../player/motor.ts';
+import type { MomentSpec } from './moment.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 export interface RiverKit { f: Fight; pv: PlayerView; k1: RiverView; k2: RiverView; fx: Fx; hud: Hud; ghats: Awaited<ReturnType<typeof buildGhats>>; rd: RiverDirector }
@@ -207,4 +210,55 @@ export class RiverEnding {
     else if (t < N.touch + 6) { const u = E(N.touch, N.touch + 6, t); L.aim(cam, 4, V(m.x - 1.5 - u * 1.2, 1.0 + u * 2.2, m.z + 3.8 + u * 3.8), V(0, 1.1 + u * 0.7, -30), 44 + u * 6, time); }
     else { const u = E(N.touch + 6, END_LEN, t); L.aim(cam, 5, V(m.x + 0.3, 1.2 + u * 0.6, m.z + 4.8), V(0, 1.5, -40), 48, time); }
   }
+}
+
+// ---------------------------------------------------------------- the moments (the grabs and the rewards)
+/** Each moment is staged on the boss's own clock (`stage`): the page plays these specs while the simulation holds the hero. */
+export function riverMoments(sim: RiverSim, m: Motor): Record<'drag' | 'fare' | 'chain' | 'lantern', MomentSpec> {
+  /** From the boat toward the hero, on the water, and its right-hand side. */
+  const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { ux, uz, sx: -uz, sz: ux }; };
+  // the drag: hooked and pulled under, held down, and heaved up onto the steps
+  const drag: MomentSpec = {
+    frame: (t, eye, at) => { const { sx, sz, ux, uz } = away(), down = E(DRAG.under, DRAG.hold, t), up = E(DRAG.heave, DRAG.end, t), low = Math.max(down, 1 - up), hx = m.x, hz = m.z;
+      // above the water, then down under the surface as he goes, and up again as he is heaved out
+      eye.set(hx + sx * 4.6 + ux * 1.2, 2.2 - 3.0 * low, hz + sz * 4.6 + uz * 1.2); at.set(hx, 0.8 - 1.8 * low, hz); return 56 - 2 * low; },
+    hero: (t, o) => { o.y = t < DRAG.under ? 0 : t < DRAG.hold ? -1.6 * E(DRAG.under, DRAG.hold, t) : t < DRAG.heave ? -1.6 + 0.1 * Math.sin(t * 9) : -1.6 * (1 - E(DRAG.heave, DRAG.end, t)); },
+    tumble: t => t > DRAG.hold && t < DRAG.heave ? 0.25 * Math.sin(t * 6) : 0,
+    rate: t => t > DRAG.hold - 0.1 && t < DRAG.heave + 0.2 ? 0.4 : 1,
+  };
+  // the fare: lifted on the pole, the coins pour, and he is flung down its length
+  const fare: MomentSpec = {
+    frame: (t, eye, at) => { const { sx, sz, ux, uz } = away(), fl = E(FARE.fling, FARE.hit, t), px = m.x + ux * 4.6 * fl, pz = m.z + uz * 4.6 * fl;
+      eye.set(px + sx * 4.6 + ux * 1.0, 1.6 + 1.5 * fl, pz + sz * 4.6 + uz * 1.0); at.set(px, 2.0 + 1.6 * (1 - fl), pz); return 54; },
+    hero: (t, o) => { const { ux, uz } = away(), lift = E(0, FARE.lift, t), fl = E(FARE.fling, FARE.hit, t);
+      o.set(-ux * 4.6 * (1 - fl), t < FARE.fling ? 3.2 * lift + (t > FARE.lift ? 0.12 * Math.sin(t * 6) : 0) : 3.2 * (1 - fl) + Math.sin(Math.PI * fl) * 1.2, -uz * 4.6 * (1 - fl)); },
+    tumble: t => t > FARE.fling ? Math.min(2.6, (t - FARE.fling) * 3.4) : 0,
+    rate: t => t > FARE.fling - 0.05 && t < FARE.fling + 0.25 ? 0.35 : 1,
+  };
+  /** The hero's place along the run: from where he stands, to the anchor, up the chain, and over the boat's side onto the deck. */
+  const chainAt = (t: number, out: THREE.Vector3) => { const { ux, uz } = away(), A = V(sim.lastAnchor.x, 0, sim.lastAnchor.z), start = V(m.x, 0, m.z), side = V(sim.x - ux * 0.8, 0, sim.z - uz * 0.8), deck = V(sim.x, 1.6, sim.z);
+    if (t < 0.5) out.copy(start).lerp(A, E(0, 0.5, t));
+    else if (t < 1.0) out.copy(A).lerp(side, E(0.5, 1.0, t)).setY(0.5 * E(0.5, 1.0, t));
+    else if (t < 1.6) { const u = E(1.0, 1.6, t); out.copy(side).lerp(deck, u).setY(deck.y * u + Math.sin(Math.PI * u) * 1.2); }
+    else out.copy(deck).setY(1.6 * (1 - E(1.6, 2.4, t)));
+    return out; };
+  // the chain: run up the slack chain to the boat, leap aboard, and cut the reed hat and veil off his face
+  const chain: MomentSpec = {
+    frame: (t, eye, at) => { const h = chainAt(t, new THREE.Vector3()), { sx, sz } = away(), cut = E(CHAIN.hit - 0.3, CHAIN.hit, t);
+      eye.set(h.x + sx * (4.2 - cut), h.y + 1.6, h.z + sz * (4.2 - cut)); at.set(h.x, h.y + 0.8, h.z); return 50 - 4 * cut; },
+    hero: (t, o) => { const h = chainAt(t, new THREE.Vector3()); o.set(h.x - m.x, h.y, h.z - m.z); },
+    tumble: t => t > CHAIN.hit ? Math.min(1.2, (t - CHAIN.hit) * 2) : 0,
+    rate: t => t > CHAIN.hit - 0.15 && t < CHAIN.hit + 0.15 ? 0.3 : 1,
+  };
+  // the lantern: a leap for the lamp on the pole, the smash into his face, and the fall
+  const lantern: MomentSpec = {
+    frame: (t, eye, at) => { const { sx, sz, ux, uz } = away(), hit = E(LANTERN.hit - 0.4, LANTERN.hit, t);
+      // back from the pole, so the leap and his head share the frame
+      eye.set(sim.x + ux * (8.0 - hit) + sx * 3.6, 2.6 + 0.3 * hit, sim.z + uz * (8.0 - hit) + sz * 3.6); at.set(sim.x + ux * 0.6, 3.0 + 0.4 * hit, sim.z + uz * 0.6); return 50 - 6 * hit; },
+    hero: (t, o) => { const { ux, uz } = away(), gx = sim.x + ux * 1.2 - m.x, gz = sim.z + uz * 1.2 - m.z, up = E(0.1, LANTERN.hit, t), down = E(LANTERN.hit, LANTERN.len - 0.2, t);
+      o.set(gx * up, t < LANTERN.hit ? 4.2 * Math.sin(Math.PI * 0.5 * up) : 4.2 * (1 - down), gz * up); },
+    tumble: t => t > LANTERN.hit ? Math.min(2.2, (t - LANTERN.hit) * 4) : 0,
+    rate: t => t > LANTERN.hit - 0.1 && t < LANTERN.hit + 0.1 ? 0.3 : 1,
+  };
+  return { drag, fare, chain, lantern };
 }

@@ -101,7 +101,7 @@ export class River implements Boss {
     f.invuln = Math.max(f.invuln, 0.15);
   }
   /** A reward is on offer for a while (the chain cut, or the lamps gone out). */
-  private offer(kind: 'chain' | 'lantern') { if (!this.held && !this.rite) { this.reward = kind; this.rewardLeft = RIVER_OFFER; } }
+  offer(kind: 'chain' | 'lantern') { if (!this.held && !this.rite) { this.reward = kind; this.rewardLeft = RIVER_OFFER; } }
   /** The hero took the offered reward: the scene plays, and the blow lands at its own moment. */
   takeReward(): 'chain' | 'lantern' | null {
     const r = this.reward; if (!r) return null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0;
