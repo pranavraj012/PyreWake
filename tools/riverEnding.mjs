@@ -6,13 +6,13 @@ import sharp from 'sharp'; import fs from 'node:fs';
 const phone = process.argv.includes('--phone'); fs.mkdirSync('shots_out', { recursive: true });
 const srv = await createServer({ server: { port: 5217 }, logLevel: 'error' }); await srv.listen();
 const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--force-high-performance-gpu'] });
-const errs = [], ctx = await b.newContext(phone ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true } : { viewport: { width: 1280, height: 800 } }), p = await ctx.newPage();
+const errs = [], ctx = await b.newContext(phone ? { viewport: { width: 844, height: 390 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true } : { viewport: { width: 1280, height: 800 } }), p = await ctx.newPage();
 p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text().slice(0, 300)));
 await p.goto(`http://localhost:5217/?boss=2&tier=${phone ? 'phone' : 'high'}&round2&nointro${phone ? '&touch' : ''}`);
 await p.waitForFunction(() => document.body.classList.contains('ready') && window.__frames > 5, null, { timeout: 120000 });
 // the fight is won: the way out begins
 await p.evaluate(() => { __f.passive = true; __f.bossHp = 1; __king.set('idle'); __f.hits = 9; __king.set('die'); __ending.start(); });
-const W = phone ? 390 : 480, H = phone ? 844 : 270, cols = phone ? 4 : 3, tiles = [];
+const W = phone ? 281 : 480, H = phone ? 130 : 300, cols = phone ? 6 : 3, tiles = [];
 const shot = async (label, cap = 0.5) => { tiles.push(await sharp(await p.screenshot({ type: 'jpeg', quality: 88 })).resize(W, H, { fit: 'cover' }).composite([{ input: Buffer.from(`<svg width="${W}" height="22"><text x="4" y="16" font-size="15" fill="#fd6">${label}</text></svg>`), top: 0, left: 0 }]).toBuffer()); };
 for (const t of [2, 12, 22, 27, 30, 32]) { await p.waitForFunction(x => __ending.t >= x, t, { timeout: 60000, polling: 'raf' }).catch(() => { }); await shot('t ' + t); }
 // the hold: the flame waits, the prompt shows; time passes and nothing moves on
@@ -20,7 +20,8 @@ await p.waitForFunction(() => __ending.waiting, null, { timeout: 60000, polling:
 await p.waitForTimeout(1500); await shot('hold'); await p.waitForTimeout(2500); await shot('hold +4s');
 const holdT = await p.evaluate(() => __ending.t);
 // the press
-if (phone) await p.locator('.tb-attack').tap(); else await p.keyboard.press('KeyJ');
+await p.evaluate(() => { window.__kd = []; addEventListener("keydown", e => __kd.push(e.code), true); }); if (phone) await p.touchscreen.tap(422, 150); else await p.keyboard.press("KeyJ");
+console.log("keys", await p.evaluate(() => __kd), await p.evaluate(() => [__ending.waiting, document.activeElement?.tagName, document.hasFocus()]));
 await p.waitForFunction(() => !__ending.waiting, null, { timeout: 15000 }).catch(() => { });
 for (const x of [0.25, 0.7, 1.6, 4.5, 9]) { await p.waitForTimeout(x * 1000 - (x === 0.25 ? 0 : 0)); await shot('lit +' + x + 's'); }
 const full = await p.evaluate(() => ({ t: __ending.t, over: __ending.over, waiting: __ending.waiting }));

@@ -202,6 +202,8 @@ export class RiverEnding {
     if (this.waiting) { if (ev.some(e => !e.up && e.a === 'attack')) this.light(time); return true; }
     this.skip(); return true;
   }
+  /** A tap on the screen (the touch controls are hidden in the scenes, so a phone taps anywhere): it lights the boat while the scene waits. */
+  tap(time: number) { if (this.waiting) this.light(time); }
   skip() { if (this.active && this.t > 2.2 && this.t < END_LEN) { this.c.off = true; this.lit = true; this.waiting = false; this.kit.prompt.hide(); this.t = END_LEN; this.dawn = 1; this.front = 400; } }
   /** The hero lights the boat: the one blow he does not swing. The fire runs on from here. */
   private light(time: number) {
