@@ -95,9 +95,12 @@ async function boot() {
   /** The King's staged moments' cues (scenes.ts names them): the sound, the dust, the shake, the words. */
   const kingCue = (name: string) => {
     const L = king.sim.landAt;
-    if (name === 'seize') { sound.play('kBreath', { gain: 0.9, wet: 0.7, bus: 'voice' }); hud.verse(KING_LINES.seized); }
-    else if (name === 'swing') sound.play('creak', { gain: 0.7, wet: 0.8, x: king.sim.x, z: king.sim.z });
-    else if (name === 'throw') { sound.play('groan', { gain: 0.6, x: king.sim.x, z: king.sim.z }); hud.verse(''); }
+    if (name === 'seize') { sound.play('kBreath', { gain: 0.9, wet: 0.7, bus: 'voice' }); sound.play('armsClench', { gain: 0.7, x: m.x, z: m.z }); hud.verse(KING_LINES.seized); }
+    // the struggle: a muffled breath and a strain, from the throat
+    else if (name === 'lift') { sound.play('kBreath', { gain: 0.6, wet: 0.95, bus: 'voice', rate: 0.75, x: m.x, z: m.z }); sound.play('kGrunt', { gain: 0.5, wet: 0.6, bus: 'voice', x: king.sim.x, z: king.sim.z }); }
+    else if (name === 'swing') { sound.play('creak', { gain: 0.7, wet: 0.8, x: king.sim.x, z: king.sim.z }); sound.play('whooshB', { gain: 0.8, x: king.sim.x, z: king.sim.z }); }
+    else if (name === 'throw') { sound.play('whooshH', { gain: 0.9, x: m.x, z: m.z }); sound.play('groan', { gain: 0.6, x: king.sim.x, z: king.sim.z }); hud.verse(''); }
+    else if (name === 'rise') sound.play('breathIn', { gain: 0.6, wet: 0.6, bus: 'voice', x: m.x, z: m.z });
     else if (name === 'land') { sound.play('slam', { gain: 0.9, x: L.x, z: L.z }); sound.play('thud', { gain: 0.9, x: L.x, z: L.z }); fx.puffs.emit(new THREE.Vector3(L.x, 0, L.z), 18, 2.6, 1.4, t); fx.bursts.add('ground', new THREE.Vector3(L.x, 0.06, L.z), 9, 0.9, t, 0, 0.7, 0.3, 0.1); moment.kick(0.9); }
   }; let staged: 'noose' | 'rope' | 'ride' | null = null; let heroHid = false, dimOn = false;
   const kOffer = new Offer(moment, offerSpec(m, () => ({ x: king.sim.hx, y: king.sim.hanging ? 4.2 : 1.9, z: king.sim.hz, tilt: king.sim.hanging ? 60 : undefined, back: king.sim.hanging ? 3.6 : undefined })), (r, secs) => qte.show('attack', KING_PRESS[r as 'rope' | 'ride'], secs, input.lastDevice));

@@ -208,7 +208,7 @@ export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope' | 'rid
     tumble: t => t < NOOSE.release ? 0 : t < NOOSE.land ? -Math.PI * 2.5 * (t - NOOSE.release) / (NOOSE.land - NOOSE.release) : -Math.PI / 2 * lying(t),
     rate: t => t > NOOSE.release - 0.1 && t < NOOSE.land + 0.2 ? 0.4 : 1,
     letterbox: true,
-    cues: [{ t: 0, name: 'seize' }, { t: NOOSE.swing[0], name: 'swing' }, { t: NOOSE.release, name: 'throw' }, { t: NOOSE.land, name: 'land' }],
+    cues: [{ t: 0, name: 'seize' }, { t: 0.3, name: 'lift' }, { t: NOOSE.swing[0], name: 'swing' }, { t: NOOSE.release, name: 'throw' }, { t: NOOSE.land, name: 'land' }, { t: NOOSE.lie, name: 'rise' }],
   };
   /** Up the rope: a leap to the rope's foot, a catch, the cut, and the fall with the King. */
   const rope: MomentSpec = {
