@@ -31,7 +31,7 @@ export const STORY = [
   'The King feared the fire. He had himself hanged from the oldest tree, where no flame could reach him.',
   'He never died. Night fell on the day he should have burned, and it has not lifted since.',
   'The keepers went up to the tree, one by one. None came back to tend the fires.',
-  'You are the last keeper of the pyres. Burn the King, and let the morning in.',
+  'Thou art the last keeper of the pyres. Burn the King, and let the morning in.',
 ];
 /** Which line is which: the camera and the fires follow the telling. */
 const FIRE = 0, KEEP = 1, KING = 2, NIGHT = 3, GONE = 4, YOU = 5;
@@ -88,7 +88,7 @@ export class Intro {
   step(dt: number, time: number): number {
     const { f, fx, hud, pv } = this.kit, m = f.m, k = f.king, c = this.c; this.t += dt; const real = this.t, t = at0(real); this.lens.trauma *= Math.exp(-dt * 2.6);
     if (t < 11.0) this.kneel();
-    c.at(real, 5.0, 'v0', () => hud.verse('Every keeper who came before you lies in this court.')); c.at(real, 9.0, 'v0x', () => hud.verse(''));
+    c.at(real, 5.0, 'v0', () => hud.verse('Every keeper who came before thee lies in this court.')); c.at(real, 9.0, 'v0x', () => hud.verse(''));
     c.at(real, 9.6, 'v1', () => hud.verse('He waits on his knees beneath the tree, as if he were the one at prayer.')); c.at(real, 14.4, 'v1x', () => hud.verse(''));
     c.at(t, 0.1, 'wind', () => sound.play('doom', { gain: 0.6 }));
     c.at(t, 1.3, 'place', () => hud.say('The Charnel Court', 2.6, 'place'));
@@ -136,7 +136,7 @@ export class Ending {
     if (!this.active) return; const { f, pv, fx, hud } = this.kit, m = f.m, c = this.c; this.t += dt; const real = this.t, t = at1(real); this.lens.trauma *= Math.exp(-dt * 2.4);
     c.at(real, 4.4, 'e0', () => hud.verse('He burns at last, a hundred years late.')); c.at(real, 6.5, 'e0x', () => hud.verse(''));
     c.at(real, 9.0, 'e1', () => hud.verse('The night lifts from the court, as it should have on the day he died.')); c.at(real, 13.4, 'e1x', () => hud.verse(''));
-    c.at(real, 14.2, 'e2', () => hud.verse('The keepers who lie here are only the dead now. You give each name to the fire.')); c.at(real, 18.7, 'e2x', () => hud.verse(''));
+    c.at(real, 14.2, 'e2', () => hud.verse('The keepers who lie here are only the dead now. Thou givest each name to the fire.')); c.at(real, 18.7, 'e2x', () => hud.verse(''));
     this.clear = E(6.2, 11.5, t); this.dawn = E(9.5, 15, t);
     c.at(t, 0.05, 'hush', () => { sound.duck(0.05, 2.2); });
     c.at(t, 3.6, 'crack', () => sound.play('tear', { gain: 0.6, wet: 0.7 }));

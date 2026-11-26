@@ -29,12 +29,12 @@ export const RIVER_INTRO = {
 
 export const RIVER_TURN = {
   lines: [
-    { at: 2.6, until: 6.4, text: 'Beaten, he does not reach for his pole. He reaches beneath the jars.' },
+    { at: 2.6, until: 6.4, text: 'Beaten, he reaches not for his pole. He reaches beneath the jars.' },
     { at: 7.0, until: 10.8, text: '"She weighs nothing. Feel. She weighs nothing."' },
     { at: 11.4, until: 15.6, text: 'A child the fire never touched. Forty years he has rowed her, and the river will not let her cross.' },
     { at: 16.2, until: 19.8, text: 'Only ash may cross. He would not set her down.' },
     { at: 20.6, until: 24.4, text: 'The drowned who clung to his boat, he gives back to the deep at last.' },
-    { at: 28.8, until: 32.6, text: 'Their coin, he will not give. It comes up out of the river, onto him.' },
+    { at: 28.8, until: 32.6, text: 'Their coin, he will not give. It comes up out of the river, upon him.' },
   ] as Line[],
   title: { name: RIVER_NAMES.r2, sub: 'Mailed in the Fares of the Drowned' },
 };
@@ -46,7 +46,7 @@ export const RIVER_ENDING = {
     { at: 12.6, until: 16.8, text: 'What remains is an old man, and in his arms a bundle that weighs nothing.' },
     { at: 17.6, until: 21.8, text: '"Forty years I rowed her toward the far bank. Forty years the river turned me back."' },
     { at: 22.6, until: 26.6, text: '"I gave her my name, that I might hear it called across the water."' },
-    { at: 27.4, until: 31.4, text: 'He holds his lamp out to you. This is the one blow you do not swing.' },
+    { at: 27.4, until: 31.4, text: 'He holds his lamp out to thee. This is the one blow thou shalt not swing.' },
     { at: 35.0, until: 39.2, text: '"Call it from the far bank. Let something answer."' },
   ] as Line[],
 };

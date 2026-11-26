@@ -20,13 +20,13 @@ export const HOURS_INTRO = {
     { at: 7.5, until: 10.0, text: 'Smoke has stood over the house since. Nothing beneath it has died.' },
   ] as Line[],
   /** From a bed as you pass. */ bed: { at: 10.3, until: 11.6, text: '"...is it morning yet, sister?"' },
-  law: { at: 12.6, until: 15.0, text: '"Breathe out. I will count for you."' },
+  law: { at: 12.6, until: 15.0, text: '"Breathe out. I will count for thee."' },
   title: { name: HOURS_NAMES.r1, sub: 'No one in her house died in the dark.' },
 };
 
 export const HOURS_TURN = {
   lines: [
-    { at: 1.8, until: 4.8, text: '"You burn them after. I burned them before."' },
+    { at: 1.8, until: 4.8, text: '"Thou burnest them after. I burned them before."' },
     { at: 5.0, until: 8.2, text: '"Tell me the difference, keeper. In the dark."' },
     { at: 11.6, until: 14.0, text: 'They had hours left. She takes them in.' },
   ] as Line[],
