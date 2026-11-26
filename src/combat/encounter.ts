@@ -178,13 +178,13 @@ export class Encounter {
   /** Foes pushing each other and the hero apart, so bodies do not stack. */
   private separate() {
     const m = this.m, all = this.foes.filter(f => !f.dead), L = m.arena;
-    for (let i = 0; i < all.length; i++) {
-      const a = all[i], hx = a.x - m.x, hz = a.z - m.z, hd = Math.hypot(hx, hz), want = a.r + HERO_R;
+    for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
+      const a = all[i], b = all[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), need = a.r + b.r;
+      if (d < need && d > 1e-4) { const o = (need - d) / 2; a.x -= dx / d * o; a.z -= dz / d * o; b.x += dx / d * o; b.z += dz / d * o; }
+    }
+    for (const a of all) {
+      const hx = a.x - m.x, hz = a.z - m.z, hd = Math.hypot(hx, hz), want = a.r + HERO_R;
       if (hd < want && hd > 1e-4) { a.x = m.x + hx / hd * want; a.z = m.z + hz / hd * want; }
-      for (let j = i + 1; j < all.length; j++) {
-        const b = all[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), need = a.r + b.r;
-        if (d < need && d > 1e-4) { const o = (need - d) / 2; a.x -= dx / d * o; a.z -= dz / d * o; b.x += dx / d * o; b.z += dz / d * o; }
-      }
       const q = Math.hypot(a.x, a.z); if (q > L) { a.x *= L / q; a.z *= L / q; }
     }
   }
