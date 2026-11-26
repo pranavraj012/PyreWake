@@ -56,11 +56,18 @@ export class Prompt {
   hide() { this.left = 0; this.el.classList.remove('on'); }
 }
 
-/** The shot for a reward on offer: the camera goes in low by the hero's feet and looks up at the boss, so he looms; it draws in a little while it holds. */
-export function offerSpec(hero: { x: number; z: number }, boss: () => { x: number; y: number; z: number }): MomentSpec {
+/** The shot for a reward on offer: a low camera (about half a metre off the floor) behind and beside the hero, looking at the boss over his shoulder.
+ *  The look point is the boss's chest or head, tilted up no more than `tilt` degrees (38 unless the boss says otherwise), so the floor and the fires stay in the lower frame.
+ *  It dollies in half a metre over the offer. Framing comes from the actual positions, so it works for any boss. */
+export function offerSpec(hero: { x: number; z: number }, boss: () => { x: number; y: number; z: number; tilt?: number; back?: number }): MomentSpec {
   return {
-    frame: (t, eye, at) => { const b = boss(), dx = b.x - hero.x, dz = b.z - hero.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, u = Math.min(1, t / 0.9), back = 2.6 - 0.4 * u;
-      eye.set(hero.x - ux * back - uz * 0.45, 0.28 + 0.05 * u, hero.z - uz * back + ux * 0.45); at.set(b.x, Math.max(2.2, b.y), b.z); return 64 - 6 * u; },
+    frame: (t, eye, at) => {
+      const b = boss(), dx = b.x - hero.x, dz = b.z - hero.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, sx = -uz, sz = ux, u = Math.min(1, t / 0.9);
+      const back = (b.back ?? 2.3) - 0.5 * u, side = b.back ? 1.2 : 0.9, eh = 0.5 + 0.04 * u;
+      eye.set(hero.x - ux * back + sx * side, eh, hero.z - uz * back + sz * side);
+      const hd = Math.hypot(b.x - eye.x, b.z - eye.z) || 1, cap = eh + Math.tan((b.tilt ?? 38) * Math.PI / 180) * hd;
+      at.set(b.x, Math.min(b.y, cap), b.z); return 62 - 4 * u;
+    },
     rate: () => OFFER_SLOW,
     letterbox: true,
   };

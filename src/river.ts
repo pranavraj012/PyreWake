@@ -60,7 +60,7 @@ export async function bootRiver(c: Ctx) {
   // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
   const moment = new Moment(), qte = new Prompt(app), rSpecs = riverMoments(sim, m); let staged: 'drag' | 'chain' | 'lantern' | null = null, dragK = 0;
   // the reward on offer: the slow low shot by the hero's feet, then the press; the drag's own beats: the pull under, the bite, the heave
-  const kOffer = new Offer(moment, offerSpec(m, () => ({ x: sim.x, y: 2.6, z: sim.z })), (r, secs) => qte.show('attack', RIVER_PRESS[r as 'chain' | 'lantern'], secs, input.lastDevice));
+  const kOffer = new Offer(moment, offerSpec(m, () => ({ x: sim.x, y: 2.2, z: sim.z })), (r, secs) => qte.show('attack', RIVER_PRESS[r as 'chain' | 'lantern'], secs, input.lastDevice));
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [v1, v2], court: ghats }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = [RIVER_NAMES.r1, RIVER_NAMES.r2]; hud.winTitle = RIVER_NAMES.won; onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
