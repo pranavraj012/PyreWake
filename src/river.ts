@@ -68,7 +68,7 @@ export async function bootRiver(c: Ctx) {
   hud.onRestart = () => { ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'weight' : 'row'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
-  menu.fights('The Ferryman', 'The Hanged King', true); menu.onOther = () => { location.search = ''; };
+  menu.fights([['The Hanged King', () => { location.search = ''; }], ['The Ferryman', null], ['The Sister of Hours', () => { location.search = '?boss=3'; }]]);
   const toMenu = () => { hud.setPaused(false); hud.verse(''); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen; hud.next = ''; hud.onSkip = () => { };
   document.addEventListener('visibilitychange', () => { if (document.hidden && !menu.open && !intro.active && !turn.active && !ending.active && fight.phase !== 'won' && !SHOT) hud.setPaused(true); });

@@ -26,8 +26,15 @@ export class Menu {
     this.root.addEventListener('keydown', e => { const b = [...this.root.querySelectorAll<HTMLButtonElement>('nav button')], i = b.indexOf(document.activeElement as HTMLButtonElement), s = /^(ArrowDown|KeyS)$/.test(e.code) ? 1 : /^(ArrowUp|KeyW)$/.test(e.code) ? -1 : 0; if (s) { e.preventDefault(); b[(i + s + b.length) % b.length].focus(); } });
     this.labels();
   }
-  /** Both fights, in order: this page's is Play, the other leaves for its own page. */
-  fights(here: string, other: string, otherFirst: boolean) { const p = this.root.querySelector<HTMLButtonElement>('[data-b=play]')!, o = this.root.querySelector<HTMLButtonElement>('[data-b=other]')!; p.textContent = here; o.textContent = other; o.hidden = false; if (otherFirst) p.before(o); else p.after(o); }
+  /** Every fight, in order. The one with no `go` is this page's, and is Play; each other leaves for its own page. */
+  fights(list: [string, (() => void) | null][]) {
+    const p = this.root.querySelector<HTMLButtonElement>('[data-b=play]')!, o = this.root.querySelector<HTMLButtonElement>('[data-b=other]')!; let at: HTMLElement | null = null, k = 0;
+    for (const [name, go] of list) {
+      if (!go) { p.textContent = name; if (at) at.after(p); at = p; continue; }
+      const b = k++ ? o.cloneNode() as HTMLButtonElement : o; b.textContent = name; b.hidden = false; b.dataset.b = 'other' + k; b.onclick = () => { if (this.open) { this.close(); go(); } }; if (k > 1) { b.addEventListener('pointerenter', () => sound.play('uiMove', { gain: 0.5, wet: 0.2 })); b.addEventListener('click', () => sound.play('uiPick', { gain: 0.8, wet: 0.5 })); }
+      if (at) at.after(b); else p.before(b); at = b;
+    }
+  }
   private labels() { const set = (k: string, t: string) => { const b = this.root.querySelector(`[data-b=${k}]`); if (b) b.textContent = t; }; set('full', isFullscreen() ? 'Leave full screen' : 'Full screen'); set('sound', sound.muted ? 'Sound: off' : 'Sound: on'); }
   show() { this.open = true; this.labels(); document.body.classList.add('menu'); document.exitPointerLock?.(); this.root.querySelector<HTMLButtonElement>('[data-b=play]')!.focus({ preventScroll: true }); }
   private close() { this.open = false; document.body.classList.remove('menu'); (document.activeElement as HTMLElement | null)?.blur(); }

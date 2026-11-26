@@ -99,7 +99,7 @@ async function boot() {
   const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
   const direct0 = !!(SHOT || BENCH);
   const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
-  const menu = new Menu(app, () => hud.controls()), still = fight.passive; menu.fights('The Hanged King', 'The Ferryman', false); menu.onOther = () => { location.search = '?boss=2'; };
+  const menu = new Menu(app, () => hud.controls()), still = fight.passive; menu.fights([['The Hanged King', null], ['The Ferryman', () => { location.search = '?boss=2'; }], ['The Sister of Hours', () => { location.search = '?boss=3'; }]]);
   /** Back to the very start: the court at night, the hero at the gate. */
   const toMenu = () => { hud.setPaused(false); if (lessons.active) { lessons.active = false; lessons.frozen = null; } hud.lesson(null); hud.verse(''); ending.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.kneel(); king.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen;
@@ -187,4 +187,4 @@ async function boot() {
   };
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }
-(Q.get('boss') === '2' ? import('./river.ts').then(r => r.bootRiver({ Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH })) : boot()).catch(e => { console.error(e); status('Could not start: ' + e.message); });
+(Q.get('boss') === '2' || Q.get('boss') === '3' ? (Q.get('boss') === '3' ? import('./hours.ts').then(r => r.bootHours({ Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH })) : import('./river.ts').then(r => r.bootRiver({ Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH }))) : boot()).catch(e => { console.error(e); status('Could not start: ' + e.message); });
