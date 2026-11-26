@@ -9,7 +9,7 @@ import { loadGeo, loadTextures } from './render/assets.ts';
 import { DEPTH, FOG, SHARED, surface } from './render/surface.ts';
 import { LINE } from './render/sky.ts';
 import { RIVER_NAMES, RIVER_PRESS } from './game/riverScript.ts';
-import { Moment, Prompt } from './game/moment.ts';
+import { Moment, Offer, Prompt, offerSpec } from './game/moment.ts';
 import { Dust, Puffs, Sparks } from './render/fx.ts';
 import { Bursts } from './render/impact.ts';
 import { skinnedShadow } from './render/shadowProxy.ts';
@@ -27,7 +27,7 @@ import { PlayerView } from './player/view.ts';
 import { Director } from './game/director.ts';
 import { FollowCam, menuCam } from './game/camera.ts';
 import { actionCam } from './game/cinema.ts';
-import { River } from './boss/river/river.ts';
+import { DRAG, River } from './boss/river/river.ts';
 import { RiverBrain } from './boss/river/brain.ts';
 import { RiverView } from './boss/river/riverView.ts';
 import { RiverDirector } from './boss/river/riverDirector.ts';
@@ -58,7 +58,9 @@ export async function bootRiver(c: Ctx) {
   if (tier.name === 'phone') pv.weapon.castShadow = v1.cleaver.castShadow = false;
   const follow = new FollowCam(); follow.blockers = m.blockers;
   // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
-  const moment = new Moment(), qte = new Prompt(app), rSpecs = riverMoments(sim, m); let staged: 'drag' | 'chain' | 'lantern' | null = null, qteFor: string | null = null;
+  const moment = new Moment(), qte = new Prompt(app), rSpecs = riverMoments(sim, m); let staged: 'drag' | 'chain' | 'lantern' | null = null, dragK = 0;
+  // the reward on offer: the slow low shot by the hero's feet, then the press; the drag's own beats: the pull under, the bite, the heave
+  const kOffer = new Offer(moment, offerSpec(m, () => ({ x: sim.x, y: 2.6, z: sim.z })), (r, secs) => qte.show('attack', RIVER_PRESS[r as 'chain' | 'lantern'], secs, input.lastDevice));
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [v1, v2], court: ghats }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = [RIVER_NAMES.r1, RIVER_NAMES.r2]; hud.winTitle = RIVER_NAMES.won; onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
@@ -92,8 +94,11 @@ export async function bootRiver(c: Ctx) {
     qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.takeReward()) qte.hide();
     if (moment.active) { ev = []; mx = mz = 0; }
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
-    { const want = sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(rSpecs[want]); } else moment.stop(); } }
-    if (!sim.reward) qteFor = null; else if (!moment.active && !qte.on && qteFor !== sim.reward) { qteFor = sim.reward; qte.show('attack', RIVER_PRESS[sim.reward], sim.rewardLeft, input.lastDevice); }
+    { const want = sim.staging; if (want !== staged) { staged = want; dragK = 0; if (want) { qte.hide(); moment.start(rSpecs[want]); } else moment.stop(); } }
+    // the drag's beats, on the boss's clock: a groan as he is pulled under, the bite, and a slam as he is heaved onto the steps
+    if (sim.held === 'drag') { const beats = [DRAG.under, DRAG.dmg, DRAG.heave]; while (dragK < 3 && sim.stage >= beats[dragK]) { if (dragK === 0) sound.play('groan', { gain: 0.6, x: sim.x, z: sim.z }); else if (dragK === 1) { sound.play('doom', { gain: 0.8 }); moment.kick(0.7); } else { sound.play('slam', { gain: 0.8, x: sim.x, z: sim.z }); moment.kick(0.6); } dragK++; } }
+    document.body.classList.toggle('letter', moment.letterbox || sim.held === 'drag');
+    kOffer.step(dt, sim.reward, sim.rewardLeft, sim.staging !== null);
     pv.tumble = moment.hero(sim.stage, pv.offset);
     if (sim.held === 'drag' && sim.stage >= 0.55 && sim.stage < 0.62) fx.sparks.emit(new THREE.Vector3(m.x, 0.2, m.z), new THREE.Vector3(0, 1, 0), 40, 4, 1.2, 0.5, t);
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
@@ -118,9 +123,10 @@ export async function bootRiver(c: Ctx) {
     else if (turn.active) turn.camera(cam, t);
     else if (ending.active) ending.camera(cam, t);
     else if (intro.active) intro.camera(cam, t, c.baseFov());
-    else if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.stage)) { /* a staged moment's shot */ }
+    else if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.stage, t)) { /* a staged moment's shot */ }
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, c.baseFov())) { follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5, h: sim.form === 2 ? 2.1 : 1.7 + sim.y * 0.6 }, input.takeLook(), t, c.baseFov());
+    moment.settle(cam, Math.min(ms / 1000, 0.05));
     if (!SHOT && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
     { const fz = cam.userData.focus as THREE.Vector3 | undefined, film = menu.open || turn.active || ending.active || intro.active, on = film || cam.userData.frame === true, want = on && fz ? (menu.open ? 0.4 : film ? 0.8 : 0.6) : 0; cam.userData.frame = false; post.dof.amt += (want - post.dof.amt) * (want && post.dof.amt < 0.02 ? 1 : Math.min(1, ms / 90)); if (fz) post.dof.focus = Math.max(0.5, fz.distanceTo(cam.position)); }
     c.sky.position.copy(cam.position); cam.updateMatrixWorld();
