@@ -165,17 +165,18 @@ export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope' | 'rid
   const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { ux, uz, sx: -uz, sz: ux }; };
   /** How high his feet are on the noose at its clock (the sim has him where he is in the plane). */
   const nooseH = (t: number) => { const { lift, swing: [s0, s1], release, land } = NOOSE, FEET = 1.35; if (t < lift) return FEET * E(0, lift, t); if (t < release) return FEET + 0.35 * Math.sin(Math.PI * 2 * Math.max(0, Math.min(1, (t - s0) / (s1 - s0)))); if (t < land) { const u = (t - release) / (land - release); return FEET * (1 - u) + 2.2 * 4 * u * (1 - u); } return 0; };
+  /** Lying, the hero's back is on the ground for the beat after the landing, and he gets up from it by lie..end. */
+  const lying = (t: number) => t < NOOSE.land ? 0 : 1 - E(NOOSE.lie, NOOSE.end, t);
   const noose: MomentSpec = {
-    frame: (t, eye, at) => { const fx = Math.sin(sim.yaw0), fz = Math.cos(sim.yaw0), sx = fz, sz = -fx, K = (dx: number, dy: number, dz: number) => [sim.x + dx, dy, sim.z + dz] as const, set = (v: THREE.Vector3, p: readonly number[]) => v.set(p[0], p[1], p[2]);
-      if (t < NOOSE.lift) { set(eye, K(sx * 4.4 + fx * 1.2, 1.6, sz * 4.4 + fz * 1.2)); set(at, K(fx * 0.7, 1.7, fz * 0.7)); return 46; }
-      if (t < NOOSE.release) { const u = Math.min(1, Math.max(0, (t - NOOSE.swing[0]) / (NOOSE.swing[1] - NOOSE.swing[0]))), a = sim.yaw + 0.9; /* the camera turns with the arc: the hero is always between the lens and the King */ set(eye, K(Math.sin(a) * 5.4, 3.1 - 0.4 * u, Math.cos(a) * 5.4)); set(at, K(0, 1.4, 0)); return 46; }
-      if (t < NOOSE.land) { set(eye, K(sx * 6.2 + fx * 2.2, 1.9, sz * 6.2 + fz * 2.2)); set(at, K(fx * 3.0, 1.2, fz * 3.0)); return 50; }
-      // the landing: low, a body's length off him, the King still in the frame behind
-      const u = E(NOOSE.land, NOOSE.land + 1.2, t), Lx = sim.landAt.x, Lz = sim.landAt.z;
-      set(eye, [Lx + sx * (3.4 - 0.6 * u) - fx * (2.6 - 0.6 * u), 0.8 + 0.2 * u, Lz + sz * (3.4 - 0.6 * u) - fz * (2.6 - 0.6 * u)]); set(at, [Lx, 0.5, Lz]); return 44 - 4 * u;
+    frame: (t, eye, at) => {
+      // a low shot from the King's side: the arm, the hero held up at the throat, and the King's face above
+      const T = sim.nooseAt(t), fx = Math.sin(sim.yaw0), fz = Math.cos(sim.yaw0), sx = fz, sz = -fx;
+      if (t < NOOSE.land) { eye.set(sim.x + sx * 4.2 + fx * 1.4, 1.7 + (T.y - NOOSE.throat) * 0.4, sim.z + sz * 4.2 + fz * 1.4); at.set(sim.x + fx * 0.5, 2.2 + (T.y - NOOSE.throat) * 0.5, sim.z + fz * 0.5); return 46; }
+      const L = sim.landAt; eye.set(L.x + sx * 3.4, 0.9, L.z + sz * 3.4); at.set(L.x, 0.5, L.z); return 44;
     },
-    hero: (t, o) => { o.set(0, nooseH(t), 0); },
-    tumble: t => t > NOOSE.release && t < NOOSE.land ? Math.PI * 2 * (t - NOOSE.release) / (NOOSE.land - NOOSE.release) : 0,
+    hero: (t, o) => { const T = sim.nooseAt(t); o.set(0, t < NOOSE.land ? T.y - NOOSE.throat : 0.2 * lying(t), 0); },
+    // the flight turns him over once and a quarter, so he lands on his back
+    tumble: t => t < NOOSE.release ? 0 : t < NOOSE.land ? -Math.PI * 2.5 * (t - NOOSE.release) / (NOOSE.land - NOOSE.release) : -Math.PI / 2 * lying(t),
     rate: t => t > NOOSE.release - 0.1 && t < NOOSE.land + 0.2 ? 0.4 : 1,
     letterbox: true,
     cues: [{ t: 0, name: 'seize' }, { t: NOOSE.swing[0], name: 'swing' }, { t: NOOSE.release, name: 'throw' }, { t: NOOSE.land, name: 'land' }],
