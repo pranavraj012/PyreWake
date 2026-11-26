@@ -7,7 +7,7 @@ import { Rig } from '../anim/rig.ts';
 import { BENEATH, KING } from '../anim/skeletons.ts';
 import type { Fx } from '../render/fx.ts';
 import { CRAWL, HANG, KING_CLIPS as K, STAND } from './clips.ts';
-import { King, ROPE } from './king.ts';
+import { King, NOOSE, ROPE } from './king.ts';
 import { STAND2 } from './moves2.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -65,8 +65,8 @@ export class KingView {
   update(dt: number, px: number, pz: number, t: number) {
     const S0 = this.sim, p = this.pose, m = S0.mode, dx = px - S0.x, dz = pz - S0.z, speed = S0.speed; this.vel.set(S0.vx, 0, S0.vz);
     // --- source pose
-    const hanging = S0.hanging, still = this.form === 2 ? STAND2 : STAND, base = m === 'crawl' ? CRAWL : hanging ? HANG : still; if (!this.visible) return;
-    if (m in K) sampleClip(K[m], S0.mt, hanging ? HANG : m === 'pounce' || m === 'rake' ? CRAWL : still, this.src); else this.src.set(base);
+    const hanging = S0.hanging, rig = hanging || m === 'noose' || m === 'rope', still = this.form === 2 ? STAND2 : STAND, base = m === 'crawl' ? CRAWL : rig ? HANG : still; if (!this.visible) return;
+    if (m in K) sampleClip(K[m], S0.mt, rig ? HANG : m === 'pounce' || m === 'rake' ? CRAWL : still, this.src); else this.src.set(base);
     if (m !== this.last) { this.inert.start(this.src, null, m in K ? K[m].blend ?? 0.3 : hanging || this.last.startsWith('hang') ? 0.5 : this.form === 2 ? 0.28 : 0.45); this.last = m; }
     p.set(this.src); this.inert.apply(p, dt);
     // --- living details: shallow breath, snapping head, tremor
@@ -84,7 +84,8 @@ export class KingView {
     const lim4 = (v: number, l: number) => Math.max(-l, Math.min(l, v)); p[IX.sp] += lim4(this.fl[0], 34); p[IX.sw] += lim4(this.fl[1], 34); p[IX.nr] += lim4(this.fl[2], 60); p[IX.np] -= lim4(this.fl[0] * 0.8, 36); p[IX.hz] -= 0; p[IX.hp] += lim4(this.fl[0] * 0.3, 12);
     this.flash.value.w *= Math.exp(-dt * 11);
     // --- placement
-        const hk = hanging ? sst(0, 0.9, S0.ht) : 0; if (hanging) this.hangK = hk; else this.hangK += (hk - this.hangK) * Math.min(1, dt * 9);
+        // the staged noose climbs the rope (its own rise), and the rope rig holds him up while the hero takes the reward
+        const hk = m === 'noose' ? sst(NOOSE.climb[0], NOOSE.climb[1], S0.mt) : m === 'rope' ? 1 : hanging ? sst(0, 0.9, S0.ht) : 0; if (rig) this.hangK = hk; else this.hangK += (hk - this.hangK) * Math.min(1, dt * 9);
     const g = this.group; this.rope.visible = this.hangK > 0.02;
     if (this.hangK > 0.002) {
       const dir = S0.dir, th = S0.th, tw = Math.sin(S0.ht * 0.5) * 0.35;

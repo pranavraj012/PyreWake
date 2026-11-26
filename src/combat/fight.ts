@@ -184,7 +184,7 @@ export class Fight {
     if (this.hp <= 0) { m.yaw = from; m.die(); this.deaths++; this.deadT = 0; this.hazards.length = 0; this.slow(0.4, 0.8); this.ev.push({ k: 'hurt', dmg, down: true }, { k: 'dead' }); }
     else { m.hurt(from, down); this.ev.push({ k: 'hurt', dmg, down }); }
   }
-  evade() { const m = this.m, vanished = m.clip?.name === 'rush', perfect = !vanished && m.dodgeAge < D.perfect; if (perfect) { this.slow(0.32, 0.5); this.gainFire(D.gain.perfect); m.reckoning = 1.6; } this.ev.push({ k: 'evade', perfect }); }
+  evade() { const m = this.m, vanished = m.clip?.name === 'rush', perfect = !vanished && m.dodgeAge < D.perfect; if (perfect) { this.slow(0.32, 0.5); this.gainFire(D.gain.perfect); m.reckoning = 1.6; this.king.dodged?.(this); } this.ev.push({ k: 'evade', perfect }); }
   /** Something passed under your feet. */
   /** When something last passed under your feet. */ leapT = -9;
   leapt() { this.leapT = this.time; this.gainFire(D.gain.perfect); this.m.sky = 1.6; this.slow(0.5, 0.22); this.ev.push({ k: 'leap' }); }
@@ -209,6 +209,7 @@ export class Fight {
       if (s.low && m.over) { this.spent.add(id); this.leapt(); continue; }
       if (m.safe > 0 || this.vanished) { this.spent.add(id); this.evade(); continue; }
       if (this.invuln > 0) continue;
+      if (s.seize && k.seize) { this.spent.add(id); k.seize(s, this); continue; }
       this.spent.add(id); let fa = from - m.yaw; fa -= Math.round(fa / 6.2832) * 6.2832;
       if (s.kind === 'white' && m.guardUp && Math.abs(fa) < 1.9) {
         if (m.guardT < D.parry) {

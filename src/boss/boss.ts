@@ -13,6 +13,8 @@ export interface Boss {
   /** Back to a clean start: bosses with mechanics of their own clear them. */ reset?(): void;
   /** Called by the referee each time a blow lands, with what kind it was. */ struck?(f: Fight, kind: 'blade' | 'fire'): void;
   /** Called by the referee after step: bosses with their own mechanics (chains, lanterns, coins) act here. */ tick?(f: Fight, dt: number): void;
+  /** A strike marked `seize` connected: the boss takes the hero into a staged moment instead of the plain blow. */ seize?(s: Strike, f: Fight): void;
+  /** The hero's dodge was perfect: bosses that offer a reward for it open the chance here. */ dodged?(f: Fight): void;
 }
 export interface BossBrain {
   temper: number; seen: Set<string>; style: string; began: string | null;

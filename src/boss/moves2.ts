@@ -92,6 +92,7 @@ export interface Strike {
   box?: [number, number]; arc?: [number, number]; head?: number; /** Comes in at leg height: a jump clears it. */ low?: boolean;
   /** Ground marks drawn from the cue. With no box/arc/head of its own, the zone does the damage. */ zones?: Zone[];
   /** Hit only outside this radius (a sweep with a safe place at the boss's feet). */ inner?: number; /** The zone is only drawn: the boss resolves it itself. */ silent?: boolean;
+  /** When it connects, the boss seizes the hero into a staged moment instead of the plain blow (see King.seize). */ seize?: 'noose' | 'hands';
 }
 /** Attacks that fly to a marked spot: launch, landing, height. `past` overshoots through the target. */
 export const LEAPS: Record<string, { t0: number; t1: number; h: number; max: number; past?: number }> = {
@@ -102,7 +103,7 @@ export const ATTACKS: Record<string, Strike[]> = {
   slam: [{ kind: 'white', cue: 0.7, t: [1.38, 1.52], dmg: 12, mark: 'cleaver', box: [4.2, 0.75] }],
   sweep: [{ kind: 'white', cue: 0.3, t: [0.94, 1.1], dmg: 10, mark: 'cleaver', arc: [4.2, 105], low: true }, { kind: 'white', cue: 1.26, t: [1.88, 2.02], dmg: 10, mark: 'cleaver', arc: [4.2, 105], low: true }],
   drag: [{ kind: 'white', cue: 0.3, t: [0.92, 1.06], dmg: 11, mark: 'cleaver', arc: [3.8, 70] }],
-  grab: [{ kind: 'red', cue: 0.56, t: [1.38, 1.52], dmg: 17, down: true, mark: 'handL', box: [3.0, 0.7] }],
+  grab: [{ kind: 'red', cue: 0.56, t: [1.38, 1.52], dmg: 17, down: true, mark: 'handL', box: [3.0, 0.7], seize: 'noose' }],
   leap: [{ kind: 'ground', cue: 0.4, t: [1.28, 1.4], dmg: 12, down: true, mark: 'cleaver', zones: [circle(2.5, 0.9)] }],
   pounce: [{ kind: 'ground', cue: 0.4, t: [1.14, 1.26], dmg: 13, down: true, mark: 'handL', zones: [circle(2.1, 0.76)] }],
   rake: [{ kind: 'white', cue: 0.24, t: [0.86, 0.98], dmg: 9, mark: 'cleaver', arc: [3.5, 80], low: true }, { kind: 'white', cue: 0.9, t: [1.46, 1.58], dmg: 9, mark: 'handL', arc: [3.5, 80], low: true }],
@@ -111,7 +112,7 @@ export const ATTACKS: Record<string, Strike[]> = {
   // --- round 2
   flurry: [{ kind: 'white', cue: 0.2, t: [0.8, 0.9], dmg: 7, mark: 'cleaver', arc: [3.6, 90] }, { kind: 'white', cue: 0.82, t: [1.38, 1.48], dmg: 7, mark: 'handL', arc: [3.6, 90] }, { kind: 'white', cue: 1.4, t: [1.96, 2.06], dmg: 7, mark: 'cleaver', arc: [3.6, 90] }, { kind: 'white', cue: 2.2, t: [2.82, 2.94], dmg: 13, mark: 'head', box: [4.0, 1.0] }],
   cross: [{ kind: 'white', cue: 0.16, t: [0.78, 0.98], dmg: 12, mark: 'cleaver', arc: [2.3, 140], low: true }],
-  skewer: [{ kind: 'red', cue: 0.4, t: [1.14, 1.3], dmg: 18, down: true, mark: 'head', box: [4.0, 0.65] }],
+  skewer: [{ kind: 'red', cue: 0.4, t: [1.14, 1.3], dmg: 18, down: true, mark: 'head', box: [4.0, 0.65], seize: 'hands' }],
   rupture: [{ kind: 'ground', cue: 0.4, t: [1.24, 1.36], dmg: 14, down: true, mark: 'head', zones: [-0.5, 0, 0.5].map(yaw => ({ shape: 'line' as const, at: 'self' as const, len: 13, half: 0.85, yaw, delay: 0.85 })) }],
   rain: [0.8, 1.3, 1.8, 2.3, 2.8].map(t => ({ kind: 'ground' as const, cue: t, t: [t + 0.9, t + 1.0] as [number, number], dmg: 7, mark: 'head' as const, zones: [circle(1.8, 0.9, 'player')] })),
   wheel: [{ kind: 'ground', cue: 0.36, t: [1.22, 1.34], dmg: 13, down: true, mark: 'head', zones: [circle(2.4, 0.88)] }, { kind: 'ground', cue: 1.23, t: [1.3, 1.4], dmg: 8, mark: 'head', zones: [{ shape: 'ring', at: 'self', delay: 0.55, speed: 8.5, max: 12 }] }],
