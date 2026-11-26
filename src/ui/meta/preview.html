@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000">
+<link rel="icon" href="data:,">
+<title>Meta preview</title>
+<style>
+  html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at 50% 30%, #2a1d15, #070504 70%); }
+  /* a stand-in for the world behind the screens */
+  body::after { content: "Pyrewake: the meta screens (preview, no world)"; position: fixed; left: 50%; top: 42%; transform: translateX(-50%); color: #5f5447; font: 15px Georgia, serif; letter-spacing: .04em; white-space: nowrap; }
+  body.meta::after { display: none; }
+  .dev { position: fixed; left: 12px; top: 12px; z-index: 9; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 24px); }
+  body.meta .dev { display: none; }
+  .dev button { min-height: 44px; padding: 8px 12px; font: 14px system-ui, sans-serif; color: #e9dcc6; background: #17120f; border: 1px solid #a8997f77; cursor: pointer; }
+  .dev button:focus-visible { outline: 2px solid #ffdcae; }
+  #log { position: fixed; left: 12px; bottom: 12px; color: #b9ad9c; font: 13px system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="dev" id="dev">
+  <button data-o="smith">Smith (S)</button>
+  <button data-o="ash">Ash-Reader (A)</button>
+  <button data-o="inv">Inventory (I)</button>
+  <button data-o="map">Map (M)</button>
+  <button data-o="fight">Fight on/off (F)</button>
+</nav>
+<p id="log"></p>
+<script type="module" src="./preview.ts"></script>
+</body>
+</html>
