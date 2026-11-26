@@ -168,7 +168,7 @@ export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope' | 'rid
   const noose: MomentSpec = {
     frame: (t, eye, at) => { const fx = Math.sin(sim.yaw0), fz = Math.cos(sim.yaw0), sx = fz, sz = -fx, K = (dx: number, dy: number, dz: number) => [sim.x + dx, dy, sim.z + dz] as const, set = (v: THREE.Vector3, p: readonly number[]) => v.set(p[0], p[1], p[2]);
       if (t < NOOSE.lift) { set(eye, K(sx * 4.4 + fx * 1.2, 1.6, sz * 4.4 + fz * 1.2)); set(at, K(fx * 0.7, 1.7, fz * 0.7)); return 46; }
-      if (t < NOOSE.release) { const u = Math.min(1, Math.max(0, (t - NOOSE.swing[0]) / (NOOSE.swing[1] - NOOSE.swing[0]))), a = sim.yaw0 + Math.PI / 2 + 0.3 * u; set(eye, K(Math.sin(a) * 5.4, 3.1 - 0.4 * u, Math.cos(a) * 5.4)); set(at, K(0, 1.4, 0)); return 46; }
+      if (t < NOOSE.release) { const u = Math.min(1, Math.max(0, (t - NOOSE.swing[0]) / (NOOSE.swing[1] - NOOSE.swing[0]))), a = sim.yaw + 0.9; /* the camera turns with the arc: the hero is always between the lens and the King */ set(eye, K(Math.sin(a) * 5.4, 3.1 - 0.4 * u, Math.cos(a) * 5.4)); set(at, K(0, 1.4, 0)); return 46; }
       if (t < NOOSE.land) { set(eye, K(sx * 6.2 + fx * 2.2, 1.9, sz * 6.2 + fz * 2.2)); set(at, K(fx * 3.0, 1.2, fz * 3.0)); return 50; }
       // the landing: low, a body's length off him, the King still in the frame behind
       const u = E(NOOSE.land, NOOSE.land + 1.2, t), Lx = sim.landAt.x, Lz = sim.landAt.z;
