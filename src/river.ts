@@ -58,7 +58,7 @@ export async function bootRiver(c: Ctx) {
   if (tier.name === 'phone') pv.weapon.castShadow = v1.cleaver.castShadow = false;
   const follow = new FollowCam(); follow.blockers = m.blockers;
   // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
-  const moment = new Moment(), qte = new Prompt(app), rSpecs = riverMoments(sim, m); let staged: 'drag' | 'fare' | 'chain' | 'lantern' | null = null, qteFor: string | null = null;
+  const moment = new Moment(), qte = new Prompt(app), rSpecs = riverMoments(sim, m); let staged: 'drag' | 'chain' | 'lantern' | null = null, qteFor: string | null = null;
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [v1, v2], court: ghats }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = [RIVER_NAMES.r1, RIVER_NAMES.r2]; hud.winTitle = RIVER_NAMES.won; onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
@@ -95,8 +95,6 @@ export async function bootRiver(c: Ctx) {
     { const want = sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(rSpecs[want]); } else moment.stop(); } }
     if (!sim.reward) qteFor = null; else if (!moment.active && !qte.on && qteFor !== sim.reward) { qteFor = sim.reward; qte.show('attack', RIVER_PRESS[sim.reward], sim.rewardLeft, input.lastDevice); }
     pv.tumble = moment.hero(sim.stage, pv.offset);
-    // the fare pours coins over him; the water breaks as he is taken under
-    if (sim.held === 'fare' && sim.stage < 1.4 && Math.random() < 0.5) fx.sparks.emit(new THREE.Vector3(m.x + (Math.random() - 0.5), 3.4 + Math.random(), m.z + (Math.random() - 0.5)), new THREE.Vector3(0, -1, 0), 2, 2.5, 0.5, -1.6, t);
     if (sim.held === 'drag' && sim.stage >= 0.55 && sim.stage < 0.62) fx.sparks.emit(new THREE.Vector3(m.x, 0.2, m.z), new THREE.Vector3(0, 1, 0), 40, 4, 1.2, 0.5, t);
     if (sd > 0) { kv.update(sd, m.x, m.z, t); pv.update(sd, m, t); } else kv.frozen(t);
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();

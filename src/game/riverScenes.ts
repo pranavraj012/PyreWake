@@ -13,7 +13,7 @@ import { LEVEL } from '../render/water.ts';
 import type { Hud } from '../ui/hud.ts';
 import { Cues, Lens } from './scenes.ts';
 import { RIVER_ENDING, RIVER_INTRO, RIVER_TURN, speak } from './riverScript.ts';
-import { CHAIN, DRAG, FARE, LANTERN, type River as RiverSim } from '../boss/river/river.ts';
+import { CHAIN, DRAG, LANTERN, type River as RiverSim } from '../boss/river/river.ts';
 import type { Motor } from '../player/motor.ts';
 import type { MomentSpec } from './moment.ts';
 
@@ -214,7 +214,7 @@ export class RiverEnding {
 
 // ---------------------------------------------------------------- the moments (the grabs and the rewards)
 /** Each moment is staged on the boss's own clock (`stage`): the page plays these specs while the simulation holds the hero. */
-export function riverMoments(sim: RiverSim, m: Motor): Record<'drag' | 'fare' | 'chain' | 'lantern', MomentSpec> {
+export function riverMoments(sim: RiverSim, m: Motor): Record<'drag' | 'chain' | 'lantern', MomentSpec> {
   /** From the boat toward the hero, on the water, and its right-hand side. */
   const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { ux, uz, sx: -uz, sz: ux }; };
   // the drag: hooked and pulled under, held down, and heaved up onto the steps
@@ -225,15 +225,6 @@ export function riverMoments(sim: RiverSim, m: Motor): Record<'drag' | 'fare' | 
     hero: (t, o) => { o.y = t < DRAG.under ? 0 : t < DRAG.hold ? -1.6 * E(DRAG.under, DRAG.hold, t) : t < DRAG.heave ? -1.6 + 0.1 * Math.sin(t * 9) : -1.6 * (1 - E(DRAG.heave, DRAG.end, t)); },
     tumble: t => t > DRAG.hold && t < DRAG.heave ? 0.25 * Math.sin(t * 6) : 0,
     rate: t => t > DRAG.hold - 0.1 && t < DRAG.heave + 0.2 ? 0.4 : 1,
-  };
-  // the fare: lifted on the pole, the coins pour, and he is flung down its length
-  const fare: MomentSpec = {
-    frame: (t, eye, at) => { const { sx, sz, ux, uz } = away(), fl = E(FARE.fling, FARE.hit, t), px = m.x + ux * 4.6 * fl, pz = m.z + uz * 4.6 * fl;
-      eye.set(px + sx * 4.6 + ux * 1.0, 1.6 + 1.5 * fl, pz + sz * 4.6 + uz * 1.0); at.set(px, 2.0 + 1.6 * (1 - fl), pz); return 54; },
-    hero: (t, o) => { const { ux, uz } = away(), lift = E(0, FARE.lift, t), fl = E(FARE.fling, FARE.hit, t);
-      o.set(-ux * 4.6 * (1 - fl), t < FARE.fling ? 3.2 * lift + (t > FARE.lift ? 0.12 * Math.sin(t * 6) : 0) : 3.2 * (1 - fl) + Math.sin(Math.PI * fl) * 1.2, -uz * 4.6 * (1 - fl)); },
-    tumble: t => t > FARE.fling ? Math.min(2.6, (t - FARE.fling) * 3.4) : 0,
-    rate: t => t > FARE.fling - 0.05 && t < FARE.fling + 0.25 ? 0.35 : 1,
   };
   /** The hero's place along the run: from where he stands, to the anchor, up the chain, and over the boat's side onto the deck. */
   const chainAt = (t: number, out: THREE.Vector3) => { const { ux, uz } = away(), A = V(sim.lastAnchor.x, 0, sim.lastAnchor.z), start = V(m.x, 0, m.z), side = V(sim.x - ux * 0.8, 0, sim.z - uz * 0.8), deck = V(sim.x, 1.6, sim.z);
@@ -260,5 +251,5 @@ export function riverMoments(sim: RiverSim, m: Motor): Record<'drag' | 'fare' | 
     tumble: t => t > LANTERN.hit ? Math.min(2.2, (t - LANTERN.hit) * 4) : 0,
     rate: t => t > LANTERN.hit - 0.1 && t < LANTERN.hit + 0.1 ? 0.3 : 1,
   };
-  return { drag, fare, chain, lantern };
+  return { drag, chain, lantern };
 }

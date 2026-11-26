@@ -14,7 +14,7 @@ const QUIET = ['reel', 'reel2', 'snap', 'kneel', 'fall', 'cradle', 'riseW', 'die
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the mark it threw is where it lands: the line is drawn at the cue. */
 const LOCK: Record<string, number> = { cast: 0.3, dragDeep: 0.4, haulIn: 0 };
-/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { under: 0.55, hold: 0.85, dmg: 1.0, heave: 2.2, end: 3.4 }, FARE = { lift: 0.5, pour: 1.4, fling: 1.9, hit: 2.8, end: 3.2 }, CHAIN = { hit: 1.6, len: 3.0 }, LANTERN = { hit: 0.9, len: 2.4 };export const GRAB_DRAG = { drag: 44, fare: 46 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
+/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { under: 0.55, hold: 0.85, dmg: 1.0, heave: 2.2, end: 3.4 }, CHAIN = { hit: 1.6, len: 3.0 }, LANTERN = { hit: 0.9, len: 2.4 };export const GRAB_DRAG = { drag: 44 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
 
 export interface Chain { x: number; z: number; len: number; hp: number; t: number; cut: number }
 export interface Lantern { x: number; z: number; real: boolean; t: number; gone: number }
@@ -35,7 +35,7 @@ export class River implements Boss {
 
   set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; if (mode === 'wake') { this.jumped = false; this.from = { x: this.x, z: this.z }; } }
   /** Staged moments: the grab holding the hero, its clock, the reward in progress and the reward on offer. */
-  held: 'drag' | 'fare' | null = null; stage = 0; rite: 'chain' | 'lantern' | null = null; reward: 'chain' | 'lantern' | null = null; rewardLeft = 0; lastAnchor = { x: 0, z: 0 }; private sp = 0;
+  held: 'drag' | null = null; stage = 0; rite: 'chain' | 'lantern' | null = null; reward: 'chain' | 'lantern' | null = null; rewardLeft = 0; lastAnchor = { x: 0, z: 0 }; private sp = 0;
   reset() { this.clearMoments(); this.chain = null; this.dark = 0; this.lanterns = []; this.coins = []; this.wave = null; this.ring = null; this.souls = []; this.hands = []; this.freed = 0; this.pull = 0; this.exposed = 0; this.sub = false; this.trail = []; this.out = []; this.boil = 0; this.hauling = 0; this.castNow = this.handsNow = this.burstNow = false; this.oneMoreAt = -99; this.y = 0; this.cut.clear(); }
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
@@ -95,9 +95,9 @@ export class River implements Boss {
       if (mt >= c.dur) { if (m === 'wrongShore') this.lanterns = []; if (m === 'lamps' && this.form === 2) this.offer('lantern'); this.end(m); }
     }
   }
-  /** The grab connected (the drag's line, or the fare's thrust): the boss takes the hero into a staged moment. It always plays out and always costs. */
+  /** The grab connected (the drag's line): the boss takes the hero into a staged moment. It always plays out and always costs. */
   seize(kind: string, f: Fight) {
-    this.stage = this.sp = 0; this.held = kind === 'drag' ? 'drag' : 'fare'; f.brain.seen.add(kind === 'drag' ? 'dragDeep' : 'thrust');
+    this.stage = this.sp = 0; this.held = 'drag'; f.brain.seen.add('dragDeep');
     f.invuln = Math.max(f.invuln, 0.15);
   }
   /** A reward is on offer for a while (the chain cut, or the lamps gone out). */
@@ -111,7 +111,7 @@ export class River implements Boss {
   /** A fresh start: no moment is playing and no reward is on offer. */
   clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; }
   /** Which staged moment is playing, if any (the page stages the camera and the hero for it). */
-  get staging(): 'drag' | 'fare' | 'chain' | 'lantern' | null { return this.held ?? this.rite; }
+  get staging(): 'drag' | 'chain' | 'lantern' | null { return this.held ?? this.rite; }
   /** Runs the moments' timings and what they do to the hero and the boss. Called once a step, after everything else has moved. */
   private tickMoments(f: Fight, dt: number) {
     const m = f.m, cross = (a: number) => this.sp < a && this.stage >= a;
@@ -123,12 +123,6 @@ export class River implements Boss {
       if (this.stage < DRAG.heave) { m.x = this.x + Math.sin(this.yaw) * 1.6; m.z = this.z + Math.cos(this.yaw) * 1.6; }
       if (cross(DRAG.dmg)) { f.invuln = 0; f.strikePlayer(GRAB_DRAG.drag, true, Math.atan2(this.x - m.x, this.z - m.z), 'dragDeep'); }
       if (this.stage >= DRAG.end) this.held = null;
-    } else if (this.held === 'fare') {
-      f.invuln = Math.max(f.invuln, 0.15);
-      if (this.stage < FARE.fling) { m.x = this.x + Math.sin(this.yaw) * 1.8; m.z = this.z + Math.cos(this.yaw) * 1.8; }
-      else if (cross(FARE.fling)) { m.x = this.x + Math.sin(this.yaw) * 6.4; m.z = this.z + Math.cos(this.yaw) * 6.4; }
-      if (cross(FARE.hit)) { f.invuln = 0; f.strikePlayer(GRAB_DRAG.fare, true, Math.atan2(this.x - m.x, this.z - m.z), 'thrust'); }
-      if (this.stage >= FARE.end) this.held = null;
     }
     if (this.rite === 'chain') { if (cross(CHAIN.hit)) f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); if (this.stage >= CHAIN.len) this.rite = null; }
     else if (this.rite === 'lantern') { if (cross(LANTERN.hit)) f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); if (this.stage >= LANTERN.len) this.rite = null; }

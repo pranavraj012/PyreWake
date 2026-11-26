@@ -1,8 +1,8 @@
-// The Ferryman's staged moments (module A): the drag (round 1 grab) and the fare (round 2 grab), and the chain and lantern rewards.
+// The Ferryman's staged moments (module A): the drag (round 1 grab, the only grab) and the chain and lantern rewards.
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { River, CHAIN, DRAG, FARE, GRAB_DRAG, LANTERN, RIVER_OFFER, RIVER_REWARD_SHARE } from '../src/boss/river/river.ts';
+import { River, CHAIN, DRAG, GRAB_DRAG, LANTERN, RIVER_OFFER, RIVER_REWARD_SHARE } from '../src/boss/river/river.ts';
 import { RiverBrain } from '../src/boss/river/brain.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 
@@ -33,20 +33,6 @@ describe('the drag (round 1)', () => {
   });
 });
 
-describe('the fare (round 2)', () => {
-  it('a hero caught on the thrust is lifted, flung, and always costs', () => {
-    const { f, k } = mk(3, 2); f.brain.seen.add('thrust'); k.set('thrust'); const hp0 = f.hp;
-    expect(until(f, () => k.held === 'fare', 4)).toBe(true);
-    expect(until(f, () => k.held === null, 15)).toBe(true);
-    expect(hp0 - f.hp).toBeGreaterThanOrEqual(GRAB_DRAG.fare - 1);
-  });
-  it('a dodge of the thrust avoids the fare', () => {
-    const { f, k } = mk(3, 2); f.brain.seen.add('thrust'); k.set('thrust'); const hp0 = f.hp;
-    steps(f, 1.2, () => { if (k.mt > 0.5 && k.mt < 0.9) f.m.safe = 0.2; });
-    expect(k.held).toBeNull(); expect(f.hp).toBe(hp0);
-  });
-});
-
 describe('the rewards', () => {
   it('the chain: offered when the taut chain is cut and the boat snaps; the hero takes it, and the boss loses its share', () => {
     const { f, k } = mk(); const r = R(f); r.set('idle');
@@ -69,14 +55,14 @@ describe('the rewards', () => {
   });
   it('the lantern is not offered in round 1, nor while the hero is held', () => {
     const { f } = mk(); const r = R(f); r.set('lamps'); steps(f, 7.0); expect(r.reward).toBeNull();
-    const g = mk(3, 2); const q = R(g.f); q.held = 'fare'; q.offer('lantern'); expect(q.reward).toBeNull();
+    const g = mk(3, 2); const q = R(g.f); q.held = 'drag'; q.offer('lantern'); expect(q.reward).toBeNull();
   });
   it('a reward pressed without an offer changes nothing', () => {
     const { f, k } = mk(); const r = R(f); r.set('idle'); expect(r.takeReward()).toBeNull(); expect(k.mode).toBe('idle');
   });
   it('the moments have their timings in order', () => {
     expect(DRAG.dmg).toBeLessThan(DRAG.heave); expect(DRAG.heave).toBeLessThan(DRAG.end);
-    expect(FARE.fling).toBeLessThan(FARE.hit); expect(FARE.hit).toBeLessThan(FARE.end);
+
     expect(CHAIN.hit).toBeLessThan(CHAIN.len); expect(LANTERN.hit).toBeLessThan(LANTERN.len);
   });
 });
