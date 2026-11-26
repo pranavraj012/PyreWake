@@ -114,3 +114,17 @@ describe('every boss moment, triggered in every hero state', () => {
     }
   }
 });
+
+describe('a hit that reels the Ferryman before his drag connects', () => {
+  it('he is in the drag pose for the whole hold, not the reel', () => {
+    const f = setup('river', 'drag'); const k = f.king as River;
+    k.set('dragDeep', 8); let hazard = false;
+    for (let i = 0; i < 2 * 60 && !hazard; i++) { f.step(DT, 0, 0, []); hazard = f.hazards.some(h => h.seize === 'drag'); }
+    expect(hazard, 'the drag is thrown').toBe(true);
+    k.set('reel'); // his blade-hit reels him out of the windup; the thrown drag still connects
+    let held = false, reelDuring = false;
+    for (let i = 0; i < 6 * 60 && !(held && k.held === null); i++) { f.step(DT, 0, 0, []); if (k.held) { held = true; if (k.mode === k.reelMode) reelDuring = true; } }
+    expect(held, 'the drag connects').toBe(true);
+    expect(reelDuring, 'he holds the hero in the drag pose').toBe(false);
+  });
+});
