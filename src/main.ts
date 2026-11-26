@@ -27,7 +27,7 @@ import { DEFAULT_SPELLS, SPELLS } from './combat/spells.ts';
 import { Turn, actionCam } from './game/cinema.ts';
 import { Ending, Intro, Prologue, kingMoments } from './game/scenes.ts';
 import { Moment, Prompt } from './game/moment.ts';
-import { KING_PRESS } from './game/kingScript.ts';
+import { KING_LESSON, KING_PRESS } from './game/kingScript.ts';
 import { Lessons } from './game/lessons.ts';
 import { DAWN, ECLIPSE } from './render/sky.ts';
 import { Director } from './game/director.ts';
@@ -113,7 +113,7 @@ async function boot() {
   /** Round 1, for real. */
   const begin = () => { bars(false); hud.lesson(null); fight.reset(true); fight.passive = still; kDis.value = bDis.value = 0; follow.snap(m, king.sim); hud.refill(); sound.score?.set('spar'); };
   const train = () => { lessons.active = true; arm(); bars(false); fight.passive = true; hud.callout(''); lessons.start(); follow.snap(m, king.sim); sound.score?.set('lesson'); };
-  lessons.onDone = skipped => { lessons.active = false; arm(); saveSettings({ learned: true }); if (!skipped) prompts.taught(); begin(); sound.play('kScreech', { gain: 0.9, wet: 0.6, bus: 'voice' }); hud.say(skipped ? 'It has seen your fire' : 'Your hands remember. It has seen your fire.', 2.6, 'place'); };
+  lessons.onDone = skipped => { lessons.active = false; arm(); saveSettings({ learned: true }); if (!skipped) prompts.taught(); begin(); sound.play('kScreech', { gain: 0.9, wet: 0.6, bus: 'voice' }); hud.say(skipped ? KING_LESSON.skipped : KING_LESSON.taught, 2.6, 'place'); };
   addEventListener('gamepaddisconnected', () => { if (input.lastDevice === 'pad' && !menu.open && !turn.active && !intro.active && !story.active && !ending.active && fight.phase !== 'won') hud.setPaused(true); });
   hud.onSkip = () => lessons.skip(); menu.onTrain = () => { train(); grab(); };
   menu.onPlay = () => { regainFullscreen(); story.start(); bars(true); fight.time = 0; grab(); };

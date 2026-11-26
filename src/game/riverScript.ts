@@ -23,18 +23,18 @@ export const RIVER_INTRO = {
     { at: 20.8, until: 24.4, text: 'What he keeps beneath the jars, no one has seen.' },
     { at: 25.0, until: 28.6, text: 'Set a light upon the water. The ferry answers every light.' },
   ] as Line[],
-  law: { text: '"Only ash may cross."', voice: 'fCall' },
+  law: { text: '"Only ash shall cross."', voice: 'fCall' },
   title: { name: RIVER_NAMES.r1, sub: 'Warden of the Last Crossing' },
 };
 
 export const RIVER_TURN = {
   lines: [
-    { at: 2.6, until: 6.4, text: 'Beaten, he does not reach for his pole. He reaches beneath the jars.' },
-    { at: 7.0, until: 10.8, text: '"She weighs nothing. Feel. She weighs nothing."' },
+    { at: 2.6, until: 6.4, text: 'Beaten, he reaches not for his pole. He reaches beneath the jars.' },
+    { at: 7.0, until: 10.8, text: '"Feel her, keeper. She weigheth nothing."' },
     { at: 11.4, until: 15.6, text: 'A child the fire never touched. Forty years he has rowed her, and the river will not let her cross.' },
     { at: 16.2, until: 19.8, text: 'Only ash may cross. He would not set her down.' },
     { at: 20.6, until: 24.4, text: 'The drowned who clung to his boat, he gives back to the deep at last.' },
-    { at: 28.8, until: 32.6, text: 'Their coin, he will not give. It comes up out of the river, onto him.' },
+    { at: 28.8, until: 32.6, text: 'Their coin, he will not give. It comes up out of the river, upon him.' },
   ] as Line[],
   title: { name: RIVER_NAMES.r2, sub: 'Mailed in the Fares of the Drowned' },
 };
@@ -46,10 +46,13 @@ export const RIVER_ENDING = {
     { at: 12.6, until: 16.8, text: 'What remains is an old man, and in his arms a bundle that weighs nothing.' },
     { at: 17.6, until: 21.8, text: '"Forty years I rowed her toward the far bank. Forty years the river turned me back."' },
     { at: 22.6, until: 26.6, text: '"I gave her my name, that I might hear it called across the water."' },
-    { at: 27.4, until: 31.4, text: 'He holds his lamp out to you. This is the one blow you do not swing.' },
-    { at: 35.0, until: 39.2, text: '"Call it from the far bank. Let something answer."' },
+    { at: 27.4, until: 31.4, text: 'He holds his lamp out to thee. This is the one blow thou dost not swing.' },
+    { at: 35.0, until: 39.2, text: '"Call it from the far bank. Let aught answer."' },
   ] as Line[],
 };
 
 // The presses the Ferryman's staged moments offer the hero. Cue prompts stay plain, as STYLE.md asks.
 export const RIVER_PRESS = { chain: 'Run the chain', lantern: 'Strike the lantern' } as const;
+
+// The call-outs in the river fight. Cues ("Cut them free", "Cut him", "Up the pole") are instructions and stay plain.
+export const RIVER_CALLS = { paid: 'Every one of them has paid', leapt: 'Leapt', souls: 'Cut them free', snapped: 'Chain riven', hauled: 'Hauled', cut: 'Cut him', pole: 'Up the pole', real: 'The true one' } as const;

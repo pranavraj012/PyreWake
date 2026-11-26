@@ -8,6 +8,7 @@ import { label } from '../input/bindings.ts';
 import type { Card } from '../game/lessons.ts';
 import type { Prompts } from './prompts.ts';
 import { sound } from '../audio/sound.ts';
+import { KING_TITLES } from '../game/kingScript.ts';
 import { saveSettings, settings, settingsPanel } from '../core/settings.ts';
 import { canFullscreen, isFullscreen, onFullscreen, setFullscreen } from '../core/fullscreen.ts';
 
@@ -39,7 +40,7 @@ export class Hud {
   warm(on: boolean) {
     this.root.classList.toggle('lit', on); this.root.classList.toggle('low', on); document.body.classList.toggle('warming', on);
     for (const e of document.querySelectorAll<HTMLElement>('.sk, .tb')) { e.classList.toggle('ready', on); e.classList.toggle('hint', on); e.style.setProperty('--k', on ? '0.6' : '0'); }
-    const p = this.q('.prompt'); p.className = 'prompt' + (on ? ' on red' : ''); const b = this.q('.banner'); b.className = 'banner' + (on ? ' on' : ''); b.textContent = on ? 'Morning, at Last' : ''; const c = this.q<HTMLElement>('.call'); c.textContent = on ? 'Broken Kindled Ablaze Pyre Wake Last Rites ready' : ''; c.classList.toggle('on', on);
+    const p = this.q('.prompt'); p.className = 'prompt' + (on ? ' on red' : ''); const b = this.q('.banner'); b.className = 'banner' + (on ? ' on' : ''); b.textContent = on ? KING_TITLES.dawn : ''; const c = this.q<HTMLElement>('.call'); c.textContent = on ? 'Broken Kindled Ablaze Pyre Wake Last Rites ready' : ''; c.classList.toggle('on', on);
   }
   setPaused(p: boolean) {
     this.paused = p; document.body.classList.toggle('paused', p); if (p) document.exitPointerLock?.();
