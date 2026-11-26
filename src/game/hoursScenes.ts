@@ -86,7 +86,7 @@ export class HoursTurn {
     if (k.form === 1) { const h = k1.mark('head', V()); house.inhale(E(8.6, 11.4, t), h); if (t > 8.8 && t < 11.4) for (let i = 0; i < 3; i++) { const f = Math.random(), r = 0.3 + f * 6, a = time * 3 + f * 9 + i * 2.1; fx.puffs.emit(h.clone().add(V(Math.sin(a) * r, 0.2 + f * 6, Math.cos(a) * r)), 1, 1.2 + f * 2, 0.5, time); } }
     if (hd.cine) hd.cine.day = E(10.0, 11.8, t);
     c.at(t, 10.4, 'tear', () => { sound.play('braam', { gain: 0.8 }); sound.play('wind', { gain: 0.7, wet: 0.4 }); this.lens.trauma = 0.5; });
-    c.at(t, 11.6, 'swell', () => { this.become(); house.inhale(0); sound.play('pRoar', { gain: 0.9, wet: 0.7, bus: 'voice' }); sound.play('clothB', { gain: 1, wet: 0.6 }); sound.play('boom', { gain: 0.7 }); this.lens.trauma = 0.9; fx.puffs.emit(V(0, 0.4, -4), 40, 6, 2.2, time); });
+    c.at(t, 11.6, 'swell', () => { this.become(); sound.score?.set('pall'); house.inhale(0); sound.play('pRoar', { gain: 0.9, wet: 0.7, bus: 'voice' }); sound.play('clothB', { gain: 1, wet: 0.6 }); sound.play('boom', { gain: 0.7 }); this.lens.trauma = 0.9; fx.puffs.emit(V(0, 0.4, -4), 40, 6, 2.2, time); });
     c.at(t, 14.2, 'title', () => { hud.say(HOURS_TURN.title.name, 2.8, 'title', HOURS_TURN.title.sub); sound.play('rise', { gain: 0.7, wet: 0.6 }); });
     this.mono = t < 1 ? 0 : t < 8.6 ? 0.5 * E(1, 3, t) : 0.5 * (1 - E(9.5, 12, t));
     if (t >= TURN_LEN) { this.stop(); hud.verse(''); f.beginRound2(); k.set('rise'); k.mt = k.prev = 2.6; this.onEnd(); }
@@ -126,7 +126,7 @@ export class HoursEnding {
     f.sceneMove = t > 7.0 && t < 9.4 && Math.hypot(m.x, m.z + 4.4) > 1.9 ? { x: -m.x * 0.12, z: -(m.z + 4.4) * 0.12 } : { x: 0, z: 0 };
     BREATHS.forEach((b, i) => c.at(t, b, 'b' + i, () => { k1.emberHold = 6 - i; sound.play('sBreath', { gain: 0.7 - i * 0.05, wet: 0.6, rate: 1 - i * 0.03, bus: 'voice' }); sound.play('emberOut', { gain: 0.35, wet: 0.6 }); }));
     // you wait two seconds longer than is comfortable, then set your blade's fire to her linen
-    c.at(t, 23.6, 'fire', () => { const p = V(k.x, 0.6, k.z + 0.3); fx.bursts.add('fire', p, 2.4, 0.9, time); fx.bursts.add('flare', p, 4, 0.4, time); fx.sparks.emit(p, V(0, 1, 0), 60, 3, 2, -0.8, time); sound.play('fire', { gain: 0.9, wet: 0.5 }); this.lens.trauma = 0.25; });
+    c.at(t, 23.6, 'fire', () => { sound.score?.set('won'); const p = V(k.x, 0.6, k.z + 0.3); fx.bursts.add('fire', p, 2.4, 0.9, time); fx.bursts.add('flare', p, 4, 0.4, time); fx.sparks.emit(p, V(0, 1, 0), 60, 3, 2, -0.8, time); sound.play('fire', { gain: 0.9, wet: 0.5 }); this.lens.trauma = 0.25; });
     if (t > 23.6) { k1.dissolve.value = E(24, 26.5, t); if (Math.random() < 0.5) fx.bursts.add('fire', V(k.x + (Math.random() - 0.5) * 0.6, 0.3 + Math.random() * 1.2, k.z + (Math.random() - 0.5) * 0.6), 1.2, 0.6, time, Math.random() * 6); }
     c.at(t, 25.6, 'title', () => { hud.say(HOURS_ENDING.title.name, 3, 'title', HOURS_ENDING.title.sub); sound.play('rise', { gain: 0.5, wet: 0.7 }); });
     if (t >= END_LEN && !this.over) { this.over = true; document.body.classList.remove('cine'); hud.won(f); }

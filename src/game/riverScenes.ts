@@ -143,7 +143,7 @@ export class RiverTurn {
     this.kit.rd.turnK = E(T.swell + 0.8, T.lamps, t);
     if (t > T.swell && t < T.swell + 3.8 && Math.random() < 0.5) ghats.ripple((Math.random() - 0.5) * 8, -5 + (Math.random() - 0.5) * 8, 1.6, time);
     c.at(t, T.net, 'net', () => { sound.play('snap', { gain: 0.9, wet: 0.6 }); sound.play('wave', { gain: 0.7, wet: 0.7 }); sound.play('coinHit', { gain: 0.8, wet: 0.6 }); this.lens.trauma = 0.8; ghats.ripple(0, -5, 3, time); fx.puffs.emit(V(0, 0.4, -5), 24, 4, 2, time); for (let i = 0; i < 40; i++) fx.sparks.emit(V((Math.random() - 0.5) * 1.6, 1 + Math.random() * 2.4, -5 + (Math.random() - 0.5) * 1.6), V((Math.random() - 0.5), 0.6, (Math.random() - 0.5)), 2, 4, 1.6, 0.9, time); });
-    c.at(t, T.rise, 'rise', () => { sound.play('wRoar', { gain: 0.9, wet: 0.7, bus: 'voice' }); sound.play('braam', { gain: 0.9 }); sound.play('boom', { gain: 0.7 }); sound.duck(0.35, 1.2); this.lens.trauma = 1; ghats.lamps(0.6); ghats.ripple(0, -5, 4, time); fx.sparks.emit(V(0, 2, -5), V(0, 1.5, 0), 120, 7, 2, -1.2, time); });
+    c.at(t, T.rise, 'rise', () => { sound.score?.set('weight'); sound.play('wRoar', { gain: 0.9, wet: 0.7, bus: 'voice' }); sound.play('braam', { gain: 0.9 }); sound.play('boom', { gain: 0.7 }); sound.duck(0.35, 1.2); this.lens.trauma = 1; ghats.lamps(0.6); ghats.ripple(0, -5, 4, time); fx.sparks.emit(V(0, 2, -5), V(0, 1.5, 0), 120, 7, 2, -1.2, time); });
     c.at(t, T.rise + 1.6, 'coins', () => { sound.play('coinBack', { gain: 0.7, wet: 0.7 }); });
     c.at(t, T.lamps, 'lamps', () => { sound.play('aura2', { gain: 0.8, wet: 0.7 }); sound.play('lampsRelight', { gain: 0.6, wet: 0.7 }); });
     c.at(t, T.title, 'title', () => { hud.say(RIVER_TURN.title.name, 2.8, 'title', RIVER_TURN.title.sub); sound.play('boom', { gain: 0.8 }); this.lens.trauma = 0.4; });
@@ -193,7 +193,7 @@ export class RiverEnding {
     f.sceneMove = t > N.walk && t < N.walk + 5 ? { x: 0, z: -0.5 } : { x: 0, z: 0 };
     c.at(t, N.touch, 'touch', () => { const p = V(m.x, 1.0, m.z - 1.1); fx.bursts.add('fire', p, 2, 0.8, time); fx.bursts.add('flare', p, 4, 0.4, time); fx.sparks.emit(p, V(0, 0.6, -0.4), 60, 3, 2, -0.6, time); sound.play('fire', { gain: 0.8, wet: 0.5 }); sound.play('lampSet', { gain: 0.8, wet: 0.5 }); this.lens.trauma = 0.3; });
     if (t > N.touch + 0.3) this.front = (t - N.touch - 0.3) * 14; ghats.setFront(this.front);
-    c.at(t, N.run, 'run', () => { sound.play('fireRun', { gain: 1, wet: 0.7 }); ghats.lamps(1); });
+    c.at(t, N.run, 'run', () => { sound.score?.set('won'); sound.play('fireRun', { gain: 1, wet: 0.7 }); ghats.lamps(1); });
     this.dawn = E(N.dawn, N.dawn + 9, t); DAWN.value = this.dawn;
     if (t >= END_LEN && !this.over) { this.over = true; this.dawn = 1; document.body.classList.remove('cine'); hud.won(f); }
   }

@@ -1,9 +1,11 @@
 // Recorded music (all CC0, see LICENSES.md): streamed from a few shared players, crossfaded, looped with an overlap.
-export type TrackName = 'menu' | 'vigil' | 'king' | 'crawl' | 'hang' | 'beneath' | 'eclipse' | 'morning';
+export type TrackName = 'menu' | 'vigil' | 'king' | 'crawl' | 'hang' | 'beneath' | 'eclipse' | 'morning' | 'ferry' | 'hours' | 'pall' | 'pall2';
 /** `start` is where it comes in, `from` where a loop picks up, `end` where it lets go, `xf` the overlap in seconds (0: plays once). */
 const LIST: Record<TrackName, { start: number; from: number; end: number; xf: number }> = {
   menu: { start: 0, from: 0, end: 81.0, xf: 0.3 }, vigil: { start: 0, from: 0, end: 53, xf: 0 }, king: { start: 0, from: 15.2, end: 87, xf: 3 }, crawl: { start: 18, from: 0, end: 107.9, xf: 0.25 },
   hang: { start: 0, from: 0, end: 40.5, xf: 3 }, beneath: { start: 0, from: 0, end: 123.3, xf: 0.2 }, eclipse: { start: 0, from: 0, end: 124.1, xf: 0.2 }, morning: { start: 0, from: 0, end: 83, xf: 5 },
+  // pieces of their own for the river and the Waiting House: used when public/music/<name>.mp3 is there (end 0: loop at the file's own length)
+  ferry: { start: 0, from: 0, end: 0, xf: 2 }, hours: { start: 0, from: 0, end: 0, xf: 2 }, pall: { start: 0, from: 0, end: 0, xf: 2 }, pall2: { start: 0, from: 0, end: 0, xf: 2 },
 };
 const SILENCE = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 interface Deck { el: HTMLAudioElement; g: GainNode; lp: BiquadFilterNode; name: TrackName | null; level: number; stopAt: number; /** Being slowed to a halt: since when, over how long. */ tape?: [number, number] }
@@ -15,7 +17,7 @@ export class Tracks {
     for (let i = 0; i < 3; i++) { const el = new Audio(); el.preload = 'auto'; (el as HTMLAudioElement & { playsInline?: boolean }).playsInline = true; el.src = SILENCE; const s = ctx.createMediaElementSource(el), g = ctx.createGain(), lp = ctx.createBiquadFilter(); g.gain.value = 0; lp.type = 'lowpass'; lp.frequency.value = 20000; s.connect(lp).connect(g).connect(out); this.decks.push({ el, g, lp, name: null, level: 0, stopAt: 0 }); }
   }
   /** One after another, in the order they are needed. Until a piece has arrived the synthesised score stands in. */
-  async load() { if (this.started) return; this.started = true; for (const n of Object.keys(LIST) as TrackName[]) try { const r = await fetch(`${import.meta.env.BASE_URL}music/${n}.mp3?v=${__V__}`); if (r.ok) this.urls.set(n, URL.createObjectURL(await r.blob())); } catch { /* offline: the synthesised score carries on */ } }
+  async load() { if (this.started) return; this.started = true; for (const n of Object.keys(LIST) as TrackName[]) try { const r = await fetch(`${import.meta.env.BASE_URL}music/${n}.mp3?v=${__V__}`); if (r.ok && (r.headers.get('content-type') ?? '').startsWith('audio')) this.urls.set(n, URL.createObjectURL(await r.blob())); } catch { /* offline: the synthesised score carries on */ } }
   has(n: TrackName) { return this.urls.has(n); }
   get playing() { return this.cur?.name ?? null; }
   /** From a tap or key: phones only let a player speak later if it was touched once by hand. */
@@ -41,8 +43,8 @@ export class Tracks {
   update() {
     const now = this.ctx.currentTime; for (const d of this.decks) if (d.tape) { const u = (now - d.tape[0]) / d.tape[1]; d.el.playbackRate = Math.max(0.2, 1 - 0.8 * Math.min(1, u) ** 0.8); if (u > 1.5) d.tape = undefined; }
     for (const d of this.decks) if (d.stopAt && now > d.stopAt) { d.el.pause(); d.stopAt = 0; d.name = null; d.el.playbackRate = 1; (d.el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true; }
-    const c = this.cur; if (!c?.name) return; const T = LIST[c.name], t = c.el.currentTime; if (c.el.paused && this.primed) void c.el.play().catch(() => { });
-    if (T.xf && t > T.end - T.xf) { const old = c; this.cur = this.put(c.name, T.from, T.xf); this.drop(old, T.xf); }
+    const c = this.cur; if (!c?.name) return; const T = LIST[c.name], t = c.el.currentTime, end = T.end || (isFinite(c.el.duration) ? c.el.duration : 1e9); if (c.el.paused && this.primed) void c.el.play().catch(() => { });
+    if (T.xf && t > end - T.xf) { const old = c; this.cur = this.put(c.name, T.from, T.xf); this.drop(old, T.xf); }
   }
   /** The page was hidden or shown again. */
   hush(on: boolean) { for (const d of this.decks) if (on) d.el.pause(); else if (d.name) void d.el.play().catch(() => { }); }
