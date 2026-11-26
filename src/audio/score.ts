@@ -2,7 +2,7 @@
 import type { sound as SoundT } from './sound.ts';
 import type { TrackName } from './tracks.ts';
 type S = typeof SoundT;
-export type Mood = 'still' | 'vigil' | 'lesson' | 'spar' | 'r1' | 'crawl' | 'hang' | 'scene' | 'reveal' | 'r2' | 'eclipse' | 'finish' | 'won' | 'dead' | 'row' | 'row2' | 'row3' | 'weight' | 'weight2';
+export type Mood = 'still' | 'vigil' | 'lesson' | 'spar' | 'r1' | 'crawl' | 'hang' | 'scene' | 'reveal' | 'r2' | 'eclipse' | 'finish' | 'won' | 'dead' | 'row' | 'row2' | 'row3' | 'weight' | 'weight2' | 'hours' | 'pall' | 'pall2';
 interface M { bpm: number; drum: number; hi: number; str: number; bra: number; cho: number; trem: number; anvil: number; drone: number; lead: number }
 const MOOD: Record<Mood, M> = {
   vigil: { bpm: 84, drum: 0, hi: 0, str: 0, bra: 0, cho: 0.2, trem: 0.15, anvil: 0, drone: 0.6, lead: 0 }, lesson: { bpm: 84, drum: 0.3, hi: 0, str: 0, bra: 0, cho: 0, trem: 0.15, anvil: 0, drone: 0.6, lead: 0 },
@@ -12,16 +12,19 @@ const MOOD: Record<Mood, M> = {
   r2: { bpm: 138, drum: 1, hi: 0.8, str: 0.95, bra: 0.85, cho: 0.6, trem: 0, anvil: 0.5, drone: 0.8, lead: 0 }, eclipse: { bpm: 148, drum: 1, hi: 1, str: 1, bra: 1, cho: 0.95, trem: 0.4, anvil: 0.9, drone: 0.9, lead: 0.4 }, finish: { bpm: 70, drum: 0.35, hi: 0, str: 0, bra: 0, cho: 0.6, trem: 0.7, anvil: 0, drone: 0.9, lead: 0 },
   row: { bpm: 78, drum: 0, hi: 0, str: 0.35, bra: 0, cho: 0.15, trem: 0.1, anvil: 0, drone: 0.7, lead: 0 }, row2: { bpm: 84, drum: 0, hi: 0, str: 0.5, bra: 0, cho: 0.25, trem: 0.2, anvil: 0, drone: 0.8, lead: 0 }, row3: { bpm: 72, drum: 0, hi: 0, str: 0.3, bra: 0, cho: 0.4, trem: 0.5, anvil: 0, drone: 0.95, lead: 0 },
   weight: { bpm: 96, drum: 0, hi: 0, str: 0.7, bra: 0.3, cho: 0.5, trem: 0.3, anvil: 0, drone: 0.85, lead: 0 }, weight2: { bpm: 104, drum: 0, hi: 0, str: 0.85, bra: 0.5, cho: 0.7, trem: 0.3, anvil: 0, drone: 0.85, lead: 0.3 },
+  hours: { bpm: 40, drum: 0, hi: 0, str: 0, bra: 0, cho: 0, trem: 0.15, anvil: 0, drone: 0.8, lead: 0 }, pall: { bpm: 44, drum: 0, hi: 0, str: 0.25, bra: 0, cho: 0.5, trem: 0.25, anvil: 0, drone: 0.85, lead: 0 }, pall2: { bpm: 48, drum: 0, hi: 0, str: 0.55, bra: 0.2, cho: 0.85, trem: 0.4, anvil: 0, drone: 0.9, lead: 0 },
   won: { bpm: 60, drum: 0, hi: 0, str: 0, bra: 0, cho: 0.35, trem: 0, anvil: 0, drone: 0.4, lead: 0.8 }, dead: { bpm: 60, drum: 0, hi: 0, str: 0, bra: 0, cho: 0, trem: 0, anvil: 0, drone: 0.3, lead: 0 },
 };
 /** Recorded piece for each mood: level, how far its tone is closed (Hz), and the point it must have reached (s). While one plays, the synthesised layers rest. */
 const MUSIC: Record<Mood, [TrackName, number, number, number?] | null> = {
-  still: ['menu', 1.7, 20000], vigil: ['vigil', 2.0, 20000], lesson: ['king', 1.1, 1500], spar: ['king', 1.7, 9000], r1: ['king', 2.6, 20000, 15.2], crawl: ['crawl', 2.2, 20000], hang: ['hang', 2.4, 20000], scene: null, reveal: ['beneath', 2.5, 20000], r2: ['beneath', 2.5, 20000], eclipse: ['eclipse', 2.6, 20000], finish: ['eclipse', 1.5, 420], row: null, row2: null, row3: null, weight: ['crawl', 2.4, 20000], weight2: ['eclipse', 2.6, 20000], won: ['morning', 2.2, 20000], dead: null,
+  still: ['menu', 1.7, 20000], vigil: ['vigil', 2.0, 20000], lesson: ['king', 1.1, 1500], spar: ['king', 1.7, 9000], r1: ['king', 2.6, 20000, 15.2], crawl: ['crawl', 2.2, 20000], hang: ['hang', 2.4, 20000], scene: null, reveal: ['beneath', 2.5, 20000], r2: ['beneath', 2.5, 20000], eclipse: ['eclipse', 2.6, 20000], finish: ['eclipse', 1.5, 420], row: null, row2: null, row3: null, weight: ['crawl', 2.4, 20000], weight2: ['eclipse', 2.6, 20000], hours: null, pall: null, pall2: null, won: ['morning', 2.2, 20000], dead: null,
 };
 /** Round 1's styles, and the least any one piece plays before another style's may start (s). */
 const STYLES = /^(r1|crawl|hang)$/, HOLD = 16;
 /** The river's moods keep a slow 6/8 pulse of oars: [level, how much of the low strings and choir]. A recorded piece can be dropped in later by giving the mood an entry in MUSIC. */
 const ROW: Partial<Record<Mood, [number, number]>> = { row: [0.75, 0.4], row2: [0.85, 0.6], row3: [0.7, 0.8], weight: [1, 0.9], weight2: [1, 1] };
+/** The Waiting House keeps time by breath: in on the first beat, out on the sixth, and a woman's hum stepping down the count, one note a breath. [level, hum, choir of breaths]. */
+const BREATH: Partial<Record<Mood, [number, number, number]>> = { hours: [0.85, 1, 0], pall: [1, 0.7, 0.6], pall2: [1, 1, 1] }, COUNTDOWN = [0, -2, -3, -5, -7, -8, -10];
 const REST: M = { bpm: 90, drum: 0, hi: 0, str: 0, bra: 0, cho: 0, trem: 0, anvil: 0, drone: 0, lead: 0 };
 // sixteen steps a bar; two bars of question, two of answer
 const DRUM = ['x..x..x...x.x...', 'x..x..x.x...x.xx', 'x.x...x..x.x..x.', 'x..x.xx...x.xxxx'], HI = ['..o.o..o..o.o.oo', 'o..o..o.o.o..o.o', '..oo..o...oo.o.o', 'o.o.ooo.o.o.oooo'], OST = [[0, 12, 1, 0, 3, 0, 1, 0, 0, 12, 1, 0, 5, 3, 1, 0], [0, 12, 0, 1, 3, 1, 0, -2, 0, 8, 7, 5, 3, 1, 0, 1]];
@@ -53,7 +56,15 @@ export class Score {
     if (m.str > 0.06 && i === 0 && bar % 2 === 0) { this.note('str', root, 0.4 * m.str, d, 0.4); this.note('str', root + 7, 0.24 * m.str, d, 0.4); } if (m.str > 0.06 && i === 6 && bar % 2 === 1) this.note('str', root + 3, 0.3 * m.str, d, 0.4);
     if (m.cho > 0.06 && i === 0 && bar % 4 === 0) this.note('cho', root, 0.5 * m.cho, d, 0.8); if (m.trem > 0.06 && i === 0 && bar % 4 === 2) this.note('trem', root + 1, 0.35 * m.trem, d, 0.7); if (m.bra > 0.06 && i === 0 && bar % 4 === 0 && heavy > 0.8) this.note('bra', root - 12, 0.4 * m.bra, d, 0.5);
   }
+  private breathTick(d: number) {
+    const m = this.cur, b = BREATH[this.mood]!, i = this.step % 12, bar = Math.floor(this.step / 12), L = b[0];
+    if (i === 0) { this.note('breathIn', 0, 0.55 * L, d, 0.5); this.note('sub', -12, 0.3 * L, d, 0.4); } if (i === 5) this.note('breathOut', 0, 0.5 * L, d, 0.5);
+    if (i === 2 && b[1] > 0.05 && bar % 8 !== 7) this.note('hum', COUNTDOWN[bar % 8] ?? 0, 0.42 * b[1], d, 0.7);
+    if (b[2] > 0.05 && (i === 0 || i === 6) && this.R() < 0.6) this.note('breathOut', -3 - Math.floor(this.R() * 5), 0.25 * b[2], d + this.R() * 0.2, 0.8);
+    if (m.cho > 0.06 && i === 0 && bar % 2 === 0) this.note('cho', COUNTDOWN[bar % 8] ?? 0, 0.4 * m.cho, d, 0.8); if (m.str > 0.06 && i === 6 && bar % 2 === 1) this.note('str', -12, 0.3 * m.str, d, 0.5); if (m.trem > 0.06 && i === 0 && bar % 4 === 2) this.note('trem', 1, 0.3 * m.trem, d, 0.7);
+  }
   private tick(d: number) {
+    if (BREATH[this.mood]) { this.breathTick(d); return; }
     if (ROW[this.mood]) { this.rowTick(d); return; }
     const m = this.cur, i = this.step % 16, bar = Math.floor(this.step / 16), phrase = bar % 4, root = ROOT[Math.floor(bar / 2) % 8], soft = 0.75 + 0.25 * this.R();
     if (m.drum > 0.06) { if (DRUM[phrase][i] === 'x' && (m.drum > 0.6 || i % 8 === 0)) this.note('taiko', 0, (i === 0 ? 0.8 : 0.5 * soft) * m.drum, d, 0.25); if (i === 0 && m.drum > 0.8 && bar % 2 === 0) this.note('sub', 0, 0.4 * m.drum, d, 0.2); if (phrase === 3 && i >= 12 && m.drum > 0.7) this.note('drumHi', -3 + (i - 12), 0.3 + (i - 12) * 0.1, d, 0.25); }

@@ -341,7 +341,7 @@ def _(i):
     for k in range(8): o.add(crumble(k, 0.6 + .05 * k, 3200), 0.4, 0.4 + .42 * k).add(rock(k, 0.5, 2600, 1.2), 0.35, 0.3 + .5 * k)
     return o.verb(3.0, 0.3, bright=2600).glue(1.9).out(1.0, True)
 #: Beds: whole seconds that meet their own beginning, with a quarter second spare at each end (sound.ts loops the middle).
-LOOPS = {'storm', 'wind', 'fireBed', 'waterBed', 'windLow', 'lampsBed'}
+LOOPS = {'storm', 'wind', 'fireBed', 'waterBed', 'windLow', 'lampsBed', 'clothBed'}
 def ring(x, L, fade=1.5):
     """`L` seconds cut from a recording so that its end runs into its start."""
     n, f = int(L * SR), int(fade * SR); x = x[:n + f].copy(); assert len(x) == n + f, len(x) / SR; u = np.sin(np.linspace(0, np.pi / 2, f)); x[:f] = x[:f] * u + x[n:] * u[::-1]; return x[:n]
@@ -459,6 +459,87 @@ def _(i): return Pot(0.9).add(moan(i, 0.42, 0.8) * ad(int(0.8 * SR), 0.02, 0.25)
 def _(i): return Pot(1.0).add(moan(i + 2, 0.5, 0.9) * ad(int(0.9 * SR), 0.02, 0.3), 1).add(sub(0.7, D1 * 2, 110, 0.2), 0.7).verb(1.0, 0.16).glue(1.5).out(0.85)
 @cook('wDeath')
 def _(i): s = 5.2; o = Pot(s); [o.add(moan(k, 0.4 + 0.1 * k, 4.0) * np.hanning(int(4.0 * SR)), 0.8, 0.1 * k) for k in range(4)]; return o.add(sub(4, D1, 70, 1.8, 0.3), 1.0).add(splash(1, 0.5, 1.4), 0.6, 0.2).add(bubbles(s, 24, 0.7), 0.6, 0.5).verb(3.0, 0.4).glue(1.5).out(1.0, True)
+
+# ---------------------------------------------------------------- the Waiting House: breath, linen, ash, embers. No bells, no struck metal: the bowls only creak.
+F_IN = [(520, 900, .9), (1150, 1600, .55), (2400, 3300, .35), (3600, 5200, .2)]
+def breathy(s, rise, f=F_IN, gain=1.0, wob=0.0):
+    """Air through a woman's throat: noise in formant bands, opening with `rise` (seconds to the loudest)."""
+    n = noise(s); t = T(s); o = np.zeros(len(t))
+    for lo_, hi_, g in f: o += bp(n, lo_, hi_) * g
+    env = np.minimum(1, t / max(rise, 1e-3)) ** 1.4 * np.exp(-np.maximum(0, t - rise) / (s * 0.32)); env *= 1 + wob * np.sin(t * 2 * np.pi * 7)
+    return norm(o * env) * gain
+def voiced(s, f0, vib=0.012, att=0.12, rel=0.5):
+    """A hum on one note: glottal pulses, a nasal murmur, no words."""
+    t = T(s); f = f0 * (1 + vib * np.sin(2 * np.pi * 5.1 * t) * np.minimum(1, t / 0.6) + 0.003 * np.sin(2 * np.pi * 0.7 * t)); ph = np.cumsum(f) / SR % 1
+    g = np.where(ph < .6, np.sin(np.pi * ph / .6), -.35 * (1 - (ph - .6) / .4)); x = lp(g, 1400) + bp(g, 220, 320) * 1.4 + bp(g, 2400, 2900) * .12 + 0.04 * bp(noise(s), 300, 2000)
+    env = np.minimum(1, t / att) * np.minimum(1, (s - t) / rel); return norm(x * np.clip(env, 0, 1))
+def choirOfBreath(s, n, rise, p=1.0):
+    o = np.zeros(int(s * SR))
+    for k in range(n):
+        f = [(a * p * (0.85 + .3 * rng.random()), b * p * (0.85 + .3 * rng.random()), g) for a, b, g in F_IN]; y = breathy(s * (0.8 + .2 * rng.random()), rise * (0.7 + .6 * rng.random()), f); o[:len(y)] += y * (0.5 + .5 * rng.random())
+    return norm(o)
+def low(k): return [(a * k, b * k, g) for a, b, g in F_IN]
+def fade(x): return x * np.linspace(1, 0, len(x))
+CL = 'rpg_sound_pack/'
+@cook('sBreath', 3)
+def _(i): s = 3.0; return Pot(s).add(breathy(1.4, 1.1 + .1 * i, gain=0.8), 1).add(breathy(1.6, 0.25, low(.8)), 0.75, 1.35).verb(1.2, 0.2).out(0.45)
+@cook('breathIn', 2)
+def _(i): return Pot(1.8).add(breathy(1.7, 1.25 + .1 * i), 1).add(lp(noise(1.7), 400) * bell(1.7, 1.2, 0.4), 0.15).verb(1.6, 0.3).out(0.4)
+@cook('breathOut', 2)
+def _(i): return Pot(2.0).add(breathy(1.9, 0.22, low(.78)), 1).verb(1.6, 0.3).out(0.38)
+@cook('hum')
+def _(i): s = 2.8; return Pot(s).add(voiced(s, 293.66), 1).add(breathy(s, 0.3, gain=0.12), 1).verb(2.2, 0.35, bright=4000).out(0.45)
+@cook('sCount', 2)
+def _(i): s = 1.6; return Pot(s).add(breathy(1.2, 0.08, low(.8)), 0.8).add(voiced(1.5, 293.66 * (1 if i == 0 else 0.98), att=0.05, rel=0.9), 0.55, 0.04).verb(1.6, 0.3, bright=4500).out(0.55)
+@cook('sCall')
+def _(i): s = 3.4; return Pot(s).add(breathy(3.0, 0.4, low(.75)), 0.8).add(voiced(3.0, 220.0, att=0.3, rel=1.4), 0.7, 0.15).add(voiced(3.0, 146.83, att=0.4, rel=1.6), 0.4, 0.15).verb(2.4, 0.35).out(0.7, True)
+@cook('sGrunt', 3)
+def _(i): return Pot(0.8).add(breathy(0.6, 0.05, low(.7 + .05 * i)), 1).add(voiced(0.5, 196 - 10 * i, att=0.02, rel=0.3), 0.35).verb(0.9, 0.15).out(0.5)
+@cook('sPain', 3)
+def _(i): return Pot(1.0).add(breathy(0.5, 0.12, low(1.05 + .05 * i), wob=.3), 1).add(voiced(0.45, 262 + 15 * i, att=0.03, rel=0.25), 0.3, 0.05).verb(1.0, 0.18).out(0.58)
+@cook('sDeath')
+def _(i): s = 4.0; return Pot(s).add(breathy(3.6, 0.3, low(.7)), 1).add(voiced(3.4, 196, att=0.2, rel=2.6), 0.4).verb(2.6, 0.4).out(0.7, True)
+@cook('miscount', 2)
+def _(i): return Pot(0.7).add(breathy(0.35, 0.03, low(1.1)), 1).add(lp(load(CL + 'cloth.wav', 1.2 + .1 * i), 3000), 0.4).verb(0.9, 0.18).out(0.5)
+@cook('countBegin')
+def _(i): s = 2.4; return Pot(s).add(breathy(1.8, 1.4), 0.8).add(sat(sweep(s, 60, D1 * 2, 0.8) * bell(s, 1.4, 0.6), 1.3), 0.7).add(voiced(2.0, 293.66, att=0.8, rel=0.8), 0.25, 0.3).verb(2.4, 0.35).out(0.65, True)
+@cook('lostCount')
+def _(i): s = 2.2; return Pot(s).add(breathy(0.5, 0.06, low(1.15), wob=.4), 1).add(air(1.2, 400, 3200, 0.3, 0.18), 0.7, 0.05).add(lp(load(CL + 'cloth-heavy.wav', 0.8), 3500), 0.6, 0.05).add(lp(load(RPG + 'spell_fire_01.ogg', 1.3), 4000), 0.3, 0.1).add(sub(0.8, D1 * 2, 150, 0.2), 0.6).verb(1.8, 0.3).glue(1.3).out(0.85, True)
+@cook('emberOut', 3)
+def _(i): s = 0.6; return Pot(s).add(hp(noise(s), 2500) * ad(int(s * SR), 0.01, 0.12), 0.5).add(fade(lp(load(RPG + 'spell_fire_01.ogg', 1.6 + .1 * i, dur=0.3), 5000)), 0.5).verb(1.0, 0.2).out(0.3)
+@cook('whorl')
+def _(i): s = 1.8; t = T(s); return Pot(s).add(norm(moving(noise(s), lambda u: 500 + 900 * (0.5 + 0.5 * np.sin(u * 14))) * np.minimum(1, t / 1.2) * np.exp(-np.maximum(0, t - 1.3) / 0.2)), 1).add(sub(1.4, D1 * 2, 60, 0.5, 0.4), 0.4, 0.3).verb(1.6, 0.3).out(0.6, True)
+@cook('smokeIn')
+def _(i): return Pot(1.1).add(air(1.0, 3200, 300, 0.35, 0.2), 1).add(lp(load(CL + 'cloth-heavy.wav', 0.7), 2400), 0.5).verb(1.2, 0.25).out(0.6)
+@cook('smokeOut')
+def _(i): return Pot(1.2).add(air(1.0, 300, 3600, 0.12, 0.12), 1).add(lp(load(CL + 'cloth-heavy.wav', 0.85), 3000), 0.6).add(sub(0.5, D1 * 2, 140, 0.15), 0.6).verb(1.2, 0.2).glue(1.2).out(0.7)
+@cook('sheetFall')
+def _(i): s = 2.0; return Pot(s).add(lp(load(CL + 'cloth-heavy.wav', 0.5), 1500), 1).add(air(1.4, 1600, 120, 0.25, 0.25), 0.8).add(sub(1.2, D1, 110, 0.35, 0.05, 1.6), 1).add(lp(crumble(2, 0.6), 1200), 0.3, 0.2).verb(1.8, 0.25, bright=2600).glue(1.5).out(0.9, True)
+@cook('clothB', 3)
+def _(i): p = 1 - .08 * i; return Pot(1.2).add(lp(load(CL + 'cloth-heavy.wav', 0.75 * p), 4000), 1).add(air(0.9, 200 * p, 1400 * p, 0.25, 0.14), 0.7).verb(1.0, 0.15).glue(1.2).out(0.6)
+@cook('cotBurst', 3)
+def _(i): s = 1.4; return Pot(s).add(lp(load(WMS + 'wood_breaking_0%d.ogg' % (1 + i % 2), 0.9), 3000), 0.6).add(lp(crumble(i, 0.8), 2200), 0.6, 0.03).add(air(1.0, 2200, 300, 0.12, 0.18), 0.8).add(sub(0.4, D1 * 2, 130, 0.12), 0.5).verb(1.2, 0.2, bright=3000).glue(1.3).out(0.62)
+@cook('cotHit', 2)
+def _(i): return Pot(0.5).add(lp(load(WMS + 'wood_cracking_01.ogg', 1.1 + .1 * i, dur=0.4), 2600), 1).add(air(0.4, 1800, 400, 0.05, 0.08), 0.4).out(0.4)
+@cook('inhale')
+def _(i): s = 3.6; t = T(s); return Pot(s).add(breathy(3.4, 3.0, low(.75)), 1).add(norm(moving(noise(s), lambda u: 200 + 2400 * (u / s) ** 2) * np.minimum(1, t / 3.0) * np.exp(-np.maximum(0, t - 3.1) / 0.15)), 0.9).add(lp(hp(load(USC + 'gust.wav', 0.7, dur=3.5), 80), 1800), 0.6).verb(2.6, 0.35).glue(1.3).out(0.95, True)
+@cook('embersUp')
+def _(i):
+    s = 4.5; o = Pot(s)
+    for _k in range(26): o.add(lp(load(RPG + 'spell_fire_01.ogg', 1.8 + rng.random(), dur=0.3), 6000), 0.15 + 0.2 * rng.random(), rng.random() * 4.0)
+    return o.add(air(s, 300, 1600, 2.0, 1.2), 0.5).add(choirOfBreath(4.0, 4, 1.8), 0.45, 0.3).verb(2.8, 0.4).out(0.7, True)
+@cook('sunSink')
+def _(i): s = 3.2; return Pot(s).add(sat(sweep(s, 80, D1, 1.2) * bell(s, 1.2, 0.9), 1.4), 1).add(choirOfBreath(2.6, 5, 1.6, 0.8), 0.5, 0.2).verb(2.6, 0.4, bright=2200).out(0.7, True)
+@cook('pGrunt', 3)
+def _(i): return Pot(1.0).add(choirOfBreath(0.8, 4, 0.08, 0.7 + .05 * i), 1).add(sub(0.6, D1 * 2, 90, 0.2), 0.7).add(lp(load(CL + 'cloth-heavy.wav', 0.6), 2000), 0.4).verb(1.4, 0.25).glue(1.3).out(0.7)
+@cook('pPain', 3)
+def _(i): return Pot(1.1).add(choirOfBreath(0.7, 5, 0.1, 0.95 + .05 * i), 1).add(sub(0.6, D1 * 2, 120, 0.2), 0.6).verb(1.4, 0.25).glue(1.3).out(0.75)
+@cook('pRoar', 2)
+def _(i): s = 3.4; return Pot(s).add(choirOfBreath(3.0, 8, 0.9, 0.7 + .1 * i), 1).add(air(s, 200, 2400, 1.0, 0.6), 0.7).add(sub(2.4, D1, 80, 0.9, 0.2, 2.0), 1).add(lp(load(CL + 'cloth-heavy.wav', 0.45), 1500), 0.6, 0.4).verb(2.6, 0.35).glue(1.6).out(1.0, True)
+@cook('pDeath')
+def _(i): s = 5.0; return Pot(s).add(choirOfBreath(4.6, 8, 0.4, 0.75), 1).add(sub(3.6, D1, 70, 1.6, 0.3), 0.8).add(air(s, 2400, 200, 1.2, 1.0), 0.5).verb(3.0, 0.4).glue(1.4).out(0.95, True)
+@cook('clothBed')
+def _(i): L = 12; g = lambda a: ring(fit(np.tile(hp(load(USC + 'gust.wav', start=a), 120), 3), 14) * .7 + .5 * fit(lp(np.tile(load(CL + 'cloth.wav', 0.55), 60), 1800), 14), L); return bed(L, g(2), g(6), -27)
 
 # ---------------------------------------------------------------- serve
 from scipy.signal import sosfiltfilt
