@@ -27,7 +27,7 @@ export class HoursDirector {
   /** A scene holds the light (0 under the smoke, 1 the sun) and the smoke; null hands it back to the fight. */ cine: { day: number } | null = null;
   constructor(dir: Director, f: Fight, house: House, v1: SisterView, v2: PallView, post: Post, hud: Hud, light: (day: number) => void, g: { cot: THREE.BufferGeometry; hook: THREE.BufferGeometry; cloth: THREE.Material; scene: THREE.Scene }) {
     this.dir = dir; this.f = f; this.house = house; this.v1 = v1; this.v2 = v2; this.post = post; this.hud = hud; this.light = light; this.fx = new HoursFx(g.scene, g.cloth, g.hook, g.cot, dir.fx, DEPTH.still);
-    dir.vm = VOICE; dir.moods = { hook: 'hours', pall: 'pall' }; dir.extra = (e, t) => this.on(e, t); dir.ambient = fi => this.ambient(fi); dir.propFx = (e, t) => this.prop(e, t);
+    dir.vm = VOICE; dir.moods = { hook: 'hours', pall: 'pall' }; dir.extra = (e, t) => this.on(e, t); dir.ambient = fi => this.ambient(fi); dir.propFx = (e, t) => this.prop(e, t); dir.zoneFx = (z, t) => this.zone(z, t);
   }
   get sim() { return this.f.king as Sister; }
   private ambient(f: Fight) { const r2 = f.round === 2; sound.bed('fireBed', r2 ? 0.0 : 0.22); sound.bed('windLow', r2 ? 0.55 : 0.22); sound.bed('wind', r2 ? 0.35 : 0); sound.bed('clothBed', r2 && f.phase !== 'won' ? 0.4 : 0); }
@@ -38,6 +38,18 @@ export class HoursDirector {
     if (e.broken) { sound.play('cotBurst', { x: p.x, z: p.z, gain: 0.85 }); this.dir.fx.puffs.emit(V(p.x, 0.5, p.z), 14, 2.4, 1.5, t); this.dir.fx.sparks.emit(V(p.x, 0.6, p.z), V(0, 0.5, 0), 10, 1.4, 1.6, -0.9, t); this.dir.cam.trauma = Math.max(this.dir.cam.trauma, 0.2); }
     else sound.play('cotHit', { x: p.x, z: p.z, gain: 0.6 });
     return true;
+  }
+  /** The hour falls on every glowing stone; linen snaps taut; a sheet settles. Not fire: that is the hero's. */
+  private zone(z: import('../../combat/fight.ts').Hazard, t: number) {
+    const fx = this.dir.fx, cam = this.dir.cam, m = this.f.m, near = Math.max(0, 1 - Math.hypot(z.x - m.x, z.z - m.z) / 14);
+    if (z.mode === 'sevenBreaths' || z.mode === 'longCount') {
+      const ir = z.inner ?? 0; for (let i = 0; i < 46; i++) { const a = Math.random() * 6.283, r = ir + 0.6 + Math.sqrt(Math.random()) * (z.r - ir - 0.6), p = V(z.x + Math.sin(a) * r, 0, z.z + Math.cos(a) * r); fx.bursts.add('pillar', p, 1.6 + Math.random() * 1.6, 0.7, t + r * 0.02); if (i % 3 === 0) fx.puffs.emit(p.clone().setY(0.3), 2, 2.2, 1.4, t); }
+      for (let i = 0; i < 24; i++) { const a = i / 24 * 6.283; fx.sparks.emit(V(z.x + Math.sin(a) * (ir + 0.2), 0.1, z.z + Math.cos(a) * (ir + 0.2)), V(0, 1, 0), 3, 1.5, 2, -1, t); }
+      sound.play('hourFalls', { gain: 1, wet: 0.6 }); sound.play('erupt', { x: m.x, z: m.z, gain: 0.7 }); sound.duck(0.4, 0.8); cam.trauma = Math.max(cam.trauma, 0.7); this.dir.court.ruin.scar(2, z.x, z.z, z.r * 0.7, 0, 0, 0.3); return true;
+    }
+    if (z.mode === 'binding' && z.shape === 'line') { for (let i = 0; i < 6; i++) { const d = 0.8 + i * 1.5, q = V(z.x + Math.sin(z.yaw) * d, 0.15, z.z + Math.cos(z.yaw) * d); fx.puffs.emit(q, 2, 1.4, 0.9, t + i * 0.02); } sound.play('clothB', { x: z.x + Math.sin(z.yaw) * 4, z: z.z + Math.cos(z.yaw) * 4, gain: 0.8, rate: 1.3 }); cam.trauma = Math.max(cam.trauma, 0.25 * near); return true; }
+    if (z.mode === 'cleanSheet' || z.mode === 'drawSheet') { fx.puffs.emit(V(z.x, 0.2, z.z), 24, z.r * 1.2, 1.6, t); fx.bursts.add('ground', V(z.x, 0.06, z.z), z.r * 2.2, 0.5, t, 0, 0.6, 0.4, 0.2); sound.play('sheetFall', { x: z.x, z: z.z, gain: 0.9 }); cam.trauma = Math.max(cam.trauma, 0.6 * near); return true; }
+    return false;
   }
   step(sd: number, real: number, t: number) {
     const f = this.f, k = this.sim, m = f.m, fx = this.dir.fx;

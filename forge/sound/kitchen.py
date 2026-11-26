@@ -538,6 +538,8 @@ def _(i): return Pot(1.1).add(choirOfBreath(0.7, 5, 0.1, 0.95 + .05 * i), 1).add
 def _(i): s = 3.4; return Pot(s).add(choirOfBreath(3.0, 8, 0.9, 0.7 + .1 * i), 1).add(air(s, 200, 2400, 1.0, 0.6), 0.7).add(sub(2.4, D1, 80, 0.9, 0.2, 2.0), 1).add(lp(load(CL + 'cloth-heavy.wav', 0.45), 1500), 0.6, 0.4).verb(2.6, 0.35).glue(1.6).out(1.0, True)
 @cook('pDeath')
 def _(i): s = 5.0; return Pot(s).add(choirOfBreath(4.6, 8, 0.4, 0.75), 1).add(sub(3.6, D1, 70, 1.6, 0.3), 0.8).add(air(s, 2400, 200, 1.2, 1.0), 0.5).verb(3.0, 0.4).glue(1.4).out(0.95, True)
+@cook('hourFalls')
+def _(i): s = 3.0; return Pot(s).add(doom(2.2, D1, 1), 0.9).add(choirOfBreath(2.4, 6, 0.05, 0.7), 0.9).add(air(1.6, 2600, 160, 0.08, 0.35), 0.8).add(lp(crumble(3, 0.7), 2600), 0.4, 0.05).add(punch(0.7, 0, 0.2), 0.6).verb(2.4, 0.35, bright=3000).glue(1.6).out(0.95, True)
 @cook('clothBed')
 def _(i): L = 12; g = lambda a: ring(fit(np.tile(hp(load(USC + 'gust.wav', start=a), 120), 3), 14) * .7 + .5 * fit(lp(np.tile(load(CL + 'cloth.wav', 0.55), 60), 1800), 14), L); return bed(L, g(2), g(6), -27)
 

@@ -16,7 +16,7 @@ export class Marks {
 void main(){ vec3 c; float f = fbm(u * 5. + vec2(0., -uT.w * .8)), pu = .8 + .2 * sin(uT.w * 18.), hot = smoothstep(.75, 1., k);
  if (kd < .5) { float d = length(u); if (d > 1.) discard; float ir = s.y / max(s.x, .01);
    if (ir > .01) { float w = .045 / ir * .06 + .004; float safe = smoothstep(ir + w, ir, d); float rim = smoothstep(w * 1.6, 0., abs(d - ir)), gl = smoothstep(ir, ir + .25, d) * smoothstep(1., .6, d), creep = step(1. - k, (d - ir) / (1. - ir));
-     c = vec3(1., .13, .02) * (.08 + .22 * smoothstep(.45, .75, f) * (.6 + 1.4 * hot)) * gl * (1. - safe) * (.35 + .65 * creep) * pu + vec3(.9, .85, .75) * rim * (.5 + .5 * hot) * .9; }
+     c = vec3(1., .13, .02) * (.22 + .5 * smoothstep(.4, .75, f) * (.6 + 1.6 * hot) + 1.2 * hot * hot) * gl * (1. - safe) * (.25 + .75 * creep) * pu + vec3(.9, .85, .75) * rim * (.5 + .5 * hot) * .9; }
    else { float edge = smoothstep(.07, 0., abs(d - .95)), ring = smoothstep(.05, 0., abs(d - k * .95)), fill = smoothstep(1., .1, d) * .16 + .2 * smoothstep(.45, .75, f) * step(d, k); c = vec3(1., .13, .02) * (edge * 1.5 + ring * 1.0 + fill * (1. + 2. * hot)) * pu; } }
  else if (kd < 1.5) { float e = 1. - abs(u.x), edge = smoothstep(.14, .0, e), fade = smoothstep(1., .85, u.y); float run = smoothstep(.04, 0., abs(u.y - k)); c = vec3(1., .13, .02) * (edge * .75 + run * .8 + .03 + .16 * smoothstep(.45, .75, f) * step(u.y, k) * (1. + 2. * hot)) * fade * pu; }
  else { float d = length(u) * s.x; float q = d - s.y, w = smoothstep(.55, 0., abs(q)) ; float flame = smoothstep(.3, .8, fbm(vec2(atan(u.y, u.x) * 9., d * 2. - uT.w * 5.))); c = mix(vec3(1., .12, .01), vec3(1., .6, .2), w * flame) * w * (.5 + flame) * 1.6 + vec3(1., .13, .02) * smoothstep(1.6, 0., max(q, 0.)) * step(0., q) * .15; }
