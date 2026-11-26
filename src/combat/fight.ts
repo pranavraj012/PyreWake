@@ -14,7 +14,7 @@ export type FightEvent =
   | { k: 'ready'; a: 'skill1' | 'skill2' | 'ultimate' } | { k: 'dead' } | { k: 'reset' } | { k: 'zone'; z: Hazard } | { k: 'zoneHit'; z: Hazard } | { k: 'shot'; p: Shot } | { k: 'shotHit'; p: Shot }
   | { k: 'style'; style: string } | { k: 'snap' } | { k: 'flame' } | { k: 'aura'; tier: number; up: boolean } | { k: 'break'; by: 'sunder' | 'rites' | 'heavy' } | { k: 'leap' } | { k: 'blastSet'; x: number; z: number; r: number; kind: string; delay: number } | { k: 'blast'; x: number; z: number; r: number; kind: string; hit: boolean } | { k: 'prop'; p: Prop; power: number; dx: number; dz: number; broken: boolean; by: 'hero' | 'boss' } | { k: 'topple'; p: Prop; yaw: number } | { k: 'fell'; p: Prop; yaw: number; hit: boolean } | { k: 'restore' } | { k: 'half' } | { k: 'round2' } | { k: 'finish' } | { k: 'won' } | { k: 'rites'; hit: boolean } | { k: 'hero' }
   /** Something only this boss has: chains, lanterns, coins. `e` names it. */ | { k: 'b'; e: string; x?: number; z?: number; n?: number };
-export interface Hazard { id: number; shape: Zone['shape']; x: number; z: number; yaw: number; r: number; len: number; half: number; t: number; delay: number; dmg: number; down: boolean; speed: number; max: number; done: boolean; visual: boolean; first: boolean; mode: string; /** Safe middle of a circle; blind spot of a sweep near its pivot. */ inner?: number; /** A sweep's turn (radians) and how long it takes. */ spin?: number; dur?: number }
+export interface Hazard { id: number; shape: Zone['shape']; x: number; z: number; yaw: number; r: number; len: number; half: number; t: number; delay: number; dmg: number; down: boolean; speed: number; max: number; done: boolean; visual: boolean; first: boolean; mode: string; /** Safe middle of a circle; blind spot of a sweep near its pivot. */ inner?: number; /** A grab: the boss takes the hero into a staged moment (see Boss.seize). */ seize?: string; /** A sweep's turn (radians) and how long it takes. */ spin?: number; dur?: number }
 export interface Shot { id: number; x: number; z: number; dx: number; dz: number; t: number; life: number; speed: number; r: number; dmg: number; power: number; big: boolean; hit: boolean }
 export type Phase = 'r1' | 'scene' | 'r2' | 'finish' | 'won';
 
@@ -194,7 +194,7 @@ export class Fight {
     for (const s of k.cues) {
       const first = !this.brain.seen.has(k.mode); this.ev.push({ k: 'cue', strike: s, lead: (s.t[0] - k.mt) / (s === k.strikes[0] ? k.rate : 1) / k.pace, first }); if (first && s === k.strikes[0]) this.teachSlow = true;
       for (const z of s.zones ?? []) {
-        const at = z.at === 'player' ? m : z.at === 'mark' ? k.mark : k, h: Hazard = { id: ++this.ids, shape: z.shape, x: at.x, z: at.z, yaw: (s.head ? k.dir : k.yaw) + (z.yaw ?? 0), r: z.r ?? 0, len: z.len ?? 0, half: z.half ?? 0.45, t: 0, delay: z.delay / (s === k.strikes[0] ? k.rate : 1) / k.pace, dmg: s.dmg, down: !!s.down, speed: z.speed ?? 0, max: z.max ?? 0, done: false, visual: !!(s.box || s.arc || s.head || s.silent), first, mode: k.mode , inner: z.inner, spin: z.spin, dur: z.dur };
+        const at = z.at === 'player' ? m : z.at === 'mark' ? k.mark : k, h: Hazard = { id: ++this.ids, shape: z.shape, x: at.x, z: at.z, yaw: (s.head ? k.dir : k.yaw) + (z.yaw ?? 0), r: z.r ?? 0, len: z.len ?? 0, half: z.half ?? 0.45, t: 0, delay: z.delay / (s === k.strikes[0] ? k.rate : 1) / k.pace, dmg: s.dmg, down: !!s.down, speed: z.speed ?? 0, max: z.max ?? 0, done: false, visual: !!(s.box || s.arc || s.head || s.silent), first, mode: k.mode , inner: z.inner, spin: z.spin, dur: z.dur, seize: s.seize };
         this.hazards.push(h); this.ev.push({ k: 'zone', z: h });
       }
     }
@@ -209,7 +209,7 @@ export class Fight {
       if (s.low && m.over) { this.spent.add(id); this.leapt(); continue; }
       if (m.safe > 0 || this.vanished) { this.spent.add(id); this.evade(); continue; }
       if (this.invuln > 0) continue;
-      if (s.seize && k.seize) { this.spent.add(id); k.seize(s, this); continue; }
+      if (s.seize && k.seize) { this.spent.add(id); k.seize(s.seize, this); continue; }
       this.spent.add(id); let fa = from - m.yaw; fa -= Math.round(fa / 6.2832) * 6.2832;
       if (s.kind === 'white' && m.guardUp && Math.abs(fa) < 1.9) {
         if (m.guardT < D.parry) {
@@ -234,7 +234,7 @@ export class Fight {
       else { const R = h.speed * (h.t - h.delay); inside = Math.abs(d - R) < 0.5; over = R > h.max; }
       if (!h.done && h.shape !== 'ring') { if (h.t - dt < h.delay) this.ev.push({ k: 'zoneHit', z: h }); }
       else if (h.shape === 'ring' && h.t - dt < h.delay) this.ev.push({ k: 'zoneHit', z: h });
-      if (inside && !h.done && !m.dead) { if (m.over) { h.done = true; this.leapt(); } else if (m.safe > 0 || this.vanished) { h.done = true; this.evade(); } else if (this.invuln <= 0) { h.done = true; this.strikePlayer(h.dmg, h.down, Math.atan2(h.x - m.x, h.z - m.z) || m.yaw, h.mode); } }
+      if (inside && !h.done && !m.dead) { if (m.over) { h.done = true; this.leapt(); } else if (m.safe > 0 || this.vanished) { h.done = true; this.evade(); } else if (this.invuln <= 0) { h.done = true; if (h.seize && this.king.seize) this.king.seize(h.seize, this); else this.strikePlayer(h.dmg, h.down, Math.atan2(h.x - m.x, h.z - m.z) || m.yaw, h.mode); } }
       if (over) h.max = -1;
     }
     this.hazards = this.hazards.filter(h => h.max !== -1 && h.t < h.delay + 2.5 && !(h.visual && h.t > h.delay));

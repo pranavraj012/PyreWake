@@ -14,6 +14,7 @@ const QUIET = ['reel', 'reel2', 'snap', 'kneel', 'fall', 'cradle', 'riseW', 'die
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the mark it threw is where it lands: the line is drawn at the cue. */
 const LOCK: Record<string, number> = { cast: 0.3, dragDeep: 0.4, haulIn: 0 };
+/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { under: 0.55, hold: 0.85, dmg: 1.0, heave: 2.2, end: 3.4 }, FARE = { lift: 0.5, pour: 1.4, fling: 1.9, hit: 2.8, end: 3.2 }, CHAIN = { hit: 1.6, len: 3.0 }, LANTERN = { hit: 0.9, len: 2.4 };export const GRAB_DRAG = { drag: 44, fare: 46 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
 
 export interface Chain { x: number; z: number; len: number; hp: number; t: number; cut: number }
 export interface Lantern { x: number; z: number; real: boolean; t: number; gone: number }
@@ -33,7 +34,9 @@ export class River implements Boss {
   private moved = 0; private side = 1; private sideT = 0; private from = { x: 0, z: 0 }; private cut = new Set<string>(); private castNow = false; private handsNow = false; private burstNow = false; private hauling = 0; private coinAcc = 0; private spin = 0; private orbit = 0; private px = 0; private pz = 5; private oneMoreAt = -99; private seenLeap = -9;
 
   set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; if (mode === 'wake') { this.jumped = false; this.from = { x: this.x, z: this.z }; } }
-  reset() { this.chain = null; this.dark = 0; this.lanterns = []; this.coins = []; this.wave = null; this.ring = null; this.souls = []; this.hands = []; this.freed = 0; this.pull = 0; this.exposed = 0; this.sub = false; this.trail = []; this.out = []; this.boil = 0; this.hauling = 0; this.castNow = this.handsNow = this.burstNow = false; this.oneMoreAt = -99; this.y = 0; this.cut.clear(); }
+  /** Staged moments: the grab holding the hero, its clock, the reward in progress and the reward on offer. */
+  held: 'drag' | 'fare' | null = null; stage = 0; rite: 'chain' | 'lantern' | null = null; reward: 'chain' | 'lantern' | null = null; rewardLeft = 0; lastAnchor = { x: 0, z: 0 }; private sp = 0;
+  reset() { this.clearMoments(); this.chain = null; this.dark = 0; this.lanterns = []; this.coins = []; this.wave = null; this.ring = null; this.souls = []; this.hands = []; this.freed = 0; this.pull = 0; this.exposed = 0; this.sub = false; this.trail = []; this.out = []; this.boil = 0; this.hauling = 0; this.castNow = this.handsNow = this.burstNow = false; this.oneMoreAt = -99; this.y = 0; this.cut.clear(); }
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
   get hx() { return this.x; } get hz() { return this.z; }
@@ -89,8 +92,47 @@ export class River implements Boss {
       if (m === 'gather' && p < 1.0 && mt >= 1.0) { this.dark = 9.5; this.say('dark'); }
       if (m === 'wrongShore') { if (p < 1.2 && mt >= 1.2) this.conjure(); if (p < s[0].t[0] && mt >= s[0].t[0]) this.burstNow = true; }
       if (m === 'lamps' && mt > 1.0 && mt < 4.6) { this.spin += 1.6 * dt; this.coinAcc += 7 * dt; while (this.coinAcc >= 1) { this.coinAcc -= 1; const k = this.serial + Math.floor(mt * 7), a = Math.atan2(this.px - this.x, this.pz - this.z) + [-0.34, -0.12, 0.12, 0.34][k % 4] + Math.sin(mt * 3) * 0.08, sp = 6.4 + (k % 3) * 0.5; this.coins.push({ x: this.x + Math.sin(a) * 1.6, z: this.z + Math.cos(a) * 1.6, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, life: 4, back: false }); } }
-      if (mt >= c.dur) { if (m === 'wrongShore') this.lanterns = []; this.end(m); }
+      if (mt >= c.dur) { if (m === 'wrongShore') this.lanterns = []; if (m === 'lamps' && this.form === 2) this.offer('lantern'); this.end(m); }
     }
+  }
+  /** The grab connected (the drag's line, or the fare's thrust): the boss takes the hero into a staged moment. It always plays out and always costs. */
+  seize(kind: string, f: Fight) {
+    this.stage = this.sp = 0; this.held = kind === 'drag' ? 'drag' : 'fare'; f.brain.seen.add(kind === 'drag' ? 'dragDeep' : 'thrust');
+    f.invuln = Math.max(f.invuln, 0.15);
+  }
+  /** A reward is on offer for a while (the chain cut, or the lamps gone out). */
+  private offer(kind: 'chain' | 'lantern') { if (!this.held && !this.rite) { this.reward = kind; this.rewardLeft = RIVER_OFFER; } }
+  /** The hero took the offered reward: the scene plays, and the blow lands at its own moment. */
+  takeReward(): 'chain' | 'lantern' | null {
+    const r = this.reward; if (!r) return null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0;
+    if (r === 'chain') this.set('snap'); else this.set('kneel');
+    this.rite = r; return r;
+  }
+  /** A fresh start: no moment is playing and no reward is on offer. */
+  clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; }
+  /** Which staged moment is playing, if any (the page stages the camera and the hero for it). */
+  get staging(): 'drag' | 'fare' | 'chain' | 'lantern' | null { return this.held ?? this.rite; }
+  /** Runs the moments' timings and what they do to the hero and the boss. Called once a step, after everything else has moved. */
+  private tickMoments(f: Fight, dt: number) {
+    const m = f.m, cross = (a: number) => this.sp < a && this.stage >= a;
+    if (this.reward && (this.rewardLeft -= dt) <= 0) { this.reward = null; this.rewardLeft = 0; }
+    if (this.held || this.rite) this.stage += dt * this.pace;
+    const pool = f.round === 2 ? D.boss.hp2 : D.boss.hp1;
+    if (this.held === 'drag') {
+      f.invuln = Math.max(f.invuln, 0.15);
+      if (this.stage < DRAG.heave) { m.x = this.x + Math.sin(this.yaw) * 1.6; m.z = this.z + Math.cos(this.yaw) * 1.6; }
+      if (cross(DRAG.dmg)) { f.invuln = 0; f.strikePlayer(GRAB_DRAG.drag, true, Math.atan2(this.x - m.x, this.z - m.z), 'dragDeep'); }
+      if (this.stage >= DRAG.end) this.held = null;
+    } else if (this.held === 'fare') {
+      f.invuln = Math.max(f.invuln, 0.15);
+      if (this.stage < FARE.fling) { m.x = this.x + Math.sin(this.yaw) * 1.8; m.z = this.z + Math.cos(this.yaw) * 1.8; }
+      else if (cross(FARE.fling)) { m.x = this.x + Math.sin(this.yaw) * 6.4; m.z = this.z + Math.cos(this.yaw) * 6.4; }
+      if (cross(FARE.hit)) { f.invuln = 0; f.strikePlayer(GRAB_DRAG.fare, true, Math.atan2(this.x - m.x, this.z - m.z), 'thrust'); }
+      if (this.stage >= FARE.end) this.held = null;
+    }
+    if (this.rite === 'chain') { if (cross(CHAIN.hit)) f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); if (this.stage >= CHAIN.len) this.rite = null; }
+    else if (this.rite === 'lantern') { if (cross(LANTERN.hit)) f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); if (this.stage >= LANTERN.len) this.rite = null; }
+    this.sp = this.stage;
   }
   /** Three lanterns round the player; one is real. */
   private conjure() {
@@ -118,6 +160,7 @@ export class River implements Boss {
     if (f.ev.some(e => e.k === 'rites')) this.boil = 6;
     if (this.form === 1) this.tickFerry(f, dt, m); else this.tickWeight(f, dt, m); this.tickRing(f, dt, m);
     if (f.ev.some(e => e.k === 'break') && this.mode === 'reel') this.exposed = Math.max(this.exposed, 1.2);
+    this.tickMoments(f, dt);
   }
   private tickFerry(f: Fight, dt: number, m: Fight['m']) {
     const ch = this.chain;
@@ -134,7 +177,7 @@ export class River implements Boss {
     // the taut chain can be cut
     if (ch && !this.castNow && this.touchLine(f, ch)) {
       ch.hp--; ch.cut++; f.stop = Math.max(f.stop, 0.05); f.fire = Math.min(D.fireMax, f.fire + 2); f.raise({ k: 'b', e: 'cut', n: ch.hp, x: ch.x, z: ch.z });
-      if (ch.hp <= 0) { this.chain = null; this.set('snap'); this.exposed = 4.4; this.bonus = 1.45; f.brain.broken(); f.raise({ k: 'b', e: 'snap', x: this.x, z: this.z }); }
+      if (ch.hp <= 0) { this.lastAnchor = { x: ch.x, z: ch.z }; this.offer('chain'); this.chain = null; this.set('snap'); this.exposed = 4.4; this.bonus = 1.45; f.brain.broken(); f.raise({ k: 'b', e: 'snap', x: this.x, z: this.z }); }
     }
     // a wide strike of the anchor along the chain's own line is dodged like any other; spells and the rush clear patches of hands
     // the drowned reach for you: under your feet, then across the way you are going, then all round you, closing

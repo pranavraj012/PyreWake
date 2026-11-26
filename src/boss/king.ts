@@ -89,10 +89,10 @@ export class King {
     if (m !== 'hang' && this.mt >= K[m].dur) { this.ended = m; this.set('hang'); }
   }
   /** The grab connected: the boss takes the hero into a staged moment. It always plays out and always costs. */
-  seize(s: Strike, f: Fight) {
-    this.stage = this.sp = 0; f.brain.seen.add(s.seize === 'noose' ? 'grab' : 'skewer');
-    if (s.seize === 'noose') { this.set('noose'); this.dir = this.yaw; }
-    this.held = s.seize ?? null;
+  seize(kind: string, f: Fight) {
+    this.stage = this.sp = 0; f.brain.seen.add(kind === 'noose' ? 'grab' : 'skewer');
+    if (kind === 'noose') { this.set('noose'); this.dir = this.yaw; }
+    this.held = kind as 'noose' | 'hands';
   }
   /** A perfect dodge of the sideways lunge leaves him behind you, exposed: a chance to ride him. */
   dodged(_f: Fight) { if (this.mode === 'cross' && !this.held && !this.rite) { this.reward = 'ride'; this.rewardLeft = OFFER; } }

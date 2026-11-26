@@ -18,13 +18,13 @@ export const RIVER_ATTACKS: Record<string, Strike[]> = {
   haul: [],
   haulIn: [{ kind: 'white', cue: 0.7, t: [1.45, 1.6], dmg: 12, down: true, mark: 'cleaver', box: [10.8, 1.0] }],
   wheelIron: [1.3, 2.1, 2.9].map(t => ({ kind: 'white' as const, cue: t - 0.55, t: [t, t + 0.12] as [number, number], dmg: 9, mark: 'cleaver' as const, arc: [5.6, 180] as [number, number] })),
-  dragDeep: [{ kind: 'ground', cue: 0.4, t: [1.56, 1.7], dmg: 14, down: true, mark: 'handL', zones: [{ shape: 'line', at: 'self', len: 14, half: 1.5, delay: 1.15 }] }],
+  dragDeep: [{ kind: 'ground', cue: 0.4, t: [1.56, 1.7], dmg: 14, down: true, mark: 'handL', zones: [{ shape: 'line', at: 'self', len: 14, half: 1.5, delay: 1.15 }], seize: 'drag' }],
   // --- the Lantern
   gather: [],
   wrongShore: [{ kind: 'ground', cue: 4.5, t: [5.35, 5.45], dmg: 0, mark: 'head', silent: true }],
   coldHands: [{ kind: 'ground', cue: 0.5, t: [1.9, 2.0], dmg: 0, mark: 'head', silent: true }],
   // --- the Unburdened
-  thrust: [{ kind: 'red', cue: 0.28, t: [0.64, 0.76], dmg: 14, mark: 'cleaver', box: [5.6, 0.75] }],
+  thrust: [{ kind: 'red', cue: 0.28, t: [0.64, 0.76], dmg: 14, mark: 'cleaver', box: [5.6, 0.75], seize: 'fare' }],
   flurry: [0.66, 1.11, 1.55].map((t, i) => ({ kind: 'white' as const, cue: t - 0.42, t: [t, t + 0.1] as [number, number], dmg: 9, mark: 'cleaver' as const, ...(i === 2 ? { box: [5.2, 0.8] as [number, number] } : { arc: [4.3, 110] as [number, number] }) })),
   reap: [{ kind: 'white', cue: 0.5, t: [1.02, 1.2], dmg: 12, mark: 'cleaver', arc: [5.4, 180], low: true }],
   vault: [{ kind: 'ground', cue: 0.3, t: [1.42, 1.54], dmg: 14, down: true, mark: 'cleaver', zones: [circle(2.6, 1.1)] }],
