@@ -19,7 +19,7 @@ const MOMENTS: Record<Boss, Moment[]> = { king: ['noose', 'rope', 'ride'], river
 const STATES: State[] = ['light', 'heavy', 'charge', 'dodge', 'jump', 'guard', 'spell', 'flask', 'stagger', 'walk'];
 const IDLE = /flick|clench|down|hurt|block|parry|die|land|rekindle/;
 /** A moment is on: a grab holds him, or a reward is on offer or being played. */
-const busyOf = (k: King & River) => !!(k.staging || k.reward);
+const busyOf = (k: King | River) => !!(k.staging || k.reward);
 
 /** How each state is entered (`press` at the start, `release` seconds later if it is let go before the moment), and the test that says the hero is in it. */
 const SCRIPT: Record<State, { press: Press[]; release?: number; ready: (m: Motor) => boolean; minAge: number }> = {
@@ -46,15 +46,14 @@ function setup(boss: Boss, moment: Moment) {
 
 /** The boss's own moment: a grab is set off at once (the strike connects a fraction of a second later); a reward is put on offer. */
 function trigger(f: Fight, moment: Moment) {
-  const k = f.king as King & River;
-  if (moment === 'noose') k.set('grab', 8);
-  else if (moment === 'drag') k.set('dragDeep', 8);
-  else if (moment === 'rope' || moment === 'ride') { k.reward = moment; k.rewardLeft = OFFER; }
-  else k.offer(moment);
+  if (moment === 'noose') (f.king as King).set('grab', 8);
+  else if (moment === 'drag') (f.king as River).set('dragDeep', 8);
+  else if (moment === 'rope' || moment === 'ride') { const k = f.king as King; k.reward = moment; k.rewardLeft = OFFER; }
+  else (f.king as River).offer(moment);
 }
 
 function run(boss: Boss, moment: Moment, state: State) {
-  const f = setup(boss, moment), k = f.king as King & River, m = f.m, sc = SCRIPT[state];
+  const f = setup(boss, moment), k = f.king as King | River, m = f.m, sc = SCRIPT[state];
   const isGrab = moment === 'noose' || moment === 'drag';
   if (state === 'stagger') f.strikePlayer(8, true, Math.PI, 'stagger');
   const r = { triggered: false, onset: -1, end: -1, hpOnset: 0, hpEnd: 0, takenOnset: 0, takenEnd: 0, swings: 0, reeled: false, expect: 0, accepted: false, pool: 0, state: '' };

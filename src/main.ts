@@ -157,7 +157,7 @@ async function boot() {
     if (lessons.active) ev = lessons.gate(ev as { a: string; up: boolean }[]) as typeof ev;
     // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
     qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && king.sim.takeReward()) qte.hide();
-    if (moment.active) { ev = []; mx = mz = 0; }
+    if (moment.active) mx = mz = 0; // the fight drops his presses while a moment is on, and keeps the releases
     const held = lessons.active && !!lessons.frozen, sd = held ? 0 : fight.step(dt * pace, mx, mz, ev), kv = dir.kv; if (held) fight.ev.length = 0;
     { const want = king.sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(kSpecs[want]); } else moment.stop(); } }
     // a staged moment's cues: its sound, its dust, its shake; and its letterbox (the bars slide in and out by themselves)

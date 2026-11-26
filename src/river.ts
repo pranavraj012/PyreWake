@@ -96,7 +96,7 @@ export async function bootRiver(c: Ctx) {
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active) { ending.press(ev, t); if (ending.waiting) ev = []; }
     // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
     qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.takeReward()) qte.hide();
-    if (moment.active) { ev = []; mx = mz = 0; }
+    if (moment.active) mx = mz = 0; // the fight drops his presses while a moment is on, and keeps the releases
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
     { const want = sim.staging; if (want !== staged) { staged = want; dragK = 0; if (want) { qte.hide(); moment.start(want === 'drag' ? dSpec : rSpecs[want]); } else moment.stop(); } }
     // the drag's beats, on the boss's clock: a groan as he is pulled under, the bite, and a slam as he is heaved onto the steps
