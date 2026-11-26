@@ -6,13 +6,12 @@ import { label } from '../input/bindings.ts';
 import { canFullscreen, isFullscreen, onFullscreen, setFullscreen } from '../core/fullscreen.ts';
 
 export class Menu {
-  open = false; onPlay: () => void = () => { }; onTrain: () => void = () => { }; /** The other boss, once it is open to you. */ onOther: () => void = () => { }; private root: HTMLElement;
+  open = false; onPlay: () => void = () => { }; onTrain: () => void = () => { }; private root: HTMLElement;
   constructor(app: HTMLElement, controls: () => string) {
     this.root = document.createElement('div'); this.root.id = 'menu';
     this.root.innerHTML = `<div class="title"><h1>Pyrewake</h1><nav><button data-b="play">Play</button><button data-b="train">Training</button><button data-b="spells" aria-expanded="false">Spells</button><button data-b="other" hidden></button>${canFullscreen ? '<button data-b="full"></button>' : ''}<button data-b="sound"></button><button data-b="settings" aria-expanded="false">Settings</button><button data-b="controls" aria-expanded="false">Controls</button></nav><p class="hush">Click or press any key once for sound: browsers don't count a controller.</p></div><div class="controls" hidden><table></table></div><div class="controls set" hidden></div><div class="controls spells" hidden><p>Carry two. Pick one to take the place of the other.</p><div class="list"></div></div>`;
     app.append(this.root); const q = <T extends HTMLElement>(s: string) => this.root.querySelector<T>(s)!, panel = q('.controls'), set = q('.set'); set.append(settingsPanel()); const sp = q('.spells'), show = (w: 'controls' | 'settings' | 'spells' | '') => { panel.hidden = w !== 'controls'; set.hidden = w !== 'settings'; sp.hidden = w !== 'spells'; for (const b of ['controls', 'settings', 'spells']) q(`[data-b=${b}]`).setAttribute('aria-expanded', String(b === w)); if (w === 'controls') q('table').innerHTML = controls(); };
     q('[data-b=play]').onclick = () => this.play();
-    q('[data-b=other]').onclick = () => { if (this.open) { this.close(); this.onOther(); } };
     q('[data-b=train]').onclick = () => { if (this.open) { this.close(); this.onTrain(); } };
     q('[data-b=sound]').onclick = () => { sound.setMuted(!sound.muted); this.labels(); };
     q('[data-b=controls]').onclick = () => show(panel.hidden ? 'controls' : ''); q('[data-b=spells]').onclick = () => show(sp.hidden ? 'spells' : '');
