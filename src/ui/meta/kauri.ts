@@ -1,22 +1,22 @@
-// Fares and Pyre-iron on the HUD. Shown outside fights; during a fight shown only for a few seconds when either changes.
-// The caller says whether a fight is on: fares.setFighting(true) at the start, false at the end.
+// Kauri and Pyre-iron on the HUD. Shown outside fights; during a fight shown only for a few seconds when either changes.
+// The caller says whether a fight is on: kauri.setFighting(true) at the start, false at the end.
 import { progress, type Progress } from '../../game/progress.ts';
 import { UI } from './metaScript.ts';
 
 const SHOW_SECS = 2.5;
 
-export class Fares {
+export class Kauri {
   private el: HTMLElement;
   private fighting = false;
   private timer = 0;
-  private last = { fares: -1, iron: -1 };
+  private last = { kauri: -1, iron: -1 };
   private off: () => void;
 
   constructor(app: HTMLElement) {
     this.el = document.createElement('div');
-    this.el.className = 'meta-fares';
+    this.el.className = 'meta-kauri';
     this.el.setAttribute('aria-live', 'polite');
-    this.el.innerHTML = `<span class="f"><b>${UI.fares}</b><i></i></span><span class="iron"><b>${UI.iron}</b><i></i></span>`;
+    this.el.innerHTML = `<span class="f"><b>${UI.kauri}</b><i></i></span><span class="iron"><b>${UI.iron}</b><i></i></span>`;
     app.append(this.el);
     this.off = progress.on(p => this.changed(p));
     this.changed(progress.get());
@@ -31,9 +31,9 @@ export class Fares {
 
   private changed(p: Readonly<Progress>) {
     // the first reading is not a change
-    const moved = this.last.fares >= 0 && (p.fares !== this.last.fares || p.iron !== this.last.iron);
-    this.last = { fares: p.fares, iron: p.iron };
-    this.el.querySelector('.f i')!.textContent = String(p.fares);
+    const moved = this.last.kauri >= 0 && (p.kauri !== this.last.kauri || p.iron !== this.last.iron);
+    this.last = { kauri: p.kauri, iron: p.iron };
+    this.el.querySelector('.f i')!.textContent = String(p.kauri);
     this.el.querySelector('.iron i')!.textContent = String(p.iron);
     if (moved) {
       this.el.classList.add('bump');

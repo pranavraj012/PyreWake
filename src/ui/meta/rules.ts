@@ -2,11 +2,11 @@
 // Every mutation takes a draft Progress, so the screens call these inside progress.change(...).
 import type { Progress, WeaponKind } from '../../game/progress.ts';
 
-export interface Price { fares: number; iron: number }
+export interface Price { kauri: number; iron: number }
 /** priceOf from module B: null when the upgrade cannot be bought now (unknown, or at its cap). */
 export type PriceFn = (id: string, p: Progress) => Price | null;
 
-export type Refusal = 'unknown' | 'fares' | 'iron' | 'owned' | 'notowned' | 'slots' | 'nowhere' | 'same' | 'beads';
+export type Refusal = 'unknown' | 'kauri' | 'iron' | 'owned' | 'notowned' | 'slots' | 'nowhere' | 'same' | 'beads';
 export type Verdict = { ok: true } | { ok: false; why: Refusal };
 const OK: Verdict = { ok: true };
 const no = (why: Refusal): Verdict => ({ ok: false, why });
@@ -31,7 +31,7 @@ export function checkBuy(p: Readonly<Progress>, id: string, price: PriceFn): Ver
   const c = price(id, p as Progress);
   if (!c) return no('unknown');
   if (isOwned(p, id)) return no('owned');
-  if (p.fares < c.fares) return no('fares');
+  if (p.kauri < c.kauri) return no('kauri');
   if (p.iron < c.iron) return no('iron');
   return OK;
 }
@@ -41,7 +41,7 @@ export function applyBuy(p: Progress, id: string, price: PriceFn): Verdict {
   const v = checkBuy(p, id, price);
   if (!v.ok) return v;
   const c = price(id, p)!;
-  p.fares -= c.fares; p.iron -= c.iron;
+  p.kauri -= c.kauri; p.iron -= c.iron;
   if (id === 'weapon.level') p.weapon = { kind: p.weapon.kind, level: p.weapon.level + 1 };
   else if (id.startsWith('weapon.')) { const kind = id.slice(7) as WeaponKind; p.weapons = [...p.weapons, kind]; p.weapon = { kind, level: 0 }; }
   else if (id === 'flask.count') p.flasks = { ...p.flasks, count: p.flasks.count + 1 };

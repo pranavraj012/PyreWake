@@ -10,18 +10,18 @@ import { D } from './difficulty.ts';
 export const TOKENS = 2;
 /** Foes beyond this are not locked on. */
 export const LOCK_RANGE = 14;
-/** Fares fly to the hero at this speed, after a short wait on the ground. */
-export const FARE_SPEED = 9, FARE_WAIT = 0.35, FARE_REACH = 0.7;
+/** Kauri fly to the hero at this speed, after a short wait on the ground. */
+export const KAURI_SPEED = 9, KAURI_WAIT = 0.35, KAURI_REACH = 0.7;
 
 /** The fight's events, plus what only a crowd has. Foe events name the foe. */
 export type EncounterEvent = FightEvent
   | { k: 'foeHit'; foe: Foe; dmg: number; power: number; dead: boolean }
   | { k: 'foeStagger'; foe: Foe }
-  | { k: 'foeDead'; foe: Foe; fares: number; x: number; z: number }
-  | { k: 'fares'; n: number }
+  | { k: 'foeDead'; foe: Foe; kauri: number; x: number; z: number }
+  | { k: 'kauri'; n: number }
   | { k: 'lock'; foe: Foe | null };
 
-/** Fares lying on the ground where a foe fell, waiting to be taken. */
+/** Kauri lying on the ground where a foe fell, waiting to be taken. */
 export interface Ember { x: number; z: number; n: number; age: number }
 
 export class Encounter {
@@ -31,8 +31,8 @@ export class Encounter {
   foes: Foe[];
   /** The foe the hero is locked on to, or null. */
   target: Foe | null = null;
-  /** Fares taken so far by walking into embers. The caller moves them into progress. */
-  fares = 0; embers: Ember[] = [];
+  /** Kauri taken so far by walking into embers. The caller moves them into progress. */
+  kauri = 0; embers: Ember[] = [];
   /** Ground danger made by foes. */
   hazards: Hazard[] = [];
   private aim: Blocker = { x: 0, z: 0, r: 0.5 };
@@ -82,7 +82,7 @@ export class Encounter {
     this.separate();
     if (!m.dead) this.foesStrike();
     this.zones(dt);
-    this.fareStep(dt);
+    this.kauriStep(dt);
     return dt;
   }
 
@@ -121,23 +121,23 @@ export class Encounter {
       }
     });
   }
-  /** A foe's fares lie where it fell. Called once, on the blow that kills. */
+  /** A foe's kauri lie where it fell. Called once, on the blow that kills. */
   private drop(f: Foe) {
-    this.embers.push({ x: f.x, z: f.z, n: f.fares, age: 0 });
-    this.ev.push({ k: 'foeDead', foe: f, fares: f.fares, x: f.x, z: f.z });
+    this.embers.push({ x: f.x, z: f.z, n: f.kauri, age: 0 });
+    this.ev.push({ k: 'foeDead', foe: f, kauri: f.kauri, x: f.x, z: f.z });
     if (this.target === f) this.setTarget(this.candidates()[0] ?? null);
   }
-  private fareStep(dt: number) {
+  private kauriStep(dt: number) {
     const m = this.m;
     for (const e of this.embers) {
-      e.age += dt; if (e.age < FARE_WAIT) continue;
-      const dx = m.x - e.x, dz = m.z - e.z, d = Math.hypot(dx, dz) || 1, s = Math.min(d, FARE_SPEED * dt * (1 + e.age));
+      e.age += dt; if (e.age < KAURI_WAIT) continue;
+      const dx = m.x - e.x, dz = m.z - e.z, d = Math.hypot(dx, dz) || 1, s = Math.min(d, KAURI_SPEED * dt * (1 + e.age));
       e.x += dx / d * s; e.z += dz / d * s;
     }
-    const taken = this.embers.filter(e => e.age >= FARE_WAIT && Math.hypot(m.x - e.x, m.z - e.z) < FARE_REACH);
+    const taken = this.embers.filter(e => e.age >= KAURI_WAIT && Math.hypot(m.x - e.x, m.z - e.z) < KAURI_REACH);
     if (taken.length) {
       this.embers = this.embers.filter(e => !taken.includes(e));
-      for (const e of taken) { this.fares += e.n; this.ev.push({ k: 'fares', n: e.n }); }
+      for (const e of taken) { this.kauri += e.n; this.ev.push({ k: 'kauri', n: e.n }); }
     }
   }
 

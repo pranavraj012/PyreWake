@@ -4,45 +4,45 @@ import { fresh, type Progress } from '../src/game/progress.ts';
 import { applyBuy, checkBuy, checkTravel, checkWear, charmSlots, equipSpell, giveBeads, takeOff, travel, wear, type PriceFn } from '../src/ui/meta/rules.ts';
 
 // a local price table, standing in for module B's priceOf (which is a stub until B lands)
-const TABLE: Record<string, { fares: number; iron: number }> = {
-  'weapon.level': { fares: 60, iron: 0 },
-  'weapon.spear': { fares: 300, iron: 2 },
-  'flask.count': { fares: 40, iron: 0 },
-  'spell.ashstep': { fares: 150, iron: 0 },
-  'charm.slot': { fares: 90, iron: 0 },
-  'charm.ember': { fares: 120, iron: 0 },
+const TABLE: Record<string, { kauri: number; iron: number }> = {
+  'weapon.level': { kauri: 60, iron: 0 },
+  'weapon.spear': { kauri: 300, iron: 2 },
+  'flask.count': { kauri: 40, iron: 0 },
+  'spell.ashstep': { kauri: 150, iron: 0 },
+  'charm.slot': { kauri: 90, iron: 0 },
+  'charm.ember': { kauri: 120, iron: 0 },
 };
 const price: PriceFn = (id, p) => {
   if (id === 'weapon.level' && p.weapon.level >= 10) return null; // at the cap
   return TABLE[id] ?? null;
 };
-const rich = (over: Partial<Progress> = {}): Progress => ({ ...fresh(), fares: 1000, iron: 5, ...over });
+const rich = (over: Partial<Progress> = {}): Progress => ({ ...fresh(), kauri: 1000, iron: 5, ...over });
 
 describe('buying', () => {
   it('buys when the purse covers the price, and takes the price', () => {
     const p = rich();
     expect(applyBuy(p, 'weapon.level', price)).toEqual({ ok: true });
-    expect(p.fares).toBe(940);
+    expect(p.kauri).toBe(940);
     expect(p.weapon.level).toBe(1);
   });
 
-  it('refuses when short of Fares, and changes nothing', () => {
-    const p = rich({ fares: 59 });
-    expect(checkBuy(p, 'weapon.level', price)).toEqual({ ok: false, why: 'fares' });
-    expect(applyBuy(p, 'weapon.level', price)).toEqual({ ok: false, why: 'fares' });
-    expect(p.fares).toBe(59); expect(p.weapon.level).toBe(0);
+  it('refuses when short of Kauri, and changes nothing', () => {
+    const p = rich({ kauri: 59 });
+    expect(checkBuy(p, 'weapon.level', price)).toEqual({ ok: false, why: 'kauri' });
+    expect(applyBuy(p, 'weapon.level', price)).toEqual({ ok: false, why: 'kauri' });
+    expect(p.kauri).toBe(59); expect(p.weapon.level).toBe(0);
   });
 
-  it('refuses when short of Pyre-iron, even with Fares to spare', () => {
+  it('refuses when short of Pyre-iron, even with Kauri to spare', () => {
     const p = rich({ iron: 1 });
     expect(applyBuy(p, 'weapon.spear', price)).toEqual({ ok: false, why: 'iron' });
-    expect(p.weapons).toEqual(['khanda']); expect(p.fares).toBe(1000);
+    expect(p.weapons).toEqual(['khanda']); expect(p.kauri).toBe(1000);
   });
 
   it('a price of exactly what you carry is enough', () => {
-    const p = rich({ fares: 300, iron: 2 });
+    const p = rich({ kauri: 300, iron: 2 });
     expect(applyBuy(p, 'weapon.spear', price)).toEqual({ ok: true });
-    expect(p.fares).toBe(0); expect(p.iron).toBe(0);
+    expect(p.kauri).toBe(0); expect(p.iron).toBe(0);
     expect(p.weapons).toEqual(['khanda', 'spear']); expect(p.weapon).toEqual({ kind: 'spear', level: 0 });
   });
 
@@ -177,7 +177,7 @@ describe('travel between lit shrines', () => {
 describe('refusal reasons have words for the player', () => {
   it('every reason the rules give is in the text file', async () => {
     const { UI } = await import('../src/ui/meta/metaScript.ts');
-    for (const why of ['unknown', 'fares', 'iron', 'owned', 'notowned', 'slots', 'nowhere', 'same', 'beads'])
+    for (const why of ['unknown', 'kauri', 'iron', 'owned', 'notowned', 'slots', 'nowhere', 'same', 'beads'])
       expect(UI.refusal[why]).toBeTruthy();
   });
 });

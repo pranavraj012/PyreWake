@@ -4,12 +4,12 @@
 export type WeaponKind = 'khanda' | 'spear' | 'chakram' | 'whip';
 
 export interface Progress {
-  fares: number; iron: number; beads: number;
+  kauri: number; iron: number; beads: number;
   weapon: { kind: WeaponKind; level: number }; weapons: string[];
   flasks: { count: number; strength: number }; spells: string[]; equipped: [string, string]; charms: string[]; worn: string[];
   shrines: string[]; at: { region: string; shrine: string }; burned: string[];   // boss ids
   flags: Record<string, number | boolean | string>;                              // quests, people, doors, secrets taken
-  dropped: { region: string; x: number; z: number; fares: number } | null;       // fares left where you fell
+  dropped: { region: string; x: number; z: number; kauri: number } | null;       // kauri left where you fell
 }
 
 export const WEAPON_KINDS: readonly WeaponKind[] = ['khanda', 'spear', 'chakram', 'whip'];
@@ -19,7 +19,7 @@ export const RULES = {
   maxWeaponLevel: 10,
   /** Pyre-iron needed to reach a weapon level (levels not listed cost none). */
   ironAtLevel: { 4: 1, 7: 2, 10: 3 } as Record<number, number>,
-  /** Fares to reach weapon level L is feesPerLevel * L. */
+  /** Kauri to reach weapon level L is feesPerLevel * L. */
   feesPerLevel: 20,
   damagePerLevel: 0.06,
   maxFlasks: 5,
@@ -32,19 +32,19 @@ export const RULES = {
   spellPrice: 120,
   charmSlotsStart: 2,
   maxCharmSlots: 3,
-  charmSlotPrice: { fares: 250, iron: 2 },
+  charmSlotPrice: { kauri: 250, iron: 2 },
   newWeaponPrice: {
-    spear: { fares: 150, iron: 2 },
-    chakram: { fares: 300, iron: 4 },
-    whip: { fares: 450, iron: 6 },
-  } as Record<Exclude<WeaponKind, 'khanda'>, { fares: number; iron: number }>,
-  /** How close (in world units) you must come to your dropped fares to take them back. */
+    spear: { kauri: 150, iron: 2 },
+    chakram: { kauri: 300, iron: 4 },
+    whip: { kauri: 450, iron: 6 },
+  } as Record<Exclude<WeaponKind, 'khanda'>, { kauri: number; iron: number }>,
+  /** How close (in world units) you must come to your dropped kauri to take them back. */
   recoverReach: 2,
 };
 
 export function fresh(): Progress {
   return {
-    fares: 0, iron: 0, beads: 0,
+    kauri: 0, iron: 0, beads: 0,
     weapon: { kind: 'khanda', level: 0 }, weapons: ['khanda'],
     flasks: { count: 3, strength: 0 }, spells: [], equipped: ['', ''], charms: [], worn: [],
     shrines: [], at: { region: 'ashfields', shrine: '' }, burned: [],
@@ -85,11 +85,11 @@ export function lifeTenths(p: Progress): number {
 /** Cost of an upgrade, or null when it cannot be bought (unknown, owned, or at its cap).
  *  Upgrade ids: 'weapon-level' (the current weapon, one level up), 'weapon:<kind>' (a new weapon),
  *  'flask' (one more flask), 'flask-strength', 'spell:<name>', 'charm-slot'. */
-export function priceOf(upgrade: string, p: Progress): { fares: number; iron: number } | null {
+export function priceOf(upgrade: string, p: Progress): { kauri: number; iron: number } | null {
   if (upgrade === 'weapon-level') {
     const next = p.weapon.level + 1;
     if (next > RULES.maxWeaponLevel) return null;
-    return { fares: RULES.feesPerLevel * next, iron: RULES.ironAtLevel[next] ?? 0 };
+    return { kauri: RULES.feesPerLevel * next, iron: RULES.ironAtLevel[next] ?? 0 };
   }
   if (upgrade.startsWith('weapon:')) {
     const kind = upgrade.slice('weapon:'.length) as WeaponKind;
@@ -99,16 +99,16 @@ export function priceOf(upgrade: string, p: Progress): { fares: number; iron: nu
   }
   if (upgrade === 'flask') {
     if (p.flasks.count >= RULES.maxFlasks) return null;
-    return { fares: RULES.flaskPrice, iron: 0 };
+    return { kauri: RULES.flaskPrice, iron: 0 };
   }
   if (upgrade === 'flask-strength') {
     if (p.flasks.strength >= RULES.maxFlaskStrength) return null;
-    return { fares: RULES.flaskStrengthPrice(p.flasks.strength), iron: 0 };
+    return { kauri: RULES.flaskStrengthPrice(p.flasks.strength), iron: 0 };
   }
   if (upgrade.startsWith('spell:')) {
     const name = upgrade.slice('spell:'.length);
     if (!name || p.spells.includes(name)) return null;
-    return { fares: RULES.spellPrice, iron: 0 };
+    return { kauri: RULES.spellPrice, iron: 0 };
   }
   if (upgrade === 'charm-slot') {
     if (charmSlots(p) >= RULES.maxCharmSlots) return null;
@@ -118,16 +118,16 @@ export function priceOf(upgrade: string, p: Progress): { fares: number; iron: nu
 }
 
 export type BuyResult =
-  | { ok: true; fares: number; iron: number }
+  | { ok: true; kauri: number; iron: number }
   | { ok: false; reason: 'unavailable' | 'poor' };
 
 /** Buys an upgrade on this progress object (mutates it). Refuses, changing nothing, when it cannot be
- *  bought or the player is short of fares or iron. */
+ *  bought or the player is short of kauri or iron. */
 export function buy(p: Progress, upgrade: string): BuyResult {
   const price = priceOf(upgrade, p);
   if (!price) return { ok: false, reason: 'unavailable' };
-  if (p.fares < price.fares || p.iron < price.iron) return { ok: false, reason: 'poor' };
-  p.fares -= price.fares;
+  if (p.kauri < price.kauri || p.iron < price.iron) return { ok: false, reason: 'poor' };
+  p.kauri -= price.kauri;
   p.iron -= price.iron;
   if (upgrade === 'weapon-level') {
     p.weapon.level += 1;
@@ -146,7 +146,7 @@ export function buy(p: Progress, upgrade: string): BuyResult {
   } else if (upgrade === 'charm-slot') {
     p.flags.charmSlots = charmSlots(p) + 1;
   }
-  return { ok: true, fares: price.fares, iron: price.iron };
+  return { ok: true, kauri: price.kauri, iron: price.iron };
 }
 
 /** Buys an upgrade on the live progress; the result says what happened. */
@@ -173,22 +173,22 @@ export function turnInBeads(p: Progress): boolean {
   return true;
 }
 
-/** The player dies in the world: the fares they carry lie where they fell. A pile already on the ground
+/** The player dies in the world: the kauri they carry lie where they fell. A pile already on the ground
  *  (died before taking it back) is lost. */
 export function die(p: Progress, region: string, x: number, z: number): void {
-  p.dropped = p.fares > 0 ? { region, x, z, fares: p.fares } : null;
-  p.fares = 0;
+  p.dropped = p.kauri > 0 ? { region, x, z, kauri: p.kauri } : null;
+  p.kauri = 0;
 }
 
-/** Takes the dropped fares back if the player is in the same region and within reach. Once: the pile is
- *  gone after this. Returns the fares recovered (0 when nothing was taken). */
-export function recoverFares(p: Progress, region: string, x: number, z: number, reach = RULES.recoverReach): number {
+/** Takes the dropped kauri back if the player is in the same region and within reach. Once: the pile is
+ *  gone after this. Returns the kauri recovered (0 when nothing was taken). */
+export function recoverKauri(p: Progress, region: string, x: number, z: number, reach = RULES.recoverReach): number {
   const d = p.dropped;
   if (!d || d.region !== region) return 0;
   if (Math.hypot(d.x - x, d.z - z) > reach) return 0;
-  p.fares += d.fares;
+  p.kauri += d.kauri;
   p.dropped = null;
-  return d.fares;
+  return d.kauri;
 }
 
 /** Rests at a shrine: it becomes the place you wake at, and it is remembered as lit. */

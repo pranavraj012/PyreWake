@@ -11,7 +11,7 @@ const tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }];
 const down = (a: string): Press[] => [{ a, up: false }];
 const up = (a: string): Press[] => [{ a, up: true }];
 
-const SPEC: FoeSpec = { kind: 'test', life: 20, r: 0.4, speed: 1.6, reach: 1.0, fares: 7, cooldown: 0.8, stagger: 0.5 };
+const SPEC: FoeSpec = { kind: 'test', life: 20, r: 0.4, speed: 1.6, reach: 1.0, kauri: 7, cooldown: 0.8, stagger: 0.5 };
 const LUNGE: Strike = { kind: 'white', cue: 0.4, t: [0.8, 0.95], dmg: 8, mark: 'handL', box: [2.2, 0.6] };
 const RED: Strike = { kind: 'red', cue: 0.4, t: [0.8, 0.95], dmg: 14, down: false, mark: 'handL', box: [2.2, 0.6] };
 
@@ -98,20 +98,20 @@ describe('encounter: many foes', () => {
     expect(e.hp).toBe(D.hp - RED.dmg);
   });
 
-  it('a dead foe drops its fares once; they fly to the hero and are taken once', () => {
-    const foe = new Dummy({ ...SPEC, life: KHANDA.damage * 2 - 1, fares: 7 }, 0, 1.35);
+  it('a dead foe drops its kauri once; they fly to the hero and are taken once', () => {
+    const foe = new Dummy({ ...SPEC, life: KHANDA.damage * 2 - 1, kauri: 7 }, 0, 1.35);
     const e = mk(foe);
     const ev: EncounterEvent[] = [];
     for (let i = 0; i < 4 * 60; i++) { e.step(DT, 0, 0, i % 30 === 0 ? tap('attack') : []); ev.push(...e.ev); }
     expect(foe.dead).toBe(true);
     expect(count(ev, 'foeDead')).toBe(1);
     expect(e.embers.length).toBe(0);
-    expect(e.fares).toBe(7);
+    expect(e.kauri).toBe(7);
     // more blows on the corpse, and more time, pay nothing more
     foe.struck(999, 3);
     const more = run(e, 3, i => i % 30 === 0 ? tap('attack') : []);
     expect(count(more, 'foeDead')).toBe(0);
-    expect(e.fares).toBe(7);
+    expect(e.kauri).toBe(7);
   });
 
   it('lock-on picks a foe in front, and the lock button cycles to the next', () => {

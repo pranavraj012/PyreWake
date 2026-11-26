@@ -11,8 +11,8 @@ export interface FoeSpec {
   speed: number;
   /** Gap to the hero (between bodies) at which it starts to attack, metres. */
   reach: number;
-  /** Fares dropped on death. */
-  fares: number;
+  /** Kauri dropped on death. */
+  kauri: number;
   /** Seconds after an attack before the next one may begin. */
   cooldown: number;
   /** Seconds it is staggered for after a heavy blow or a parry. */
@@ -64,7 +64,7 @@ export abstract class Foe {
   constructor(spec: FoeSpec, x = 0, z = 0) { this.spec = spec; this.x = x; this.z = z; this.life = spec.life; }
 
   get r() { return this.spec.r; }
-  get fares() { return this.spec.fares; }
+  get kauri() { return this.spec.kauri; }
   get attacking() { return this.attack !== null; }
   /** Dead, or staggered: the hero's blows land clean. */
   get helpless() { return this.dead || this.stunT > 0; }

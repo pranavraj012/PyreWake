@@ -40,7 +40,7 @@ export const ITEMS: Record<string, Entry> = {
 export const VENDORS = {
   smith: {
     title: 'Lohar, the Smith',
-    intro: 'Bring me iron and Fares, and I will make thy blade keener.',
+    intro: 'Bring me iron and Kauri, and I will make thy blade keener.',
     items: ['weapon.level', 'weapon.spear', 'weapon.chakram', 'weapon.whip'],
   },
   ash: {
@@ -58,7 +58,7 @@ export const UI = {
   owned: 'Owned',
   unsold: 'Not for sale just now',
   cost: 'Cost',
-  fares: 'Fares',
+  kauri: 'Kauri',
   iron: 'Pyre-iron',
   have: 'You have',
   done: 'Done.',
@@ -67,7 +67,7 @@ export const UI = {
   beadsHave: (n: number) => `You carry ${n} of 3.`,
   refusal: {
     unknown: 'Not for sale just now.',
-    fares: 'Not enough Fares.',
+    kauri: 'Not enough Kauri.',
     iron: 'Not enough Pyre-iron.',
     owned: 'You already have this.',
     notowned: 'You do not have this yet.',

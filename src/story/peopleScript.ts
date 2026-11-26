@@ -9,7 +9,7 @@ export const AMMAJI = {
     'Come nigh. The ash is quieter where I sit, and I have need of quiet to read it.',
     'Thou art come up from the fire. Thou needest not say how. Most come up the same way, and most do not stay long enough to be asked.',
     'I read the names of the dead in what the pyres leave. Every name is in the ash, if one knows where to look.',
-    "Thou hast no name of thy own, I think. Only the fire's name for thee, and that is a poor one. Take this bead, and keep it.",
+    "Thou hast no name of thine own, I think. Only the fire's name for thee, and that is a poor one. Take this bead, and keep it.",
   ],
   hub: ['Thou art back, and not yet ash. Sit. What wouldst thou have of me?'],
   replies: {
@@ -19,7 +19,7 @@ export const AMMAJI = {
     leave: 'Nothing. I am going.',
   },
   lore: [
-    'Hold still. The ash keeps the shape of every one who burned, and the shape of thee is not the shape the fire gave thee.',
+    'Hold still. The ash keeps the shape of every one who burned, and thy shape is not the shape the fire gave thee.',
     'Thou hast a name the river took. Go and win it back. Bring me three of the beads that carry names, and I will tell thee the rest.',
   ],
   beadsThanks: [
@@ -49,6 +49,6 @@ export const LOHAR = {
   },
   kingWord: [
     'The King is burned. So much iron came up out of that fire at once that I have not slept since.',
-    'A smith wants a forge where the smoke goes up nearer the sky. I am going up to the Last Pyre. Come and find me there, and bring thy iron.',
+    'A smith wants a forge where the smoke goes up nearer the sky. I am going up to the Last Pyre. Come and find me there, and bring thine iron.',
   ],
 };

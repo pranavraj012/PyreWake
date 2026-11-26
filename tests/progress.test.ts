@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
-  fresh, progress, replaceProgress, priceOf, stats, buy, die, recoverFares, rest, turnInBeads,
+  fresh, progress, replaceProgress, priceOf, stats, buy, die, recoverKauri, rest, turnInBeads,
   equipWeapon, charmSlots, purchase, RULES, type Progress,
 } from '../src/game/progress';
 import { attachSaves, readFile, SAVE_KEY, SLOT_COUNT, type Saves, type SaveStore, encodeFile, checkProgress } from '../src/game/save';
@@ -22,7 +22,7 @@ const track = (s: Saves): Saves => { open.push(s); return s; };
 beforeEach(() => { replaceProgress(fresh()); open = []; });
 afterEach(() => { for (const s of open) s.close(); replaceProgress(fresh()); });
 
-const rich = (over: Partial<Progress> = {}): Progress => ({ ...fresh(), fares: 1000, iron: 10, ...over });
+const rich = (over: Partial<Progress> = {}): Progress => ({ ...fresh(), kauri: 1000, iron: 10, ...over });
 
 describe('stats', () => {
   it('is neutral for fresh progress, so a fight given no progress behaves as today', () => {
@@ -42,10 +42,10 @@ describe('stats', () => {
 });
 
 describe('prices and buying', () => {
-  it('prices the next weapon level in fares, with pyre-iron at levels 4, 7 and 10', () => {
-    expect(priceOf('weapon-level', fresh())).toEqual({ fares: RULES.feesPerLevel, iron: 0 });
+  it('prices the next weapon level in kauri, with pyre-iron at levels 4, 7 and 10', () => {
+    expect(priceOf('weapon-level', fresh())).toEqual({ kauri: RULES.feesPerLevel, iron: 0 });
     const at3 = rich({ weapon: { kind: 'khanda', level: 3 } });
-    expect(priceOf('weapon-level', at3)).toEqual({ fares: 4 * RULES.feesPerLevel, iron: RULES.ironAtLevel[4] });
+    expect(priceOf('weapon-level', at3)).toEqual({ kauri: 4 * RULES.feesPerLevel, iron: RULES.ironAtLevel[4] });
     const at9 = rich({ weapon: { kind: 'khanda', level: 9 } });
     expect(priceOf('weapon-level', at9)?.iron).toBe(RULES.ironAtLevel[10]);
   });
@@ -59,20 +59,20 @@ describe('prices and buying', () => {
     const r = buy(p, 'weapon-level');
     expect(r.ok).toBe(true);
     expect(p.weapon.level).toBe(1);
-    expect(p.fares).toBe(1000 - RULES.feesPerLevel);
+    expect(p.kauri).toBe(1000 - RULES.feesPerLevel);
   });
 
-  it('refuses when short of fares, changing nothing', () => {
-    const p = rich({ fares: 5 });
+  it('refuses when short of kauri, changing nothing', () => {
+    const p = rich({ kauri: 5 });
     expect(buy(p, 'weapon-level')).toEqual({ ok: false, reason: 'poor' });
-    expect(p.fares).toBe(5);
+    expect(p.kauri).toBe(5);
     expect(p.weapon.level).toBe(0);
   });
 
   it('refuses when short of pyre-iron, changing nothing', () => {
     const p = rich({ iron: 0, weapon: { kind: 'khanda', level: 3 } });
     expect(buy(p, 'weapon-level')).toEqual({ ok: false, reason: 'poor' });
-    expect(p.fares).toBe(1000);
+    expect(p.kauri).toBe(1000);
     expect(p.weapon.level).toBe(3);
   });
 
@@ -104,51 +104,51 @@ describe('prices and buying', () => {
 
   it('purchase() buys on the live progress and reports the result', () => {
     replaceProgress(rich());
-    expect(purchase('flask')).toEqual({ ok: true, fares: RULES.flaskPrice, iron: 0 });
+    expect(purchase('flask')).toEqual({ ok: true, kauri: RULES.flaskPrice, iron: 0 });
     expect(progress.get().flasks.count).toBe(4);
     replaceProgress(fresh());
     expect(purchase('flask')).toEqual({ ok: false, reason: 'poor' });
   });
 });
 
-describe('dying and recovering fares', () => {
-  it('drops the fares where you fell, and you carry none', () => {
-    const p = rich({ fares: 300 });
+describe('dying and recovering kauri', () => {
+  it('drops the kauri where you fell, and you carry none', () => {
+    const p = rich({ kauri: 300 });
     die(p, 'ashfields', 10, -4);
-    expect(p.fares).toBe(0);
-    expect(p.dropped).toEqual({ region: 'ashfields', x: 10, z: -4, fares: 300 });
+    expect(p.kauri).toBe(0);
+    expect(p.dropped).toEqual({ region: 'ashfields', x: 10, z: -4, kauri: 300 });
   });
 
-  it('recovers the dropped fares once, near the spot, in the same region', () => {
-    const p = rich({ fares: 300 });
+  it('recovers the dropped kauri once, near the spot, in the same region', () => {
+    const p = rich({ kauri: 300 });
     die(p, 'ashfields', 10, -4);
-    expect(recoverFares(p, 'ashfields', 10.5, -4, 1)).toBe(300);
-    expect(p.fares).toBe(300);
+    expect(recoverKauri(p, 'ashfields', 10.5, -4, 1)).toBe(300);
+    expect(p.kauri).toBe(300);
     expect(p.dropped).toBeNull();
-    expect(recoverFares(p, 'ashfields', 10, -4)).toBe(0);
-    expect(p.fares).toBe(300);
+    expect(recoverKauri(p, 'ashfields', 10, -4)).toBe(0);
+    expect(p.kauri).toBe(300);
   });
 
   it('does not recover from another region or from too far away', () => {
-    const p = rich({ fares: 300 });
+    const p = rich({ kauri: 300 });
     die(p, 'ashfields', 10, -4);
-    expect(recoverFares(p, 'ghats', 10, -4)).toBe(0);
-    expect(recoverFares(p, 'ashfields', 30, -4)).toBe(0);
+    expect(recoverKauri(p, 'ghats', 10, -4)).toBe(0);
+    expect(recoverKauri(p, 'ashfields', 30, -4)).toBe(0);
     expect(p.dropped).not.toBeNull();
   });
 
   it('loses the first pile on a second death before recovery', () => {
-    const p = rich({ fares: 300 });
+    const p = rich({ kauri: 300 });
     die(p, 'ashfields', 10, -4);
-    p.fares = 80;
+    p.kauri = 80;
     die(p, 'ashfields', 50, 50);
-    expect(p.dropped).toEqual({ region: 'ashfields', x: 50, z: 50, fares: 80 });
-    expect(recoverFares(p, 'ashfields', 50, 50)).toBe(80);
-    expect(p.fares).toBe(80);
+    expect(p.dropped).toEqual({ region: 'ashfields', x: 50, z: 50, kauri: 80 });
+    expect(recoverKauri(p, 'ashfields', 50, 50)).toBe(80);
+    expect(p.kauri).toBe(80);
   });
 
-  it('drops nothing when no fares are carried', () => {
-    const p = rich({ fares: 0 });
+  it('drops nothing when no kauri are carried', () => {
+    const p = rich({ kauri: 0 });
     die(p, 'ashfields', 1, 1);
     expect(p.dropped).toBeNull();
   });
@@ -169,15 +169,27 @@ describe('save file', () => {
     expect(s.notice).toEqual({ kind: 'empty' });
     expect(s.message).toBeNull();
     expect(progress.get()).toEqual(fresh());
-    expect(JSON.parse(store.data.get(SAVE_KEY)!).version).toBe(1);
+    expect(JSON.parse(store.data.get(SAVE_KEY)!).version).toBe(2);
   });
 
   it('migrates a version 0 record with a progress field into slot 0', () => {
-    const v0 = JSON.stringify({ progress: { ...fresh(), fares: 42 } });
+    const { kauri: _k, ...rest } = fresh();
+    const v0 = JSON.stringify({ progress: { ...rest, fares: 42 } });
     const r = readFile(v0);
     expect(r.notice).toEqual({ kind: 'loaded', from: 0 });
-    expect(r.file.slots[0]?.fares).toBe(42);
+    expect(r.file.slots[0]?.kauri).toBe(42);
     expect(r.file.slots.slice(1)).toEqual([null, null]);
+  });
+
+  it('renames the old currency field fares to kauri in a version 1 save, slots and dropped piles', () => {
+    const { kauri: _k, ...rest } = fresh();
+    const old = { ...rest, fares: 42, dropped: { region: 'ashfields', x: 1, z: 2, fares: 17 } };
+    const r = readFile(JSON.stringify({ version: 1, active: 1, slots: [null, old, null] }));
+    expect(r.notice).toEqual({ kind: 'loaded', from: 1 });
+    expect(r.file.version).toBe(2);
+    expect(r.file.slots[1]?.kauri).toBe(42);
+    expect(r.file.slots[1]?.dropped).toEqual({ region: 'ashfields', x: 1, z: 2, kauri: 17 });
+    expect(JSON.stringify(r.file)).not.toContain('fares');
   });
 
   it('reads an empty v0 object as an empty file', () => {
@@ -189,25 +201,25 @@ describe('save file', () => {
   it('round-trips progress through the store and autosaves every change', () => {
     const store = memStore();
     const s = track(attachSaves(store));
-    progress.change(p => { p.fares = 77; p.burned.push('king'); });
+    progress.change(p => { p.kauri = 77; p.burned.push('king'); });
     const again = track(attachSaves(store));
-    expect(progress.get().fares).toBe(77);
+    expect(progress.get().kauri).toBe(77);
     expect(progress.get().burned).toEqual(['king']);
-    expect(again.summary(0)).toEqual({ fares: 77, burned: 1, at: 'ashfields' });
+    expect(again.summary(0)).toEqual({ kauri: 77, burned: 1, at: 'ashfields' });
     s.close();
   });
 
   it('keeps three slots: select, start and clear', () => {
     const store = memStore();
     const s = track(attachSaves(store));
-    progress.change(p => { p.fares = 5; });
+    progress.change(p => { p.kauri = 5; });
     s.start(1);
     expect(s.active).toBe(1);
-    expect(progress.get().fares).toBe(0);
-    progress.change(p => { p.fares = 9; });
+    expect(progress.get().kauri).toBe(0);
+    progress.change(p => { p.kauri = 9; });
     s.select(0);
-    expect(progress.get().fares).toBe(5);
-    expect(s.summary(1)?.fares).toBe(9);
+    expect(progress.get().kauri).toBe(5);
+    expect(s.summary(1)?.kauri).toBe(9);
     expect(s.summary(2)).toBeNull();
     s.clear(1);
     expect(s.summary(1)).toBeNull();
@@ -216,7 +228,7 @@ describe('save file', () => {
   });
 
   it('keeps a corrupt save aside, starts fresh and says so', () => {
-    const bad = '{"version":1,"active":0,"slots":[{"fares":"lots"';
+    const bad = '{"version":1,"active":0,"slots":[{"kauri":"lots"';
     const store = memStore({ [SAVE_KEY]: bad });
     const s = track(attachSaves(store));
     expect(s.notice.kind).toBe('corrupt');
@@ -228,7 +240,7 @@ describe('save file', () => {
   });
 
   it('treats a save with a wrong field as corrupt rather than loading it', () => {
-    const p = { ...fresh(), fares: -3 };
+    const p = { ...fresh(), kauri: -3 };
     const text = encodeFile({ version: 1, active: 0, slots: [p as Progress, null, null] });
     const r = readFile(text, () => 'copy');
     expect(r.notice).toEqual({ kind: 'corrupt', reason: 'the save fields are not all readable', copyKey: 'copy' });
@@ -246,8 +258,8 @@ describe('save file', () => {
     const s = track(attachSaves(null));
     expect(s.notice).toEqual({ kind: 'unavailable' });
     expect(s.message).toMatch(/not available/);
-    progress.change(p => { p.fares = 3; });
-    expect(progress.get().fares).toBe(3);
+    progress.change(p => { p.kauri = 3; });
+    expect(progress.get().kauri).toBe(3);
     expect(s.write()).toBeNull();
   });
 
@@ -255,7 +267,7 @@ describe('save file', () => {
     const store = memStore();
     const s = track(attachSaves(store));
     store.setItem = () => { throw new Error('quota'); };
-    progress.change(p => { p.fares = 1; });
+    progress.change(p => { p.kauri = 1; });
     expect(s.write()).toBe('quota');
   });
 

@@ -27,7 +27,7 @@ describe('conditions', () => {
     expect(holds({ burned: 'king' }, p)).toBe(true);
     expect(holds({ burned: 'ferryman' }, p)).toBe(false);
     expect(holds({ count: 'beads', atLeast: 3 }, p)).toBe(true);
-    expect(holds({ count: 'fares', atLeast: 1 }, p)).toBe(false);
+    expect(holds({ count: 'kauri', atLeast: 1 }, p)).toBe(false);
   });
 
   it('combines with all, any and not', () => {
@@ -41,12 +41,12 @@ describe('conditions', () => {
 });
 
 describe('effects', () => {
-  it('sets flags, adds and spends fares, iron, beads and flasks', () => {
-    const { p, env } = world(q => { q.fares = 5; q.iron = 1; });
+  it('sets flags, adds and spends kauri, iron, beads and flasks', () => {
+    const { p, env } = world(q => { q.kauri = 5; q.iron = 1; });
     apply({ set: 'met' }, env); expect(p.flags['met']).toBe(true);
     apply({ set: 'mood', to: 'grim' }, env); expect(p.flags['mood']).toBe('grim');
-    apply({ fares: -2 }, env); expect(p.fares).toBe(3);
-    apply({ fares: -9 }, env); expect(p.fares).toBe(0);
+    apply({ kauri: -2 }, env); expect(p.kauri).toBe(3);
+    apply({ kauri: -9 }, env); expect(p.kauri).toBe(0);
     apply({ iron: 4 }, env); expect(p.iron).toBe(5);
     apply({ beads: 2 }, env); expect(p.beads).toBe(2);
     apply({ flask: 1 }, env); expect(p.flasks.strength).toBe(1);

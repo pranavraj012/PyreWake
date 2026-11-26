@@ -21,7 +21,7 @@ export class Shop extends Sheet {
 
   protected render() {
     const p = progress.get(), v = VENDORS[this.vendor];
-    this.body.innerHTML = `<p class="meta-intro"></p><p class="meta-purse">${UI.have}: <b>${p.fares}</b> ${UI.fares} · <b>${p.iron}</b> ${UI.iron}</p>${this.extra(p)}<div class="meta-list">${v.items.map(id => this.row(id, p)).join('')}</div>`;
+    this.body.innerHTML = `<p class="meta-intro"></p><p class="meta-purse">${UI.have}: <b>${p.kauri}</b> ${UI.kauri} · <b>${p.iron}</b> ${UI.iron}</p>${this.extra(p)}<div class="meta-list">${v.items.map(id => this.row(id, p)).join('')}</div>`;
     this.body.querySelector('.meta-intro')!.textContent = v.intro;
   }
 
@@ -34,8 +34,8 @@ export class Shop extends Sheet {
 
   protected row(id: string, p: Readonly<Progress>): string {
     const it = ITEMS[id], c = this.price(id, p), owned = isOwned(p, id);
-    const cost = c ? `${c.fares} ${UI.fares}${c.iron ? `, ${c.iron} ${UI.iron}` : ''}` : '';
-    const short = !!c && (p.fares < c.fares || p.iron < c.iron);
+    const cost = c ? `${c.kauri} ${UI.kauri}${c.iron ? `, ${c.iron} ${UI.iron}` : ''}` : '';
+    const short = !!c && (p.kauri < c.kauri || p.iron < c.iron);
     const action = owned ? `<span class="meta-tag">${UI.owned}</span>` : c ? this.button('buy', id, UI.buy) : `<span class="meta-tag">${UI.unsold}</span>`;
     return `<section class="meta-row"><div><h3>${it.name}</h3><p>${it.text}</p>${cost ? `<small class="${short ? 'short' : ''}">${UI.cost}: ${cost}</small>` : ''}</div>${action}</section>`;
   }

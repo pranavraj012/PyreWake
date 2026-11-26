@@ -5,7 +5,7 @@ import { type Progress, fresh, progress, replaceProgress, WEAPON_KINDS, type Wea
 
 export const SAVE_KEY = 'pyrewake.save.v1';
 export const SLOT_COUNT = 3;
-export const CURRENT_VERSION = 1;
+export const CURRENT_VERSION = 2;
 
 export interface SaveStore {
   getItem(key: string): string | null;
@@ -51,8 +51,8 @@ export function checkProgress(raw: unknown): Progress | null {
   const base = fresh();
   const out: Progress = { ...base };
   const r = raw;
-  if (!isNat(r.fares) || !isNat(r.iron) || !isNat(r.beads)) return null;
-  out.fares = r.fares; out.iron = r.iron; out.beads = r.beads;
+  if (!isNat(r.kauri) || !isNat(r.iron) || !isNat(r.beads)) return null;
+  out.kauri = r.kauri; out.iron = r.iron; out.beads = r.beads;
 
   const w = r.weapon;
   if (!isObj(w) || !WEAPON_KINDS.includes(w.kind as WeaponKind) || !isNat(w.level, 10)) return null;
@@ -88,8 +88,8 @@ export function checkProgress(raw: unknown): Progress | null {
   if (d === null) {
     out.dropped = null;
   } else {
-    if (!isObj(d) || typeof d.region !== 'string' || !isFin(d.x) || !isFin(d.z) || !isNat(d.fares)) return null;
-    out.dropped = { region: d.region, x: d.x, z: d.z, fares: d.fares };
+    if (!isObj(d) || typeof d.region !== 'string' || !isFin(d.x) || !isFin(d.z) || !isNat(d.kauri)) return null;
+    out.dropped = { region: d.region, x: d.x, z: d.z, kauri: d.kauri };
   }
   return out;
 }
@@ -111,15 +111,32 @@ function checkFile(raw: unknown): SaveFile | null {
 /** MIGRATIONS[v] turns a version-v file into a version-(v+1) file. Version 0 is the state before any save
  *  file existed: a missing key, or an object with no version (an early single-progress `progress` field
  *  becomes slot 0). Add a new entry, and bump CURRENT_VERSION, when the format changes. */
+// Migrations work on the raw stored data (not on checked Progress records), so an old field name can still be
+// renamed after the current shape has changed. Each one hands the next version its output.
 const MIGRATIONS: Record<number, (d: unknown) => unknown> = {
   0: (d) => {
-    const empty: SaveFile = freshFile();
-    if (isObj(d) && d.progress !== undefined) {
-      const p = checkProgress(d.progress);
-      if (!p) throw new Error('v0 progress record is not readable');
-      empty.slots[0] = p;
-    }
-    return empty;
+    // Version 0 stored one progress record under `progress`; it becomes slot 0 of a version-1 file.
+    const slots: unknown[] = [null, null, null];
+    if (isObj(d) && d.progress !== undefined) slots[0] = d.progress;
+    return { version: 1, active: 0, slots };
+  },
+  // Version 1 -> 2: the currency `fares` is renamed `kauri` (cowrie shells), also in a dropped pile.
+  1: (d) => {
+    if (!isObj(d) || !Array.isArray(d.slots)) return d;
+    const slots = d.slots.map(s => {
+      if (!isObj(s)) return s;
+      const out: Record<string, unknown> = { ...s };
+      if ('fares' in out) { if (out.kauri === undefined) out.kauri = out.fares; delete out.fares; }
+      const dr = out.dropped;
+      if (isObj(dr) && 'fares' in dr) {
+        const d2: Record<string, unknown> = { ...dr };
+        if (d2.kauri === undefined) d2.kauri = d2.fares;
+        delete d2.fares;
+        out.dropped = d2;
+      }
+      return out;
+    });
+    return { ...d, version: 2, slots };
   },
 };
 
@@ -184,7 +201,7 @@ export interface Saves {
   /** Empties a slot. If it is the one in play, progress starts fresh in it. */
   clear(slot: number): void;
   /** A short description of a slot for a menu, or null when it is empty. */
-  summary(slot: number): { fares: number; burned: number; at: string } | null;
+  summary(slot: number): { kauri: number; burned: number; at: string } | null;
   /** Stops autosaving. */
   close(): void;
 }
@@ -280,7 +297,7 @@ export function attachSaves(store: SaveStore | null = defaultStore()): Saves {
     summary(slot) {
       const p = file.slots[slot];
       if (!p) return null;
-      return { fares: p.fares, burned: p.burned.length, at: p.at.shrine ? `${p.at.region}, ${p.at.shrine}` : p.at.region };
+      return { kauri: p.kauri, burned: p.burned.length, at: p.at.shrine ? `${p.at.region}, ${p.at.shrine}` : p.at.region };
     },
     close() { unsub(); },
   };

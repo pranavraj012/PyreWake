@@ -1,5 +1,5 @@
 // Module G: the dialogue runner. A conversation is data: nodes of lines with a speaker, at most a few replies, and
-// conditions and effects that read and write module B's progress (flags, fares, iron, beads, flasks). No DOM here:
+// conditions and effects that read and write module B's progress (flags, kauri, iron, beads, flasks). No DOM here:
 // the box is src/ui/talk.ts, and tests drive this file directly.
 import { progress, type Progress } from '../game/progress.ts';
 
@@ -11,7 +11,7 @@ export type Cond =
   | { flag: string; is?: Scalar }
   | { notFlag: string }
   | { burned: string }
-  | { count: 'fares' | 'iron' | 'beads'; atLeast: number }
+  | { count: 'kauri' | 'iron' | 'beads'; atLeast: number }
   | { all: Cond[] }
   | { any: Cond[] }
   | { not: Cond };
@@ -19,7 +19,7 @@ export type Cond =
 /** An effect writes progress. `shop` opens a shop once the conversation closes (the hub or module I opens it). */
 export type Effect =
   | { set: string; to?: Scalar }
-  | { fares: number } | { iron: number } | { beads: number }
+  | { kauri: number } | { iron: number } | { beads: number }
   | { flask: number }
   | { shop: string };
 
@@ -47,7 +47,7 @@ export function apply(e: Effect, env: Env): string | null {
   if ('shop' in e) return e.shop;
   env.write(p => {
     if ('set' in e) p.flags[e.set] = e.to ?? true;
-    else if ('fares' in e) p.fares = Math.max(0, p.fares + e.fares);
+    else if ('kauri' in e) p.kauri = Math.max(0, p.kauri + e.kauri);
     else if ('iron' in e) p.iron = Math.max(0, p.iron + e.iron);
     else if ('beads' in e) p.beads = Math.max(0, p.beads + e.beads);
     else p.flasks.strength += e.flask;
