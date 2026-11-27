@@ -38,6 +38,7 @@ import { KING_CLIPS } from './boss/clips.ts';
 import { BENEATH_MODES, KING_MODES } from './boss/king.ts';
 import { KingView } from './boss/kingView.ts';
 import { FollowCam, menuCam } from './game/camera.ts';
+import { mountTheatre } from './dev/theatre.ts';
 import './ui/style.css';
 
 const Q = new URLSearchParams(location.search), SHOT = Q.get('shot'), BENCH = Q.get('bench');
@@ -115,7 +116,7 @@ async function boot() {
   const dawn = (k: number, force = false) => { if (!force && Math.abs(k - dawnK) < 0.002) return; dawnK = k; const o = omenK; kick.intensity = 0.55 + 0.2 * o + 1.5 * k; kick.color.setRGB(0.86 + 0.1 * k, 0.7 - 0.16 * o, 0.6 - 0.28 * o - 0.1 * k); hemi.intensity = 0.3 - 0.04 * o + 0.3 * k; post.exposure.value = 1.75 + 0.25 * k; DAWN.value = k; };
   document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && !menu.open && !turn.active && fight.phase !== 'won' && !intro.active && !story.active && !ending.active && !hud.paused && !m.dead) hud.setPaused(true); });
   hud.onRestart = () => { if (lessons.active) { train(); return; } moment.stop(); staged = null; qte.hide(); king.sim.clearMoments(); ending.stop(); dawn(0); turnWait = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
-  const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
+  const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2') || Q.has('moment')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
   const direct0 = !!(SHOT || BENCH);
   const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
   const menu = new Menu(app, () => hud.controls()), still = fight.passive; menu.fights([['The Hanged King', null], ['The Ferryman', () => { location.search = '?boss=2'; }], ['The Sister of Hours', () => { location.search = '?boss=3'; }]]);
@@ -223,6 +224,8 @@ async function boot() {
     if (!SHOT && !BENCH && frames > 60 && dyn.update(ms)) resize();
     Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: court, __king: king.sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __story: story, __lessons: lessons, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __camPos: () => cam.position.toArray(), __bill: bill });
   };
+  // ?moment=<name> (and, in dev with ?dev, the moment theatre panel): see src/dev/theatre.ts
+  mountTheatre({ Q, boss: 'king', ctx: () => ({ fight, m, sim: king.sim, round2: () => { omen(1); king.show(false); beneath.show(true); fight.beginRound2(); }, halfway: () => dir.onHalf() }), reset: () => { hud.onRestart(); fight.reset(true); king.show(true); beneath.show(false); omen(0); } }).boot();
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }
 /** Each fight past the first has its own page, loaded only when asked for. */

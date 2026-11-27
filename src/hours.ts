@@ -33,6 +33,7 @@ import { Moment, Prompt, type MomentSpec } from './game/moment.ts';
 import { GRIP, PIERCE, gripLift, gripTumble } from './boss/hours/sister.ts';
 import { HoursIntro, HoursTurn, HoursEnding } from './game/hoursScenes.ts';
 import type { Ctx } from './core/boot.ts';
+import { mountTheatre } from './dev/theatre.ts';
 
 export async function bootHours(c: Ctx) {
   const { Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, post, dyn, resize, input, app, focus, status, SHOT } = c;
@@ -93,7 +94,7 @@ export async function bootHours(c: Ctx) {
   hd.onStrike = () => m.begin('flick');
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, house, hd }, intro = new HoursIntro(kit), turn = new HoursTurn(kit), ending = new HoursEnding(kit);
   dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 4 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
-  turn.onEnd = () => { follow.snap(m, sim); hd.teach(); }; const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
+  turn.onEnd = () => { follow.snap(m, sim); hd.teach(); }; const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2') || Q.has('moment')); m.z = direct ? 5.2 : 15.5;
   hud.onRestart = () => { moment.stop(); staged = null; qte.hide(); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
@@ -162,5 +163,7 @@ export async function bootHours(c: Ctx) {
     if (!SHOT && frames > 60 && dyn.update(ms)) resize();
     Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: house, __king: sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __hd: hd, __camPos: () => cam.position.toArray(), __bill: bill, __v1: v1, __v2: v2, __post: post, __light: light });
   };
+  // ?moment=<name> (and, in dev with ?dev, the moment theatre panel): see src/dev/theatre.ts
+  mountTheatre({ Q, boss: 'hours', ctx: () => ({ fight, m, sim, round2: () => { v1.show(false); v2.show(true); sim.form = 2; fight.beginRound2(); hd.round2(true); }, halfway: () => dir.onHalf() }), reset: () => { hud.onRestart(); fight.reset(true); v1.show(true); v2.show(false); } }).boot();
   startLoop(dt => step(dt), draw);
 }
