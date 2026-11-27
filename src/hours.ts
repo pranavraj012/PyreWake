@@ -94,7 +94,9 @@ export async function bootHours(c: Ctx) {
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, house, hd }, intro = new HoursIntro(kit), turn = new HoursTurn(kit), ending = new HoursEnding(kit);
   dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 4 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
   turn.onEnd = () => { follow.snap(m, sim); hd.teach(); }; const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
-  hud.onRestart = () => { moment.stop(); staged = null; qte.hide(); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
+  /** The one reset: every death, the retry, the menu and a fresh start run it (Fight resets the fight, this clears the page). */
+  fight.onReset = () => { moment.reset(); staged = null; qte.hide(); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; hud.verse(''); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
+  hud.onRestart = () => { fight.reset(fight.phase === 'won'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
   menu.fights([['The Hanged King', () => { location.search = ''; }], ['The Ferryman', () => { location.search = '?boss=2'; }], ['The Sister of Hours', null]]);
@@ -160,7 +162,7 @@ export async function bootHours(c: Ctx) {
     acc += ms; n++; frames++;
     if (acc > 500) { fps.textContent = `${Math.round(1000 * n / acc)} fps  ${tier.name}  x${dyn.scale.toFixed(2)}  ${renderer.info.render.calls} draws  ${(renderer.info.render.triangles / 1000) | 0}k tris`; acc = n = 0; }
     if (!SHOT && frames > 60 && dyn.update(ms)) resize();
-    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: house, __king: sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __hd: hd, __camPos: () => cam.position.toArray(), __bill: bill, __v1: v1, __v2: v2, __post: post, __light: light });
+    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: house, __king: sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __hd: hd, __camPos: () => cam.position.toArray(), __bill: bill, __v1: v1, __v2: v2, __post: post, __light: light, __moment: moment, __qte: qte, __menu: menu, __FOG: FOG, __moon: moon, __hemi: hemi, __kick: kick });
   };
   startLoop(dt => step(dt), draw);
 }

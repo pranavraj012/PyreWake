@@ -114,7 +114,9 @@ async function boot() {
   /** First light, over whatever the sky is doing. */
   const dawn = (k: number, force = false) => { if (!force && Math.abs(k - dawnK) < 0.002) return; dawnK = k; const o = omenK; kick.intensity = 0.55 + 0.2 * o + 1.5 * k; kick.color.setRGB(0.86 + 0.1 * k, 0.7 - 0.16 * o, 0.6 - 0.28 * o - 0.1 * k); hemi.intensity = 0.3 - 0.04 * o + 0.3 * k; post.exposure.value = 1.75 + 0.25 * k; DAWN.value = k; };
   document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && !menu.open && !turn.active && fight.phase !== 'won' && !intro.active && !story.active && !ending.active && !hud.paused && !m.dead) hud.setPaused(true); });
-  hud.onRestart = () => { if (lessons.active) { train(); return; } moment.stop(); staged = null; qte.hide(); king.sim.clearMoments(); ending.stop(); dawn(0); turnWait = -1; bDis.value = 0; kDis.value = 0; fight.reset(fight.phase === 'won'); if (fight.round === 1) omen(0); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
+  /** The one reset: every death, the retry, the menu and a fresh start run it (Fight resets the fight, this clears the page). */
+  fight.onReset = () => { moment.reset(); staged = null; qte.hide(); kOffer.reset(); king.sim.clearMoments(); ending.stop(); turn.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; dimOn = false; hud.verse(''); if (fight.round === 1) omen(0); sound.score?.set(fight.round === 2 ? 'r2' : 'spar'); };
+  hud.onRestart = () => { if (lessons.active) { train(); return; } fight.reset(fight.phase === 'won'); }; for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
   const direct0 = !!(SHOT || BENCH);
   const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
@@ -221,7 +223,7 @@ async function boot() {
     acc += ms; n++; frames++;
     if (acc > 500) { fps.textContent = `${Math.round(1000 * n / acc)} fps  ${tier.name}  x${dyn.scale.toFixed(2)}  ${renderer.info.render.calls} draws  ${(renderer.info.render.triangles / 1000) | 0}k tris`; acc = n = 0; }
     if (!SHOT && !BENCH && frames > 60 && dyn.update(ms)) resize();
-    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: court, __king: king.sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __story: story, __lessons: lessons, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __camPos: () => cam.position.toArray(), __bill: bill });
+    Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: court, __king: king.sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __story: story, __lessons: lessons, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __camPos: () => cam.position.toArray(), __bill: bill, __moment: moment, __qte: qte, __kOffer: kOffer, __menu: menu, __post: post, __FOG: FOG, __moon: moon, __hemi: hemi, __kick: kick });
   };
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }
