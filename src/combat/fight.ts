@@ -30,6 +30,8 @@ export class Fight {
   /** Turns the boss's brain off (workbench, tests). */ passive = false;
   /** Scripted movement during a scene. */ sceneMove = { x: 0, z: 0 };
   spawn = { x: 0, z: 5.2, yaw: Math.PI }; private aim = { x: 0, z: 0, r: 0.75 };
+  /** Wake as round 2 began: a death in round 2 returns to it. */ private wakeAt2 = 0;
+  /** Runs at the end of every reset, so a page clears what the fight does not own (moments, offers, prompts, music). Set by the page once. */ onReset: ((all: boolean) => void) | null = null;
   constructor(m: Motor, king: Boss = new King(), brain: BossBrain = new Brain()) { this.m = m; this.king = king; this.brain = brain; this.bossHp = king.hp[0]; m.target = this.aim; this.sync(); }
   get maxHp() { return this.king.hp[this.round - 1]; }
   /** Only what stands in front of you: what comes after has health of its own. */
@@ -279,11 +281,13 @@ export class Fight {
   /** The scene is over: round 2 begins whole, and is a checkpoint. */
   beginRound2() {
     const m = this.m, k = this.king; this.round = 2; this.phase = 'r2'; this.hp = D.hp; this.heals = D.heals; this.flame = true; this.bossHp = k.hp[1]; this.hazards.length = 0; this.shots.length = 0; this.invuln = 1.2; this.slowT = this.stop = 0; this.reelCd = 2; this.sceneMove = { x: 0, z: 0 };
-    k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2' && k.mode !== 'riseW') k.set('idle'); k.reset?.(); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' });
+    k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2' && k.mode !== 'riseW') k.set('idle'); k.reset?.(); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' }); this.wakeAt2 = this.wake;
   }
   reset(all = false) {
-    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; if (this.props.length) { for (const p of this.props) { p.broken = false; p.hp = p.max; } this.block(); this.raise({ k: 'restore' }); } } this.blasts.length = 0; this.falling.length = 0;
-    this.phase = this.round === 2 ? 'r2' : 'r1'; this.hp = D.hp; this.fire = this.round === 2 ? 50 : 0; this.heals = D.heals; this.flame = true; this.bossHp = this.maxHp; this.deadT = -1; this.invuln = 1; this.boom = -1; this.slowT = this.stop = 0; this.spent.clear(); this.queue = []; this.hazards.length = 0; this.shots.length = 0; this.streak = 0; this.setAura(); if (this.round === 1) this.hits = 0;
-    m.revive(this.spawn.x, this.spawn.z, this.spawn.yaw); k.form = this.round; k.armed = this.round === 1; k.crawling = false; k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k.reset?.(); this.brain.reset(this.round); this.sync(); this.raise({ k: 'reset' });
+    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; } else if (this.round === 2) this.wake = this.wakeAt2; else { this.wake = 0; this.granted = this.gifted = false; }
+    // the court keeps what was broken through a death in the same fight (tests/fight.test.ts); a new fight makes it whole
+    if (all && this.props.length) { for (const p of this.props) { p.broken = false; p.hp = p.max; } this.block(); this.raise({ k: 'restore' }); } this.blasts.length = 0; this.falling.length = 0;
+    this.phase = this.round === 2 ? 'r2' : 'r1'; this.hp = D.hp; this.fire = this.round === 2 ? 50 : 0; this.heals = D.heals; this.flame = true; this.bossHp = this.maxHp; this.deadT = -1; this.invuln = 1; this.boom = -1; this.slowT = this.stop = 0; this.spent.clear(); this.queue = []; this.hazards.length = 0; this.shots.length = 0; this.streak = 0; this.setAura(); if (this.round === 1) this.hits = 0; this.slowK = 1; this.reelCd = 0; this.wasReady = { skill1: false, skill2: false, ultimate: false }; this.chipped = ''; this.hero = false; this.momentKey = null; this.sceneMove = { x: 0, z: 0 };
+    m.revive(this.spawn.x, this.spawn.z, this.spawn.yaw); k.form = this.round; k.armed = this.round === 1; k.crawling = false; k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k.reset?.(); this.brain.reset(this.round); this.sync(); this.raise({ k: 'reset' }); this.onReset?.(all);
   }
 }
