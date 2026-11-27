@@ -55,11 +55,11 @@ export function syncReward(m: Motor, stage: number) { if (m.state === 'clip' && 
 
 /** One reward's run: the wall-clock hit-stop, and the effects that fire once at each cue. */
 export class RewardRun {
-  kind: RewardKind | null = null; private hitAt = -1; private fired = new Set<string>();
+  kind: RewardKind | null = null; /** The hero's drawn offset on the last frame: where he really stands once the scene lets go of him. */ last = V(); lantern = new LanternGeo(); private hitAt = -1; private fired = new Set<string>();
   private kit: RewardKit;
   constructor(kit: RewardKit) { this.kit = kit; }
-  begin(kind: RewardKind) { this.kind = kind; this.hitAt = -1; this.fired.clear(); }
-  end() { this.kind = null; this.hitAt = -1; this.fired.clear(); if (this.kit.river) this.kit.river.lampHidden = false; }
+  begin(kind: RewardKind) { this.kind = kind; this.lantern.ready = false; this.hitAt = -1; this.fired.clear(); }
+  end(m?: Motor) { if (m) { m.x += this.last.x; m.z += this.last.z; } this.last.set(0, 0, 0); this.lantern.ready = false; if (this.kit.river) this.kit.river.poleAim = null; this.kind = null; this.hitAt = -1; this.fired.clear(); if (this.kit.river) this.kit.river.lampHidden = false; }
   /** A once-only cue on the scene's clock. */
   once(name: string, t: number, at: number, f: () => void) { if (t >= at && !this.fired.has(name)) { this.fired.add(name); f(); } }
   /** The moment's rate: slow into a blow, then hold for HITSTOP_MS of real time on the frame it lands. */
@@ -71,51 +71,77 @@ export class RewardRun {
 }
 
 // ---------------------------------------------------------------- the Ferryman's lantern
-/** The lantern hangs at the top of his pole, a little out from him toward the hero. */
-function lanternAt(sim: River, u: { x: number; z: number }, out = V()) { return out.set(sim.x + u.x * 0.7, 3.5, sim.z + u.z * 0.7); }
+/** The scene's numbers. He kneels and swings his pole out so the lamp hangs ahead of him at a height a leap can reach; the hero leaps, cuts it down, springs back and lands braced. */
+const LEAP = { from: 0.5, apex: 1.1, peak: 1.5, gap: 1.25, back: 1.3, off: 1.0, brace: 0.7, lampY: 2.8, bear: 0.62, swing: 0.45 };
+const LEAP_END = LEAP.apex + (LEAP.apex - LEAP.from);
+/** The hero's height at scene time t: a crouch, the leap (gravity), a braced landing. */
+function leapY(t: number) {
+  const g = 2 * LEAP.peak / ((LEAP.apex - LEAP.from) ** 2);
+  if (t < LEAP.from) return -0.22 * Math.sin(Math.PI * t / LEAP.from);
+  if (t < LEAP_END) return LEAP.peak - 0.5 * g * (t - LEAP.apex) ** 2;
+  return -0.3 * Math.sin(Math.PI * Math.min(1, (t - LEAP_END) / LEAP.brace));
+}
+/** The lantern's bearing and the hero's place at each time: the geometry shared by the camera, the hero, the beats. */
+export class LanternGeo {
+  ux = 0; uz = 0; bx = 0; bz = 0; side = 1; ready = false; /** From the cut on the lamp is gone and the pole swings back: its last place stands for it. */ frozen = false; arena = 21; start = V(); L = V(); A = { x: 1, z: 0 };
+  /** Fixed on the scene's first frame: the bearing of the swung pole, from the Ferryman, a little off the hero's line. */
+  init(sim: River, m: Motor) {
+    const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1; this.ux = dx / d; this.uz = dz / d;
+    const c = Math.cos(LEAP.bear), s = Math.sin(LEAP.bear); this.bx = this.ux * c - this.uz * s; this.bz = this.ux * s + this.uz * c; this.arena = m.arena; this.start.set(m.x, 0, m.z); this.side = (-this.bz * this.ux + this.bx * this.uz) >= 0 ? 1 : -1; this.ready = true;
+  }
+  /** The lamp's own place (read from the view), and the line from the Ferryman to it. */
+  lamp(sim: River, kit: RewardKit, t = 0) {
+    if (t >= LANTERN.hit) this.frozen = true; else this.frozen = false;
+    if (this.frozen) { /* keep L as it was at the cut */ } else if (kit.river) kit.river.lantern.getWorldPosition(this.L); else this.L.set(sim.x + this.bx * 5.6, LEAP.lampY, sim.z + this.bz * 5.6);
+    const dx = this.L.x - sim.x, dz = this.L.z - sim.z, d = Math.hypot(dx, dz) || 1; this.A.x = dx / d; this.A.z = dz / d; return this.L;
+  }
+  /** The hero's world place at t (the feet): from where he stood, to a sword's reach from the lamp, then back and down. */
+  hero(t: number, out: THREE.Vector3) {
+    const H = LANTERN.hit, o = LEAP.off * this.side, lim = this.arena - 0.8, keep = (x: number, z: number) => { const q = Math.hypot(x, z); return q > lim ? [x * lim / q, z * lim / q] : [x, z]; };
+    const [cx, cz] = keep(this.L.x - this.A.x * LEAP.gap - this.A.z * o, this.L.z - this.A.z * LEAP.gap + this.A.x * o), [lx, lz] = keep(cx - this.A.x * LEAP.back, cz - this.A.z * LEAP.back);
+    const k = E(LEAP.from, H, t), r = E(H, LEAP_END, t);
+    return out.set(this.start.x + (cx - this.start.x) * k + (lx - cx) * r, leapY(t), this.start.z + (cz - this.start.z) * k + (lz - cz) * r);
+  }
+}
 export function lanternSpec(sim: River, m: Motor, kit: RewardKit, run: RewardRun): MomentSpec {
-  const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { x: ux, z: uz, sx: -uz, sz: ux }; };
-  const H = LANTERN.hit, rise = 0.55, land = 1.9;
-  /** The hero's spot at the blow: a leap's length out from the Ferryman, on the hero's side of the pole. */
-  const spot = (out: THREE.Vector3) => { const u = away(); return out.set(sim.x + u.x * 1.6, 0, sim.z + u.z * 1.6); };
-  const L = V(), S = V(), mid = V();
+  const H = LANTERN.hit, geo = run.lantern, P = V(), F = V(), B = V();
   return {
     frame: (t, eye, at) => {
-      const u = away(), lp = lanternAt(sim, u, L), s = spot(S), hx = m.x + (s.x - m.x) * E(rise, H, t), hz = m.z + (s.z - m.z) * E(rise, H, t), hy = 1.2 * Math.max(0, 1 - ((t - H) / (land - rise) * 2) ** 2);
-      mid.set((hx + lp.x) / 2, (hy + lp.y) / 2 + 0.4, (hz + lp.z) / 2);
-      if (t < rise) { // the wind-up: low, at his side, the hero and the lantern both in shot
-        const k = E(0, rise, t); eye.set(m.x + u.sx * 3.0 + u.x * 1.0, 1.1 + 0.2 * k, m.z + u.sz * 3.0 + u.z * 1.0); at.set(m.x * (1 - 0.4 * k) + lp.x * 0.4 * k, 1.5 + 1.2 * k, m.z * (1 - 0.4 * k) + lp.z * 0.4 * k); return 48;
-      }
-      if (t < H) { // the leap and the cut: a side-on shot that keeps the blade and the lantern in one frame
-        const k = E(rise, H, t); eye.set(mid.x + u.sx * 3.9 + u.x * 0.6, 1.8 + 0.5 * k, mid.z + u.sz * 3.9 + u.z * 0.6); at.copy(mid); return 50 - 4 * k;
-      }
-      if (t < land + 0.8) { // the reel and the landing: pulls back to show the Ferryman go, then the hero on his feet
-        const k = E(H, land + 0.8, t); eye.set(sim.x + u.x * 6.2 + u.sx * 2.6, 2.3 - 0.4 * k, sim.z + u.z * 6.2 + u.sz * 2.6); at.set(sim.x * (1 - k) + hx * k, 2.1 - 1.1 * k, sim.z * (1 - k) + hz * k); return 50;
-      }
-      const k = E(land + 0.8, LANTERN.len, t); eye.set(hx + u.sx * 2.6 - u.x * (1.4 - 0.4 * k), 1.4, hz + u.sz * 2.6 - u.z * (1.4 - 0.4 * k)); at.set(hx, 1.4, hz); return 46;
+      if (!geo.ready) geo.init(sim, m); const lp = geo.lamp(sim, kit, t), hp = geo.hero(t, P), k = E(0.2, H, t), r = E(H, 2.2, t);
+      // the camera stands on the hero's side of the line from the Ferryman to the lamp, side-on, so the sweep of the pole, the leap and the cut are all in profile
+      const sx = -geo.A.z, sz = geo.A.x, sg = geo.side;
+      B.set(sim.x, 1.4, sim.z);
+      // the focus: the Ferryman and the lamp, then the hero and the lamp, then the hero and the Ferryman
+      F.set((B.x + lp.x) / 2, 2.1, (B.z + lp.z) / 2); const cx = (hp.x + lp.x) / 2, cz = (hp.z + lp.z) / 2, cy = (hp.y + 1.2 + lp.y) / 2;
+      F.x += (cx - F.x) * k; F.z += (cz - F.z) * k; F.y += (cy - F.y) * k;
+      F.x += ((sim.x + hp.x + lp.x) / 3 - F.x) * r; F.z += ((sim.z + hp.z + lp.z) / 3 - F.z) * r; F.y += (1.7 - F.y) * r;
+      const dist = 8.2 - 3.4 * k + 4.4 * r, fov = 46 - 6 * k + 9 * r;
+      eye.set(F.x + sx * sg * dist + geo.A.x * -0.8, 1.8 + 0.5 * k - 0.4 * r, F.z + sz * sg * dist + geo.A.z * -0.8); at.copy(F); return fov;
     },
-    hero: (t, o) => {
-      const u = away(), s = spot(S), hx = (s.x - m.x) * E(rise, H, t), hz = (s.z - m.z) * E(rise, H, t);
-      const crouch = t < rise ? -0.22 * Math.sin(Math.PI * t / rise) : 0, air = t >= rise && t < land ? 1.2 * Math.max(0, 1 - ((t - H) / (land - rise) * 2) ** 2) : 0;
-      o.set(hx, t < land ? crouch + air : -0.12 * Math.sin(Math.PI * Math.min(1, (t - land) / 0.8)), hz);
-      void u;
-    },
+    hero: (t, o) => { if (!geo.ready) geo.init(sim, m); const hp = geo.hero(t, P); o.set(hp.x - m.x, hp.y, hp.z - m.z); run.last.copy(o); },
     rate: t => run.rate(t, H, performance.now()),
     letterbox: true,
-    cues: [{ t: rise, name: 'leap' }, { t: H, name: 'shatter' }, { t: land, name: 'land' }],
+    cues: [{ t: LEAP.from, name: 'leap' }, { t: H, name: 'shatter' }, { t: LEAP_END, name: 'land' }],
   };
 }
-/** The lantern's own beats on the scene's clock: the leap's whoosh, the shatter, the landing. Called each frame while the lantern scene runs. */
+/** The lantern's own beats on the scene's clock: the pole swung out, the leap's whoosh, the shatter (glass, burning oil, a flare that dies), the landing. Called each frame while the scene runs. */
 export function lanternBeats(sim: River, m: Motor, kit: RewardKit, run: RewardRun, t: number, time: number) {
-  const { fx } = kit, L = lanternAt(sim, { x: (m.x - sim.x) / (Math.hypot(m.x - sim.x, m.z - sim.z) || 1), z: (m.z - sim.z) / (Math.hypot(m.x - sim.x, m.z - sim.z) || 1) });
-  run.once('leap', t, LANTERN.hit - 0.7, () => sound.play('whooshH', { gain: 0.6, wet: 0.5 }));
+  const { fx } = kit, geo = run.lantern; if (!geo.ready) geo.init(sim, m);
+  if (kit.river) kit.river.poleAim = { x: geo.bx, z: geo.bz, y: LEAP.lampY, k: E(0, LEAP.swing, t) * (1 - E(1.35, 2.1, t)) };
+  // he faces the lamp through the leap, then the Ferryman as he lands
+  { const lp = geo.lamp(sim, kit, t), px = m.x + run.last.x, pz = m.z + run.last.z, want = t < LANTERN.hit + 0.1 ? Math.atan2(lp.x - px, lp.z - pz) : Math.atan2(sim.x - px, sim.z - pz); let d = want - m.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); m.yaw += d * Math.min(1, 0.25 + (t > LANTERN.hit ? 0.1 : 0)); }
+  run.once('leap', t, LEAP.from, () => sound.play('whooshH', { gain: 0.6, wet: 0.5 }));
   run.once('shatter', t, LANTERN.hit, () => {
-    sound.play('boom', { gain: 0.9, wet: 0.4 }); sound.play('fire', { gain: 0.8, wet: 0.5 }); sound.play('slam', { gain: 0.6, wet: 0.3 });
-    fx.bursts.add('fire', L.clone(), 2.6, 0.9, time); fx.bursts.add('flare', L.clone(), 3.4, 0.5, time); fx.bursts.add('ring', L.clone(), 1.6, 0.4, time);
-    fx.sparks.emit(L.clone(), V(0, 0.7, 0), 90, 5, 1.6, 0.6, time); fx.sparks.emit(L.clone(), V(0, 0.2, 0), 40, 2.4, 2.2, 0.2, time);
-    fx.puffs.emit(L.clone(), 12, 1.8, 1.4, time); kit.kick(1.0); if (kit.river) kit.river.lampHidden = true;
+    const L = geo.L.clone();
+    sound.play('break', { gain: 1, wet: 0.4 }); sound.play('boom', { gain: 0.9, wet: 0.4 }); sound.play('fire', { gain: 0.8, wet: 0.5 }); sound.play('slam', { gain: 0.6, wet: 0.3 });
+    fx.bursts.add('fire', L.clone(), 2.2, 0.6, time); fx.bursts.add('flare', L.clone(), 3.0, 0.3, time); fx.bursts.add('ring', L.clone(), 1.6, 0.4, time);
+    fx.bursts.add('flare', L.clone(), 1.6, 0.25, time, 0.4, 0.9, 1.1, 1.3); // the glass: a pale flash among the orange
+    fx.sparks.emit(L.clone(), V(0, 0.7, 0), 90, 6, 2.2, 1.4, time); // burning oil, thrown wide, falling
+    fx.sparks.emit(L.clone(), V(0, 0.2, 0), 50, 4, 3.2, 1.0, time); // shards
+    fx.sparks.emit(L.clone(), V(0, 1, 0), 14, 2, 0.6, -2.2, time); // embers that hang
+    fx.puffs.emit(L.clone(), 10, 1.8, 1.2, time); kit.kick(1.0); if (kit.river) kit.river.lampHidden = true;
   });
-  run.once('land', t, LANTERN.len - 1.0, () => sound.play('thud', { gain: 0.5, wet: 0.3 }));
+  run.once('land', t, LEAP_END, () => { sound.play('thud', { gain: 0.6, wet: 0.3 }); kit.fx.puffs.emit(V(m.x + run.last.x, 0, m.z + run.last.z), 7, 1.6, 0.9, time); });
 }
 
 // ---------------------------------------------------------------- the Ferryman's chain

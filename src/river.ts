@@ -66,7 +66,7 @@ export async function bootRiver(c: Ctx) {
   const kOffer = new Offer(moment, offerSpec(m, () => ({ x: sim.x, y: 2.2, z: sim.z })), (r, secs) => qte.show('attack', RIVER_PRESS[r as 'chain' | 'lantern'], secs, input.lastDevice));
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [v1, v2], court: ghats }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = [RIVER_NAMES.r1, RIVER_NAMES.r2]; hud.winTitle = RIVER_NAMES.won; onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
-  const rKit: RewardKit = { fx, kick: s => moment.kick(s), river: v1 }, rewardRun = new RewardRun(rKit); Object.assign(rSpecs, riverRewards(sim, m, rKit, rewardRun));
+  const rKit: RewardKit = { fx, kick: s => moment.kick(s), get river() { return sim.form === 2 ? v2 : v1; } }, rewardRun = new RewardRun(rKit); Object.assign(rSpecs, riverRewards(sim, m, rKit, rewardRun));
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd, prompt: qte }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
   turn.onEnd = () => follow.snap(m, sim); const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
   hud.onRestart = () => { moment.stop(); staged = null; qte.hide(); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'weight' : 'row'); };
@@ -97,11 +97,11 @@ export async function bootRiver(c: Ctx) {
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active) { ending.press(ev, t); if (ending.waiting) ev = []; }
     // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
-    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up)) { const rr = sim.takeReward(); if (rr) { qte.hide(); beginReward(rr, m); rewardRun.begin(rr); } }
+    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up)) { const rr = sim.takeReward(); if (rr) qte.hide(); }
     if (moment.active) mx = mz = 0; // the fight drops his presses while a moment is on, and keeps the releases
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
     // a reward scene: the hero's clip runs on the scene's clock, and its beats (the shatter, the snap) fire on the frame they land
-    if (sim.rite) { syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end();
+    if (sim.rite) { if (rewardRun.kind !== sim.rite) { beginReward(sim.rite, m); rewardRun.begin(sim.rite); } syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end(m);
     { const want = sim.staging; if (want !== staged) { staged = want; dragK = 0; if (want) { qte.hide(); moment.start(want === 'drag' ? dSpec : rSpecs[want]); } else moment.stop(); } }
     // the drag's beats, on the boss's clock: a groan as he is pulled under, the bite, and a slam as he is heaved onto the steps
     // under the water: a green wash over the view, and bubbles rising from him while he is held down

@@ -4,6 +4,7 @@
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 import fs from 'node:fs';
+import sharp from 'sharp';
 import path from 'node:path';
 
 const [kind = 'lantern', variant = 'desk', outArg] = process.argv.slice(2);
@@ -12,7 +13,7 @@ const OUT = outArg ?? path.join('shots_out', 'A5');
 fs.mkdirSync(OUT, { recursive: true });
 /** The scene times (stage seconds) to film. The contact is frame-held for the hit-stop, so a few frames sit on it. */
 const TIMES = {
-  lantern: [0.0, 0.2, 0.4, 0.55, 0.75, 0.95, 1.1, 1.25, 1.35, 1.5, 1.7, 1.95, 2.3, 2.7, 3.1, 3.38],
+  lantern: [0.0, 0.2, 0.4, 0.55, 0.75, 0.95, 1.19, 1.25, 1.35, 1.5, 1.7, 1.95, 2.3, 2.7, 3.1, 3.38],
   chain: [0.0, 0.2, 0.4, 0.5, 0.7, 0.9, 1.1, 1.3, 1.45, 1.6, 1.8, 2.1, 2.5, 2.9, 3.2, 3.38],
   rope: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2, 2.6, 3.0, 3.4, 3.7],
   ride: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.15, 1.3, 1.5, 1.7, 1.9, 2.2, 2.5, 2.8, 3.1, 3.3],
@@ -33,6 +34,7 @@ await p.goto(url);
 const run = ms => p.clock.runFor(ms);
 for (let i = 0; i < 400 && !(await p.evaluate(() => document.body.classList.contains('ready') && (window.__frames ?? 0) > 5)); i++) await run(50);
 
+await run(3500);
 // set the scene up: the hero three metres in front of the boss, the boss passive (no attacks while it is filmed)
 const setup = {
   lantern: () => { const k = __king; __f.passive = true; __f.invuln = 99; k.set('idle'); __m.revive(0, k.z + 3, Math.PI); __f.hp = 100; k.reward = null; k.rewardLeft = 0; return __f.bossHp; },
@@ -65,9 +67,9 @@ for (let i = 0; i < TIMES.length; i++) {
   }
   const file = path.join(OUT, `${kind}_${variant}_${String(i + 1).padStart(2, '0')}.jpg`);
   await p.screenshot({ path: file, type: 'jpeg', quality: 88 });
-  const after = await p.evaluate(() => ({ stage: __king.stage, staging: __king.staging, bossHp: __f.bossHp, m: [__m.x, __m.y, __m.z], clip: __m.clip?.name ?? null, mt: __m.t, bmode: __king.mode, off: [__pv.offset.x, __pv.offset.y, __pv.offset.z] }));
+  const after = await p.evaluate(() => ({ stage: __king.stage, staging: __king.staging, bossHp: __f.bossHp, m: [__m.x, __m.y, __m.z], clip: __m.clip?.name ?? null, mt: __m.t, cam: __camPos().map(v => +v.toFixed(2)), bmode: __king.mode, off: [__pv.offset.x, __pv.offset.y, __pv.offset.z] }));
   if (hit === null && after.bossHp < hp0) hit = after.stage;
-  rows.push({ n: i + 1, want, stage: +after.stage.toFixed(3), staging: after.staging, clip: after.clip, mt: +after.mt.toFixed(3), off: after.off.map(v => +v.toFixed(2)), boss: after.bossHp, bmode: after.bmode, file: path.basename(file) });
+  rows.push({ n: i + 1, cam: after.cam, want, stage: +after.stage.toFixed(3), staging: after.staging, clip: after.clip, mt: +after.mt.toFixed(3), off: after.off.map(v => +v.toFixed(2)), boss: after.bossHp, bmode: after.bmode, file: path.basename(file) });
   console.log(JSON.stringify(rows.at(-1)));
   if (!after.staging) break;
 }
@@ -75,4 +77,13 @@ for (let i = 0; i < TIMES.length; i++) {
 for (let g = 0; g < 2000; g++) { const s = await p.evaluate(() => __king.staging); if (!s) break; await run(16); }
 const end = await p.evaluate(() => ({ m: [__m.x, __m.y, __m.z], arena: __m.arena, state: __m.state, bossHp: __f.bossHp, hp0: null, stage: __king.stage, bmode: __king.mode, dead: __m.dead }));
 console.log(JSON.stringify({ kind, variant, hp0, contactStage: hit, end, errors: errs.slice(0, 5) }));
+// the contact sheet: 4 x 4, each frame labelled with its scene time
+{
+  const files = rows.map(r => path.join(OUT, r.file)), W = phone ? 422 : 480, H = phone ? 195 : 300, comp = [];
+  for (let i = 0; i < files.length; i++) {
+    comp.push({ input: await sharp(files[i]).resize(W, H).toBuffer(), left: (i % 4) * W, top: Math.floor(i / 4) * H });
+    comp.push({ input: Buffer.from(`<svg width="${W}" height="22"><text x="4" y="16" font-size="15" fill="#ff0">${i + 1}  t=${rows[i].stage}</text></svg>`), left: (i % 4) * W, top: Math.floor(i / 4) * H });
+  }
+  await sharp({ create: { width: W * 4, height: H * Math.ceil(files.length / 4), channels: 3, background: '#000' } }).composite(comp).jpeg({ quality: 85 }).toFile(path.join(OUT, `${kind}_${variant}_sheet.jpg`));
+}
 await browser.close(); await srv.close();

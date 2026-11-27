@@ -127,7 +127,7 @@ export class River implements Boss {
       if (cross(DRAG.dmg)) { f.invuln = 0; f.strikePlayer(GRAB_DRAG.drag, true, Math.atan2(this.x - m.x, this.z - m.z), 'dragDeep'); }
       if (this.stage >= DRAG.end) this.held = null;
     }
-    if (this.rite === 'chain') { if (cross(CHAIN.hit)) { f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0, 'blade', 'heavy'); this.set('reel'); } if (this.stage >= CHAIN.len) this.rite = null; }
+    if (this.rite === 'chain') { if (cross(CHAIN.hit)) f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0, 'blade', 'heavy'); if (this.stage >= CHAIN.len) this.rite = null; }
     else if (this.rite === 'lantern') { if (cross(LANTERN.hit)) { f.damage(Math.round(pool * RIVER_REWARD_SHARE), 3.4, true, 0, 'blade', 'heavy'); this.set('reel'); } if (this.stage >= LANTERN.len) this.rite = null; }
     this.sp = this.stage;
   }
