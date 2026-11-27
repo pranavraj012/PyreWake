@@ -34,7 +34,7 @@ export class RiverBrain implements BossBrain {
   private rnd() { this.s = (this.s + 0x6d2b79f5) | 0; let t = Math.imul(this.s ^ (this.s >>> 15), 1 | this.s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   private rest(form: 1 | 2) { const r = form === 2 ? [0.35, 0.8] : [0.45, 0.95]; this.wait = (r[0] + this.rnd() * (r[1] - r[0])) * D.temper[this.temper].rest + (this.ease > 0 ? (this.ease--, D.boss.assist) : 0); }
   /** Round 1 seconds spent without the drag thrown yet (see FIRST_GRAB_BY in boss/brain.ts). */ private noGrab = 0;
-  reset(form: 1 | 2) { this.noGrab = 0; this.wait = 1.2; this.calmT = 0; this.queue = []; this.recent = []; this.ease = 0; this.style = form === 2 ? 'bare' : 'pole'; this.began = null; this.cool = {}; }
+  reset(form: 1 | 2) { this.hurts = []; this.noGrab = 0; this.wait = 1.2; this.calmT = 0; this.queue = []; this.recent = []; this.ease = 0; this.style = form === 2 ? 'bare' : 'pole'; this.began = null; this.cool = {}; }
   hurt(time: number) { this.hurts = [...this.hurts.filter(t => time - t < 6), time]; if (this.hurts.length >= 2) { this.ease = 2; this.hurts = []; } }
   struck(_k: Boss, _dmg: number) { this.wait -= 0.1; return false; }
   broken() { this.queue = []; this.wait = 0.5; }

@@ -28,7 +28,7 @@ export class Brain {
   constructor(seed = 7) { this.s = seed; }
   private rnd() { this.s = (this.s + 0x6d2b79f5) | 0; let t = Math.imul(this.s ^ (this.s >>> 15), 1 | this.s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   private rest(form: 1 | 2) { const r = form === 2 ? D.boss.rest2 : D.boss.rest; this.wait = (r[0] + this.rnd() * (r[1] - r[0])) * D.temper[this.temper].rest + (this.ease > 0 ? (this.ease--, D.boss.assist) : 0); }
-  reset(form: 1 | 2) { this.noGrab = 0; this.wait = 1.1; this.calmT = 0; this.queue = []; this.recent = []; this.hangsLeft = 2; this.hangDmg = 0; this.ease = 0; this.style = form === 2 ? 'blades' : 'executioner'; this.began = null; this.strings = 0; }
+  reset(form: 1 | 2) { this.hurts = []; this.noGrab = 0; this.wait = 1.1; this.calmT = 0; this.queue = []; this.recent = []; this.hangsLeft = 2; this.hangDmg = 0; this.ease = 0; this.style = form === 2 ? 'blades' : 'executioner'; this.began = null; this.strings = 0; }
   /** Quiet assist: two blows taken close together and the boss eases off for a couple of strings. */
   hurt(time: number) { this.hurts = [...this.hurts.filter(t => time - t < 6), time]; if (this.hurts.length >= 2) { this.ease = 2; this.hurts = []; } }
   /** It answers being hit instead of standing there. Returns true when the roots give way. */

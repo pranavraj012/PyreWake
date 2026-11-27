@@ -22,7 +22,7 @@ export class HoursBrain implements BossBrain {
   constructor(seed = 17) { this.s = seed; }
   private rnd() { this.s = (this.s + 0x6d2b79f5) | 0; let t = Math.imul(this.s ^ (this.s >>> 15), 1 | this.s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   private rest(form: 1 | 2) { const r = form === 2 ? [0.35, 0.8] : [0.5, 1.0]; this.wait = (r[0] + this.rnd() * (r[1] - r[0])) * D.temper[this.temper].rest + (this.ease > 0 ? (this.ease--, D.boss.assist) : 0); }
-  reset(form: 1 | 2) { this.wait = 1.2; this.queue = []; this.recent = []; this.ease = 0; this.t = 0; this.countAt = 0; this.counts = 0; this.lashAt = -99; this.blinkAt = -99; this.style = form === 2 ? 'pall' : 'scythe'; this.began = null; }
+  reset(form: 1 | 2) { this.hurts = []; this.wait = 1.2; this.queue = []; this.recent = []; this.ease = 0; this.t = 0; this.countAt = 0; this.counts = 0; this.lashAt = -99; this.blinkAt = -99; this.style = form === 2 ? 'pall' : 'scythe'; this.began = null; }
   hurt(time: number) { this.hurts = [...this.hurts.filter(t => time - t < 6), time]; if (this.hurts.length >= 2) { this.ease = 2; this.hurts = []; } }
   struck(_k: Boss, _dmg: number) { this.wait -= 0.1; return false; }
   broken() { this.queue = []; this.wait = 0.6; }
