@@ -34,6 +34,8 @@ export class Motor {
   constructor(weapon: Weapon = KHANDA) { this.weapon = weapon; this.clips = { ...BODY_CLIPS, ...weapon.clips }; this.chain = weapon.combo; for (const c of weapon.chains) c.forEach((n, i) => { this.at[n] = i; }); }
 
   begin(name: string) { this.clip = this.clips[name]; this.t = 0; this.lastMove = 0; this.gap = 0; this.state = 'clip'; this.started++; this.events.push('clip:' + name); }
+  /** Starts a clip built outside the weapon's table (a staged moment's own strike). */
+  beginClip(c: Clip) { this.clip = c; this.t = 0; this.lastMove = 0; this.gap = 0; this.state = 'clip'; this.started++; this.events.push('clip:' + c.name); }
   private end() { this.state = 'free'; this.clip = null; this.idleT = 0; }
   /** Feet high enough for low blows and ground fire to pass under. */
   get over() { return this.y > D.jump.clear; }

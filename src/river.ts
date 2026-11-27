@@ -9,7 +9,7 @@ import { loadGeo, loadTextures } from './render/assets.ts';
 import { DEPTH, FOG, SHARED, surface } from './render/surface.ts';
 import { LINE } from './render/sky.ts';
 import { RIVER_NAMES, RIVER_PRESS } from './game/riverScript.ts';
-import { Moment, Offer, Prompt, offerSpec } from './game/moment.ts';
+import { Moment, Offer, Prompt, offerSpec, type MomentSpec } from './game/moment.ts';
 import { Dust, Puffs, Sparks } from './render/fx.ts';
 import { Bursts } from './render/impact.ts';
 import { skinnedShadow } from './render/shadowProxy.ts';
@@ -33,6 +33,7 @@ import { RiverBrain } from './boss/river/brain.ts';
 import { RiverView } from './boss/river/riverView.ts';
 import { RiverDirector } from './boss/river/riverDirector.ts';
 import { RiverIntro, RiverEnding, RiverTurn, riverMoments } from './game/riverScenes.ts';
+import { RewardRun, beginReward, chainBeats, lanternBeats, riverRewards, syncReward, type RewardKit } from './game/rewardShots.ts';
 
 export type { Ctx };
 
@@ -59,12 +60,13 @@ export async function bootRiver(c: Ctx) {
   if (tier.name === 'phone') pv.weapon.castShadow = v1.cleaver.castShadow = false;
   const follow = new FollowCam(); follow.blockers = m.blockers;
   // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
-  const moment = new Moment(), qte = new Prompt(app), rSpecs = riverMoments(sim, m), dSpec = dragSpec(sim, m), under = document.createElement('div'); let staged: 'drag' | 'chain' | 'lantern' | null = null, dragK = 0;
+  const moment = new Moment(), qte = new Prompt(app), rSpecs = { ...riverMoments(sim, m) } as Record<'drag' | 'chain' | 'lantern', MomentSpec>, dSpec = dragSpec(sim, m), under = document.createElement('div'); let staged: 'drag' | 'chain' | 'lantern' | null = null, dragK = 0;
   // the reward on offer: the slow low shot by the hero's feet, then the press; the drag's own beats: the pull under, the bite, the heave
   under.style.cssText = 'position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;background:radial-gradient(ellipse at 50% 45%, rgba(40,92,72,0.18), rgba(8,36,28,0.8))'; app.appendChild(under);
   const kOffer = new Offer(moment, offerSpec(m, () => ({ x: sim.x, y: 2.2, z: sim.z })), (r, secs) => qte.show('attack', RIVER_PRESS[r as 'chain' | 'lantern'], secs, input.lastDevice));
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [v1, v2], court: ghats }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud); hud.names = [RIVER_NAMES.r1, RIVER_NAMES.r2]; hud.winTitle = RIVER_NAMES.won; onSettings(() => { brain.temper = settings.temper; const sp = settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); });
+  const rKit: RewardKit = { fx, kick: s => moment.kick(s), get river() { return sim.form === 2 ? v2 : v1; } }, rewardRun = new RewardRun(rKit); Object.assign(rSpecs, riverRewards(sim, m, rKit, rewardRun));
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd, prompt: qte }, intro = new RiverIntro(kit), turn = new RiverTurn(kit), ending = new RiverEnding(kit); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 3 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
   turn.onEnd = () => follow.snap(m, sim); const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
   hud.onRestart = () => { moment.stop(); staged = null; qte.hide(); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(fight.phase === 'won'); sound.score?.set(fight.round === 2 ? 'weight' : 'row'); };
@@ -95,9 +97,11 @@ export async function bootRiver(c: Ctx) {
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active) { ending.press(ev, t); if (ending.waiting) ev = []; }
     // a reward press (only while its chance lasts) starts the hero's scene; a staged moment has the hero, not the player
-    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.takeReward()) qte.hide();
+    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up)) { const rr = sim.takeReward(); if (rr) qte.hide(); }
     if (moment.active) mx = mz = 0; // the fight drops his presses while a moment is on, and keeps the releases
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
+    // a reward scene: the hero's clip runs on the scene's clock, and its beats (the shatter, the snap) fire on the frame they land
+    if (sim.rite) { if (rewardRun.kind !== sim.rite) { beginReward(sim.rite, m); rewardRun.begin(sim.rite); } syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, m, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end(m);
     { const want = sim.staging; if (want !== staged) { staged = want; dragK = 0; if (want) { qte.hide(); moment.start(want === 'drag' ? dSpec : rSpecs[want]); } else moment.stop(); } }
     // the drag's beats, on the boss's clock: a groan as he is pulled under, the bite, and a slam as he is heaved onto the steps
     // under the water: a green wash over the view, and bubbles rising from him while he is held down

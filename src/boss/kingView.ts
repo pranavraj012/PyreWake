@@ -58,6 +58,8 @@ export class KingView {
     for (const n of ['hips', 'spine1', 'spine2', 'chest', 'thigh.L', 'thigh.R', 'shin.L', 'shin.R', 'head', 'foreArm.L', 'hand.L']) { this.rig.bones[this.rig.i(n)].getWorldPosition(p); const k = Math.max(0, Math.min(1, p.clone().sub(a).dot(ab) / L)), q = a.clone().addScaledVector(ab, k), d = q.distanceTo(p); if (d < best) { best = d; out.copy(q).lerp(p, Math.min(1, 0.55 + Math.max(0, d - 0.5))); } }
     return out;
   }
+  /** A scene that has cut his rope draws the two ends itself: his own is out of sight. */ ropeCut = false;
+  /** A scene sinks him this far (metres) under a blow: the ride's buckle. Zero leaves him alone. */ dip = 0;
   mark(m: 'cleaver' | 'handL' | 'head', out: THREE.Vector3) { return m === 'head' ? this.rig.bones[this.rig.i('head')].localToWorld(out.set(0, 0.1, 0.1)) : m === 'cleaver' ? (this.cleaver.visible ? this.cleaver.localToWorld(out.set(0, 1.1, 0)) : this.rig.bones[this.rig.i('hand.R')].localToWorld(out.set(0, -0.3, 0))) : this.rig.bones[this.rig.i('hand.L')].localToWorld(out.set(0, -0.2, 0)); }
   /** Where the body can be struck right now (world). */
   hurt(out: THREE.Vector3) { this.rig.bones[this.rig.i(this.sim.hanging ? 'head' : 'chest')].getWorldPosition(out); return out; }
@@ -86,7 +88,7 @@ export class KingView {
     // --- placement
         // the staged noose climbs the rope (its own rise), and the rope rig holds him up while the hero takes the reward
         const hk = m === 'rope' ? 1 : hanging ? sst(0, 0.9, S0.ht) : 0; if (rig) this.hangK = hk; else this.hangK += (hk - this.hangK) * Math.min(1, dt * 9);
-    const g = this.group; this.rope.visible = this.hangK > 0.02;
+    const g = this.group; this.rope.visible = this.hangK > 0.02 && !this.ropeCut;
     if (this.hangK > 0.002) {
       const dir = S0.dir, th = S0.th, tw = Math.sin(S0.ht * 0.5) * 0.35;
       const q = new THREE.Quaternion().setFromAxisAngle(V(Math.cos(dir), 0, -Math.sin(dir)), -th), pivot = V(S0.x, ROPE, S0.z), flip = new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), Math.PI * this.hangK), yq = new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), S0.yaw + (hanging ? tw : 0));
@@ -95,7 +97,7 @@ export class KingView {
       g.quaternion.copy(q).multiply(yq).multiply(flip); const local = V(0, 0.14, 0).applyQuaternion(g.quaternion); g.position.set(S0.x + (off.x - local.x - S0.x) * up, (off.y - local.y) * up, S0.z + (off.z - local.z - S0.z) * up);
       const L = pivot.distanceTo(off); this.rope.position.copy(pivot); this.rope.quaternion.copy(q); this.rope.scale.set(1.1, (L + 0.1) / 6.2, 1.1);
      
-    } else { g.position.set(S0.x, S0.y, S0.z); { const y = S0.yaw; g.position.x -= Math.sin(y) * lim4(this.fl[3], 0.12); g.position.z -= Math.cos(y) * lim4(this.fl[3], 0.12); } g.rotation.set(0, S0.yaw + p[IX.tw] * 0.01745, 0); }
+    } else { g.position.set(S0.x, S0.y - this.dip, S0.z); { const y = S0.yaw; g.position.x -= Math.sin(y) * lim4(this.fl[3], 0.12); g.position.z -= Math.cos(y) * lim4(this.fl[3], 0.12); } g.rotation.set(0, S0.yaw + p[IX.tw] * 0.01745, 0); }
     g.updateMatrixWorld(true); const root = this.rootM.copy(g.matrixWorld), inv = root.clone().invert(), lim = this.body.limbs;
 
     // --- limbs

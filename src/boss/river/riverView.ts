@@ -20,8 +20,9 @@ const SCALE = 0.8, POLE = 1.7, CHAIN_MODES = ['cast', 'haul', 'haulIn', 'wheelIr
 export class RiverView implements BossView {
   group = new THREE.Group(); form: 1 | 2; sim: River; rig = new Rig(KING); body: Body; mesh: THREE.SkinnedMesh; cleaver: THREE.Mesh; man = new THREE.Group(); fxv: RiverFx; light: THREE.PointLight | null = null;
   wounds = { w: { value: Array.from({ length: 5 }, () => new THREE.Vector4()) }, n: { value: Array.from({ length: 5 }, () => new THREE.Vector3(0, 1, 0)) } }; private wi = 0; ember = { value: 0.8 }; flash = { value: new THREE.Vector4(1, 0.4, 0.1, 0) }; flashAt = { value: new THREE.Vector4(0, 0, 0, 1) }; dissolve = { value: 0 };
-  pose: Pose = new Float32Array(N); private src = new Float32Array(N); private inert = new Inertial(); private last = ''; footing = new Footing(); gait2 = new Gait([0, 0.5]); private vel = V(); private rootM = new THREE.Matrix4(); private head = { w: 0 }; private visible = true; private orbit: THREE.Sprite[] = []; private lantern: THREE.Mesh; private sections: THREE.Mesh[] = []; private hull: THREE.Mesh | null = null;
+  pose: Pose = new Float32Array(N); private src = new Float32Array(N); private inert = new Inertial(); private last = ''; footing = new Footing(); gait2 = new Gait([0, 0.5]); private vel = V(); private rootM = new THREE.Matrix4(); private head = { w: 0 }; private visible = true; private orbit: THREE.Sprite[] = []; lantern: THREE.Mesh; private sections: THREE.Mesh[] = []; private hull: THREE.Mesh | null = null;
   /** The lantern is put out of sight (the scene that cuts to his eyes in the dark). */ lampHidden = false;
+  /** A scene swings his pole toward a world bearing (unit x, z) and a lantern height y, k of the way from where it is held (0 leaves it alone). */ poleAim: { x: number; z: number; y: number; k: number } | null = null; private poleQ0: THREE.Quaternion | null = null;
   shake = 0; steps = 0; fxFired: string[] = []; private fl = [0, 0, 0, 0]; private fv = [0, 0, 0, 0]; private jit = 0; private fx: Fx; private surf = 1; private lampK = 1; private scene: THREE.Scene; /** The ending: he is an old man in a boat, and the dead stand about. */ private old = false; private boatT = 0; private boatM: THREE.Mesh; private water: { ripple(x: number, z: number, a: number, t: number): void } | null = null; private hands = [V(), V()]; private glow: THREE.Sprite; private eyeM: THREE.Mesh[] = [];
   /** Between the eyes, in the world. */ eyeAt(out: THREE.Vector3) { const a = this.eyeM[0].getWorldPosition(V()), b = this.eyeM[1].getWorldPosition(V()); return out.copy(a).add(b).multiplyScalar(0.5); }
   private eyeG: THREE.Sprite[] = [];
@@ -155,8 +156,16 @@ export class RiverView implements BossView {
     this.fxv.update(this.sim, dt, t, hp, false, this.water, { x: px, z: pz });
   }
   /** Hung from the hook of the pole, or at his belt when his hands are busy with the chain. */
+  /** Turns the pole about its grip toward `poleAim`: the lantern at its tip comes down to a height the hero can reach. */
+  private swingPole() {
+    const a = this.poleAim!, c = this.cleaver, par = c.parent!; if (!this.poleQ0) this.poleQ0 = c.quaternion.clone(); c.quaternion.copy(this.poleQ0); par.updateWorldMatrix(true, false);
+    if (a.k <= 0) return; const pq = par.getWorldQuaternion(new THREE.Quaternion()), wq0 = pq.clone().multiply(this.poleQ0), y0 = V(0, 1, 0).applyQuaternion(wq0), o = c.getWorldPosition(V()), len = 3.56 * POLE;
+    const el = Math.asin(Math.max(-0.9, Math.min(0.9, (a.y - o.y) / len))), want = V(a.x * Math.cos(el), Math.sin(el), a.z * Math.cos(el)), d = y0.clone().lerp(want, a.k).normalize();
+    c.quaternion.copy(pq.invert().multiply(new THREE.Quaternion().setFromUnitVectors(y0, d).multiply(wq0))); c.updateWorldMatrix(false, false);
+  }
   private placeLantern(t: number, dt: number) {
-    const S0 = this.sim, k = this.lampK, on = this.form === 1, p = V(); this.lantern.visible = this.glow.visible = this.visible && on && !this.lampHidden;
+    if (this.poleAim || this.poleQ0) { if (this.poleAim) this.swingPole(); else { this.cleaver.quaternion.copy(this.poleQ0!); this.cleaver.updateWorldMatrix(true, false); } }
+    const S0 = this.sim, k = this.lampK, on = this.form === 1 || S0.rite === 'lantern', p = V(); this.lantern.visible = this.glow.visible = this.visible && on && !this.lampHidden;
     if (on) {
       if (this.cleaver.visible) this.cleaver.localToWorld(p.set(0.24, 3.55, 0)); else this.rig.bones[this.rig.i('hips')].localToWorld(p.set(0.5, 0.1, 0.1));
       this.lantern.position.copy(p); this.lantern.rotation.set(Math.sin(t * 1.3) * 0.08, 0, Math.cos(t * 1.1) * 0.08); this.glow.position.copy(p).add(V(0, 0.02, 0));

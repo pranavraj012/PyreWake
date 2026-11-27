@@ -15,7 +15,7 @@ const sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.mi
 export const ROPE = 10.6, HEAD_DROP = 8.9;
 /** The staged moments (module A). Times are the moment's own clock, `stage`, in seconds from the seizing or the press. */
 /** The noose (seized at 0): the hand closes on the throat (reach: how far out from the King, throat: the height of a standing hero's throat), lifts him to up (feet clear of the floor by lift), turns him once round the King (swing), lets go (release), he lands hard (land), lies, and gets up from lie to end. throw: where he lands, from the King; far: the arena's edge he is kept inside. */
-export const NOOSE = { reach: 1.6, throat: 1.5, up: 2.5, lift: 0.9, swing: [1.2, 2.45] as [number, number], release: 2.45, land: 3.1, lie: 4.3, end: 5.6, throw: 6, far: 13 }, RIP = { cut: 1.0, len: 2.7 }, RIDE = { hit: 0.9, len: 2.8 };
+export const NOOSE = { reach: 1.6, throat: 1.5, up: 2.5, lift: 0.9, swing: [1.2, 2.45] as [number, number], release: 2.45, land: 3.1, lie: 4.3, end: 5.6, throw: 6, far: 13 }, RIP = { cut: 1.2, len: 3.4 }, RIDE = { hits: [1.3, 1.75, 2.2], shares: [0.25, 0.25, 0.5], len: 3.8 };
 /** Grabs always cost this much; a reward takes this share of the boss's life; a reward stays on offer this long. */
 export const GRAB_DMG = { noose: 44 }, REWARD_SHARE = 0.09, OFFER = 1.8;
 
@@ -31,7 +31,7 @@ export class King {
   /** The mode change itself. A staged moment's own transitions use this, so they never cancel the moment. */
   private go(mode: KingMode, rate = 1) { const was = this.hanging; this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; if (this.hanging && !was) { this.ht = 0; this.th = 0; this.offered = false; } if (was && !this.hanging) { this.x = this.hx; this.z = this.hz; this.th = 0; } }
   /** Staged moments: the grab that holds the hero, the moment's own clock, the reward in progress, and the reward on offer. */
-  held: 'noose' | null = null; stage = 0; rite: 'rope' | 'ride' | null = null; reward: 'rope' | 'ride' | null = null; rewardLeft = 0; private offered = false; private sp = 0; /** Where the noose throws the hero, and the King's facing when he seized him. */ landAt = { x: 0, z: 0 }; yaw0 = 0;
+  held: 'noose' | null = null; stage = 0; rite: 'rope' | 'ride' | null = null; reward: 'rope' | 'ride' | null = null; rewardLeft = 0; /** The ride's blows landed so far (the view dips him under each). */ buckle = 0; private offered = false; private sp = 0; /** Where the noose throws the hero, and the King's facing when he seized him. */ landAt = { x: 0, z: 0 }; yaw0 = 0;
   get hanging() { return this.mode === 'hang' || this.mode === 'hangSwing' || this.mode === 'hangSwipe'; }
   /** The part you can reach: the swinging head when hanging, otherwise the body. */
   get hx() { return this.hanging ? this.x + Math.sin(this.dir) * Math.sin(this.th) * HEAD_DROP : this.x; }
@@ -103,7 +103,7 @@ export class King {
   takeReward(): 'rope' | 'ride' | null {
     const r = this.reward; if (!r) return null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0;
     if (r === 'rope') this.set('rope'); else this.set('kneel');
-    this.rite = r; return r;
+    this.buckle = 0; this.rite = r; return r;
   }
   /** One grab per boss: its first throw in a fight is forced to connect; later throws can be dodged. Round 1 starts a fight afresh. */
   grabbedOnce = false; forcesGrab() { return !this.grabbedOnce; }
@@ -140,7 +140,7 @@ export class King {
     }
     const pool = f.round === 2 ? D.boss.hp2 : D.boss.hp1;
     if (this.rite === 'rope') { if (cross(RIP.cut)) { this.set('crash'); f.damage(Math.round(pool * REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); } if (this.stage >= RIP.len) this.rite = null; }
-    else if (this.rite === 'ride') { if (cross(RIDE.hit)) f.damage(Math.round(pool * REWARD_SHARE), 3.4, true, 0.2, 'blade', 'heavy'); if (this.stage >= RIDE.len) this.rite = null; }
+    else if (this.rite === 'ride') { RIDE.hits.forEach((h, i) => { if (cross(h)) { const all = Math.round(pool * REWARD_SHARE), part = i < RIDE.hits.length - 1 ? Math.floor(all * RIDE.shares[i]) : all - RIDE.hits.slice(0, -1).reduce((a, _, j) => a + Math.floor(all * RIDE.shares[j]), 0); f.damage(part, 3.4, true, 0, 'blade', 'heavy'); this.buckle = i + 1; } }); if (this.stage >= RIDE.len) this.rite = null; }
     this.sp = this.stage;
   }
   /** Does this strike cover the point (with the player's own width)? */
