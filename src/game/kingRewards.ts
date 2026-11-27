@@ -4,7 +4,9 @@ import * as THREE from 'three';
 import { sound } from '../audio/sound.ts';
 import type { MomentSpec } from './moment.ts';
 import type { Motor } from '../player/motor.ts';
-import { RIDE, type King } from '../boss/king.ts';
+import { RIDE, RIP, ROPE, type King } from '../boss/king.ts';
+import type { KingView } from '../boss/kingView.ts';
+import { RewardChain } from './rewardChain.ts';
 import { E, V, type RewardKit, type RewardRun } from './rewardShots.ts';
 
 /** The ride's numbers: the hero crouches, bounds over the King's flank onto his back (the game's own gravity), strikes three times, is thrown clear and lands braced. */
@@ -67,4 +69,74 @@ export function rideBeats(sim: King, m: Motor, kit: RewardKit, run: RewardRun, t
     kit.fx.puffs.emit(V(sim.x, 0, sim.z), last ? 10 : 4, 1.6, 0.9, time); kit.kick(last ? 1 : 0.55);
   }));
   run.once('land', t, 3.0, () => { sound.play('thud', { gain: 0.6, wet: 0.3 }); kit.fx.puffs.emit(V(m.x + run.last.x, 0, m.z + run.last.z), 7, 1.6, 0.9, time); });
+}
+
+// ---------------------------------------------------------------- the rope
+/** The rope: he hangs by the ankles from a bough 10.6 m up, so the rope runs from 5.2 to 10.6 m and no leap reaches it. The hero's heavy blade throws a crescent of fire (his own
+ *  heavy attack does), so the scene is that blow aimed up: a leap, the rising cut, the fire climbing to the rope; the rope parts and he falls. */
+export const ROPE_GO = { launch: 0.78, apex: 1.12, peak: 1.4, release: 1.0, cutAt: 0.87, brace: 0.6 };
+const ROPE_LAND = ROPE_GO.launch + 2 * (ROPE_GO.apex - ROPE_GO.launch);
+export class RopeGeo {
+  ready = false; pivot = V(); ankle = V(); cut = V(); arena = 21; private q = new THREE.Quaternion();
+  /** The rope's two ends and the place the fire cuts it (a little above his ankles), from the King's own swing. */
+  ends(sim: King) {
+    this.q.setFromAxisAngle(V(Math.cos(sim.dir), 0, -Math.sin(sim.dir)), -sim.th); this.pivot.set(sim.x, ROPE, sim.z);
+    this.ankle.set(0, -(ROPE - 5.22), 0).applyQuaternion(this.q).add(this.pivot); this.cut.lerpVectors(this.pivot, this.ankle, ROPE_GO.cutAt); return this;
+  }
+  init(sim: King, m: Motor) { this.ends(sim); this.arena = m.arena; this.ready = true; }
+  /** The hero's drawn height: crouch, a leap in place (the game's own gravity), a braced landing. */
+  heroY(t: number) {
+    const L = ROPE_GO.launch;
+    if (t < L) return -0.22 * Math.sin(Math.PI * t / L);
+    if (t < ROPE_LAND) return ROPE_GO.peak - 0.5 * (2 * ROPE_GO.peak / ((ROPE_GO.apex - L) ** 2)) * (t - ROPE_GO.apex) ** 2;
+    return -0.3 * Math.sin(Math.PI * Math.min(1, (t - ROPE_LAND) / ROPE_GO.brace));
+  }
+}
+export function ropeSpec(sim: King, m: Motor, kit: RewardKit, run: RewardRun): MomentSpec {
+  const geo = run.rope, F = V(), A = V(); void kit;
+  const ready = () => { if (!geo.ready) geo.init(sim, m); };
+  return {
+    frame: (t, eye, at) => {
+      ready(); geo.ends(sim); const hx = m.x, hz = m.z, dx = hx - sim.x, dz = hz - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, sx = -uz, sz = ux, k = E(0.2, RIP.cut, t), r = E(RIP.cut, RIP.cut + 0.6, t);
+      // from behind and beside the hero, low, looking up the whole line: the hero below, the King on his rope, the bough
+      F.set(sim.x * 0.55 + hx * 0.45, 2.7 + 2.6 * k - 4.0 * r, sim.z * 0.55 + hz * 0.45); F.x += (geo.cut.x - F.x) * 0.3 * k * (1 - r); F.z += (geo.cut.z - F.z) * 0.3 * k * (1 - r);
+      A.set(hx + ux * 5.2 + sx * 2.4, 1.1 + 0.4 * r, hz + uz * 5.2 + sz * 2.4); eye.copy(A); at.copy(F);
+      return 62 - 4 * k + 4 * r;
+    },
+    hero: (t, o) => { ready(); o.set(0, geo.heroY(t), 0); run.last.set(0, 0, 0); },
+    rate: t => run.rate(t, RIP.cut, performance.now()),
+    letterbox: true, snap: true,
+    cues: [{ t: ROPE_GO.launch, name: 'leap' }, { t: ROPE_GO.release, name: 'release' }, { t: RIP.cut, name: 'cut' }],
+  };
+}
+/** The rope's own rope: the two ends whip, drawn with the King's own bark material. */
+function ropeMesh(king: KingView, scene: THREE.Object3D): RewardChain {
+  const g = new THREE.CylinderGeometry(0.1, 0.1, 0.34, 6).rotateZ(Math.PI / 2), info = king.rope.geometry.getAttribute('aInfo');
+  if (info) { const a = new Uint8Array(g.attributes.position.count * 4); for (let i = 0; i < a.length; i += 4) for (let j = 0; j < 4; j++) a[i + j] = (info.array as Uint8Array)[j]; g.setAttribute('aInfo', new THREE.BufferAttribute(a, 4, true)); }
+  return new RewardChain(new THREE.InstancedMesh(g, king.rope.material as THREE.Material, 1), scene);
+}
+/** The rope's beats: the leap, the fire thrown up the line, the cut (the rope's two ends whip, he falls), the landing. */
+export function ropeBeats(sim: King, m: Motor, kit: RewardKit, run: RewardRun, t: number, time: number) {
+  const geo = run.rope; if (!geo.ready) geo.init(sim, m); if (!run.ropeBroken) geo.ends(sim);
+  const dt = run.tick(time), face = Math.atan2(sim.x - m.x, sim.z - m.z); let d = face - m.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); m.yaw += d * 0.35;
+  const king = kit.king, scene = king?.group.parent;
+  if (king && scene) {
+    if (!run.rope2) run.rope2 = ropeMesh(king, scene);
+    if (run.ropeBroken) { const ank = V(); king.rig.bones[king.rig.i('foot.L')].getWorldPosition(ank); run.rope2.step(dt, ank, E(2.6, 3.3, t)); }
+  }
+  run.once('leap', t, ROPE_GO.launch, () => sound.play('whooshH', { gain: 0.6, wet: 0.4 }));
+  // the fire: thrown from the blade at the release, up the line to the cut, in RIP.cut - release seconds
+  if (t >= ROPE_GO.release && t < RIP.cut + 0.02) {
+    const u = Math.min(1, (t - ROPE_GO.release) / (RIP.cut - ROPE_GO.release)), a = V(m.x, 2.0 + geo.heroY(t), m.z), P = a.clone().lerp(geo.cut, u * u * (3 - 2 * u));
+    kit.fx.bursts.add('fire', P, 1.5, 0.16, time); kit.fx.sparks.emit(P, V(0, 0.3, 0), 6, 2, 1.6, 0.5, time); if (u < 0.1) kit.fx.bursts.add('flare', P, 1.4, 0.2, time);
+  }
+  run.once('release', t, ROPE_GO.release, () => { sound.play('flare', { gain: 0.9, wet: 0.4 }); sound.play('whooshH', { gain: 0.5, wet: 0.4 }); kit.kick(0.3); });
+  run.once('cut', t, RIP.cut, () => {
+    const C = geo.cut.clone();
+    sound.play('snap', { gain: 1, wet: 0.5 }); sound.play('tear', { gain: 0.8, wet: 0.4 }); sound.play('boom', { gain: 0.7, wet: 0.4 });
+    kit.fx.bursts.add('flare', C.clone(), 3, 0.3, time); kit.fx.bursts.add('ring', C.clone(), 2.2, 0.4, time); kit.fx.sparks.emit(C.clone(), V(0, 0.4, 0), 100, 5, 3, 1.0, time); kit.kick(1);
+    if (king && run.rope2) { run.ropeBroken = true; king.ropeCut = true; run.rope2.cut(geo.pivot, geo.ankle, 1 - ROPE_GO.cutAt); }
+  });
+  run.once('crash', t, RIP.cut + 0.45, () => { const L = V(sim.x, 0, sim.z); sound.play('slam', { gain: 1, x: L.x, z: L.z }); sound.play('thud', { gain: 1, x: L.x, z: L.z }); kit.fx.puffs.emit(L, 22, 3, 1.5, time); kit.fx.bursts.add('ground', V(L.x, 0.06, L.z), 10, 0.9, time, 0, 0.7, 0.3, 0.1); kit.kick(0.9); });
+  run.once('land', t, ROPE_LAND, () => { sound.play('thud', { gain: 0.5, wet: 0.3 }); kit.fx.puffs.emit(V(m.x, 0, m.z), 6, 1.5, 0.8, time); });
 }

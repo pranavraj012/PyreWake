@@ -15,7 +15,7 @@ const sst = (a: number, b: number, x: number) => { const t = Math.max(0, Math.mi
 export const ROPE = 10.6, HEAD_DROP = 8.9;
 /** The staged moments (module A). Times are the moment's own clock, `stage`, in seconds from the seizing or the press. */
 /** The noose (seized at 0): the hand closes on the throat (reach: how far out from the King, throat: the height of a standing hero's throat), lifts him to up (feet clear of the floor by lift), turns him once round the King (swing), lets go (release), he lands hard (land), lies, and gets up from lie to end. throw: where he lands, from the King; far: the arena's edge he is kept inside. */
-export const NOOSE = { reach: 1.6, throat: 1.5, up: 2.5, lift: 0.9, swing: [1.2, 2.45] as [number, number], release: 2.45, land: 3.1, lie: 4.3, end: 5.6, throw: 6, far: 13 }, RIP = { cut: 1.0, len: 2.7 }, RIDE = { hits: [1.3, 1.75, 2.2], shares: [0.25, 0.25, 0.5], len: 3.8 };
+export const NOOSE = { reach: 1.6, throat: 1.5, up: 2.5, lift: 0.9, swing: [1.2, 2.45] as [number, number], release: 2.45, land: 3.1, lie: 4.3, end: 5.6, throw: 6, far: 13 }, RIP = { cut: 1.2, len: 3.4 }, RIDE = { hits: [1.3, 1.75, 2.2], shares: [0.25, 0.25, 0.5], len: 3.8 };
 /** Grabs always cost this much; a reward takes this share of the boss's life; a reward stays on offer this long. */
 export const GRAB_DMG = { noose: 44 }, REWARD_SHARE = 0.09, OFFER = 1.8;
 

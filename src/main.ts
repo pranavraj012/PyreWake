@@ -27,7 +27,7 @@ import { DEFAULT_SPELLS, SPELLS } from './combat/spells.ts';
 import { Turn, actionCam } from './game/cinema.ts';
 import { Ending, Intro, Prologue, kingMoments } from './game/scenes.ts';
 import { RewardRun, beginReward, syncReward, type RewardKit } from './game/rewardShots.ts';
-import { rideBeats, rideSpec } from './game/kingRewards.ts';
+import { rideBeats, rideSpec, ropeBeats, ropeSpec } from './game/kingRewards.ts';
 import { Moment, Offer, Prompt, offerSpec, type MomentSpec } from './game/moment.ts';
 import { KING_LESSON, KING_LINES, KING_PRESS } from './game/kingScript.ts';
 import { Lessons } from './game/lessons.ts';
@@ -106,7 +106,7 @@ async function boot() {
     else if (name === 'land') { sound.play('slam', { gain: 0.9, x: L.x, z: L.z }); sound.play('thud', { gain: 0.9, x: L.x, z: L.z }); fx.puffs.emit(new THREE.Vector3(L.x, 0, L.z), 18, 2.6, 1.4, t); fx.bursts.add('ground', new THREE.Vector3(L.x, 0.06, L.z), 9, 0.9, t, 0, 0.7, 0.3, 0.1); moment.kick(0.9); }
   }; let staged: 'noose' | 'rope' | 'ride' | null = null; let heroHid = false, dimOn = false;
   const kOffer = new Offer(moment, offerSpec(m, () => ({ x: king.sim.hx, y: king.sim.hanging ? 4.2 : 1.9, z: king.sim.hz, tilt: king.sim.hanging ? 60 : undefined, back: king.sim.hanging ? 3.6 : undefined })), (r, secs) => qte.show('attack', KING_PRESS[r as 'rope' | 'ride'], secs, input.lastDevice));
-  const rKit: RewardKit = { fx, kick: s => moment.kick(s), king }, rewardRun = new RewardRun(rKit); Object.assign(kSpecs, { ride: rideSpec(king.sim, m, rKit, rewardRun) });
+  const rKit: RewardKit = { fx, kick: s => moment.kick(s), king }, rewardRun = new RewardRun(rKit); Object.assign(kSpecs, { ride: rideSpec(king.sim, m, rKit, rewardRun), rope: ropeSpec(king.sim, m, rKit, rewardRun) });
   const dir = new Director({ f: fight, pv, fx, cam: follow, post, hud, input, camera: cam, views: [king, beneath], court }); scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud }, turn = new Turn(kit, kDis), intro = new Intro(kit), ending = new Ending(kit), story = new Prologue(kit, court.fires), lessons = new Lessons(fight); turn.onEnd = () => follow.snap(m, king.sim); dir.onWon = () => { saveSettings({ beaten: settings.beaten | 1 }); ending.start(); }; hud.next = 'On to the river'; hud.onNext = () => { location.search = '?boss=2'; }; const arm = () => { const sp = lessons.active ? DEFAULT_SPELLS : settings.spells; m.spells = [...sp]; hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]); prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]); }; onSettings(() => { fight.brain.temper = settings.temper; arm(); }); dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; let turnWait = -1, omenK = 0, dawnK = 0, turned = false;
   const M0 = new THREE.Color(0xa9c2ea), M1 = new THREE.Color(0xff9a72), F0 = FOG.uFogCol.value.clone(), F1 = new THREE.Color(0.010, 0.0042, 0.0046), G0 = FOG.uFogMoon.value.clone(), G1 = new THREE.Color(0.05, 0.011, 0.007);
@@ -166,7 +166,7 @@ async function boot() {
     if (moment.active) mx = mz = 0; // the fight drops his presses while a moment is on, and keeps the releases
     const held = lessons.active && !!lessons.frozen, sd = held ? 0 : fight.step(dt * pace, mx, mz, ev), kv = dir.kv; if (held) fight.ev.length = 0;
     // a reward scene: the hero's clip runs on the scene's clock, and its beats (the blows) fire on the frame they land
-    if (king.sim.rite) { if (rewardRun.kind !== king.sim.rite) { beginReward(king.sim.rite, m); rewardRun.begin(king.sim.rite); } syncReward(m, king.sim.stage); if (king.sim.rite === 'ride') rideBeats(king.sim, m, rKit, rewardRun, king.sim.stage, t); } else if (rewardRun.kind) { rewardRun.end(m); }
+    if (king.sim.rite) { if (rewardRun.kind !== king.sim.rite) { beginReward(king.sim.rite, m); rewardRun.begin(king.sim.rite); } syncReward(m, king.sim.stage); if (king.sim.rite === 'ride') rideBeats(king.sim, m, rKit, rewardRun, king.sim.stage, t); else ropeBeats(king.sim, m, rKit, rewardRun, king.sim.stage, t); } else if (rewardRun.kind) { rewardRun.end(m); }
     { const want = king.sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(kSpecs[want]); } else moment.stop(); } }
     // a staged moment's cues: its sound, its dust, its shake; and its letterbox (the bars slide in and out by themselves)
     for (const name of moment.due(king.sim.stage)) kingCue(name);

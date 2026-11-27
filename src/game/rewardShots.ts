@@ -10,7 +10,7 @@ import type { MomentSpec } from './moment.ts';
 import type { Motor } from '../player/motor.ts';
 import type { Fx } from '../render/impact.ts';
 import { RewardChain } from './rewardChain.ts';
-import { RideGeo } from './kingRewards.ts';
+import { RideGeo, RopeGeo } from './kingRewards.ts';
 import { KHANDA } from '../weapons/khanda.ts';
 import { CHAIN, LANTERN, type River } from '../boss/river/river.ts';
 import type { RiverView } from '../boss/river/riverView.ts';
@@ -43,7 +43,7 @@ function clipFor(kind: RewardKind): Clip {
   const c = KHANDA.clips; let made: Clip;
   if (kind === 'lantern') made = retime('rewardLantern', c.light3, LANTERN_LEN, warp([[0, 0.55], [0.2, 1.0], [0.255, LANTERN.hit], [0.33, LANTERN.hit + 0.3], [0.74, 2.7], [0.74, LANTERN_LEN]]));
   else if (kind === 'chain') made = retime('rewardChain', c.light3, CHAIN_LEN, warp([[0, 0.4], [0.2, 1.05], [0.285, CHAIN.hit], [0.36, CHAIN.hit + 0.3], [0.74, 2.9], [0.74, CHAIN_LEN]]));
-  else if (kind === 'rope') made = retime('rewardRope', c.light5, RIP.len + 0.5, warp([[0, 0.3], [0.53, RIP.cut], [1.5, RIP.len + 0.5]]));
+  else if (kind === 'rope') made = retime('rewardRope', c.risingCut, RIP.len, warp([[0, 0.4], [0.2, 0.85], [0.28, 1.0], [0.5, 1.3], [1.05, 1.9]]));
   else made = compose('rewardRide', RIDE.len, RIDE.hits.map((h, i) => i < RIDE.hits.length - 1 ? { src: c.light3, hit: 0.255, at: h, k: 1.1 } : { src: c.light5, hit: 0.53, at: h, k: 0.8 }));
   CLIPS[kind] = made; return made;
 }
@@ -69,11 +69,11 @@ export function syncReward(m: Motor, stage: number) { if (m.state === 'clip' && 
 
 /** One reward's run: the wall-clock hit-stop, and the effects that fire once at each cue. */
 export class RewardRun {
-  kind: RewardKind | null = null; /** The hero's drawn offset on the last frame: where he really stands once the scene lets go of him. */ last = V(); lantern = new LanternGeo(); chainGeo = new ChainGeo(); ride = new RideGeo(); private hitAts = new Map<number, number>(); chain: RewardChain | null = null; private lastT = -1; /** Seconds since the last call, from the scene's clock (0 on the first). */ tick(time: number) { const d = this.lastT < 0 ? 0 : Math.min(0.05, Math.max(0, time - this.lastT)); this.lastT = time; return d; } private hitAt = -1; private fired = new Set<string>();
+  kind: RewardKind | null = null; /** The hero's drawn offset on the last frame: where he really stands once the scene lets go of him. */ last = V(); lantern = new LanternGeo(); chainGeo = new ChainGeo(); ride = new RideGeo(); rope = new RopeGeo(); rope2: RewardChain | null = null; ropeBroken = false; private hitAts = new Map<number, number>(); chain: RewardChain | null = null; private lastT = -1; /** Seconds since the last call, from the scene's clock (0 on the first). */ tick(time: number) { const d = this.lastT < 0 ? 0 : Math.min(0.05, Math.max(0, time - this.lastT)); this.lastT = time; return d; } private hitAt = -1; private fired = new Set<string>();
   private kit: RewardKit;
   constructor(kit: RewardKit) { this.kit = kit; }
-  begin(kind: RewardKind) { this.kind = kind; this.lantern.ready = false; this.chainGeo.ready = false; this.ride.ready = false; this.hitAts.clear(); this.lastT = -1; this.hitAt = -1; this.fired.clear(); }
-  end(m?: Motor) { if (m) { m.x += this.last.x; m.z += this.last.z; } this.last.set(0, 0, 0); this.lantern.ready = false; this.chainGeo.ready = false; this.ride.ready = false; this.hitAts.clear(); this.lastT = -1; this.chain?.hide(); if (this.kit.river) this.kit.river.poleAim = null; this.kind = null; this.hitAt = -1; this.fired.clear(); if (this.kit.river) this.kit.river.lampHidden = false; }
+  begin(kind: RewardKind) { this.kind = kind; this.lantern.ready = false; this.chainGeo.ready = false; this.ride.ready = false; this.rope.ready = false; this.ropeBroken = false; this.hitAts.clear(); this.lastT = -1; this.hitAt = -1; this.fired.clear(); }
+  end(m?: Motor) { if (m) { m.x += this.last.x; m.z += this.last.z; } this.last.set(0, 0, 0); this.lantern.ready = false; this.chainGeo.ready = false; this.ride.ready = false; this.rope.ready = false; this.ropeBroken = false; this.rope2?.hide(); this.hitAts.clear(); this.lastT = -1; this.chain?.hide(); if (this.kit.river) this.kit.river.poleAim = null; if (this.kit.king) { this.kit.king.ropeCut = false; this.kit.king.dip = 0; } this.kind = null; this.hitAt = -1; this.fired.clear(); if (this.kit.river) this.kit.river.lampHidden = false; }
   /** A once-only cue on the scene's clock. */
   once(name: string, t: number, at: number, f: () => void) { if (t >= at && !this.fired.has(name)) { this.fired.add(name); f(); } }
   /** The rate with several blows: slow into each, and hold still for HITSTOP_MS of real time on the frame each lands. */

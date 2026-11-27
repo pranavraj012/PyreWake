@@ -160,7 +160,7 @@ export class Ending {
 
 // ---------------------------------------------------------------- the moments (the grabs and the rewards)
 /** Each moment is staged on the boss's own clock (`stage`), so it never runs ahead of or behind the blows: the page plays these specs while the simulation holds the hero. */
-export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope', MomentSpec> {
+export function kingMoments(sim: King, m: Motor): Record<'noose', MomentSpec> {
   /** From the King toward the hero, on the ground, and its right-hand side. */
   const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { ux, uz, sx: -uz, sz: ux }; };
   /** How high his feet are on the noose at its clock (the sim has him where he is in the plane). */
@@ -210,16 +210,5 @@ export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope', Momen
     letterbox: true,
     cues: [{ t: 0, name: 'seize' }, { t: 0.3, name: 'lift' }, { t: NOOSE.swing[0], name: 'swing' }, { t: NOOSE.release, name: 'throw' }, { t: NOOSE.land, name: 'land' }, { t: NOOSE.lie, name: 'rise' }],
   };
-  /** Up the rope: a leap to the rope's foot, a catch, the cut, and the fall with the King. */
-  const rope: MomentSpec = {
-    frame: (t, eye, at) => { const { ux, uz, sx, sz } = away(), c = E(0.2, 0.95, t), cut = E(RIP.cut, RIP.cut + 0.6, t);
-      // from the hero's side and a little round, so the rope does not hide the King
-      eye.set(sim.x + ux * (7.5 - 1.5 * cut) + sx * (6.0 - 1.5 * cut), 4.6 - 1.4 * cut, sim.z + uz * (7.5 - 1.5 * cut) + sz * (6.0 - 1.5 * cut)); at.set(sim.x, 6.0 + 0.8 * c - 4.2 * cut, sim.z); return 50 - 4 * cut; },
-    hero: (t, o) => { const { ux, uz } = away(), c = E(0.2, 0.95, t), gx = ux * 0.9, gz = uz * 0.9; const hx = m.x - sim.x, hz = m.z - sim.z;
-      const fall = Math.max(0, Math.min(1, (t - RIP.cut - 0.2) / 0.9));
-      o.set((gx - hx) * c, t < RIP.cut ? 8.4 * c : 8.4 * (1 - fall * fall), (gz - hz) * c); },
-    tumble: t => t > RIP.cut + 0.3 ? Math.min(2.2, (t - RIP.cut - 0.3) * 3) : 0,
-    rate: t => t > RIP.cut - 0.1 && t < RIP.cut + 0.15 ? 0.3 : 1,
-  };
-  return { noose, rope };
+  return { noose };
 }

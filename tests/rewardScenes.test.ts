@@ -64,3 +64,22 @@ describe('the ride scene', () => {
     expect(top).toBeLessThan(3); expect(air).toBeLessThan(0.8);
   });
 });
+
+import { RopeGeo, ROPE_GO } from '../src/game/kingRewards.ts';
+import { RIP, ROPE } from '../src/boss/king.ts';
+
+describe('the rope scene', () => {
+  it('the cut is on the rope, above his ankles; the hero leaps in place on the game\'s gravity and ends on the floor', () => {
+    for (const th of [0, 0.3, -0.5]) for (const dir of [0, 2, 4]) {
+      const sim = new King(); sim.x = 1; sim.z = -3; sim.th = th; sim.dir = dir; const geo = new RopeGeo().ends(sim);
+      expect(geo.cut.y).toBeGreaterThan(geo.ankle.y); expect(geo.cut.y).toBeLessThan(ROPE); expect(geo.ankle.y).toBeGreaterThan(4.5);
+      expect(geo.cut.distanceTo(geo.pivot) + geo.cut.distanceTo(geo.ankle)).toBeCloseTo(geo.pivot.distanceTo(geo.ankle), 4);
+    }
+    const geo = new RopeGeo(); let top = 0, air = 0; for (let t = 0; t < RIP.len; t += 1 / 60) { const y = geo.heroY(t); top = Math.max(top, y); if (y > 0.05) air += 1 / 60; }
+    expect(top).toBeLessThan(1.6); expect(air).toBeLessThan(0.8); expect(geo.heroY(RIP.len)).toBeCloseTo(0, 1);
+  });
+  it('the fire reaches the rope in the time between the release and the cut, at a speed a thrown blade of fire could have', () => {
+    const sim = new King(); sim.x = 0; sim.z = -3; const geo = new RopeGeo().ends(sim), from = new THREE.Vector3(0, 2.0, 2);
+    const speed = from.distanceTo(geo.cut) / (RIP.cut - ROPE_GO.release); expect(RIP.cut).toBeGreaterThan(ROPE_GO.release); expect(speed).toBeLessThan(60);
+  });
+});
