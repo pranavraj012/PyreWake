@@ -107,9 +107,9 @@ export class King {
   }
   /** One grab per boss: its first throw in a fight is forced to connect; later throws can be dodged. Round 1 starts a fight afresh. */
   grabbedOnce = false; forcesGrab() { return !this.grabbedOnce; }
-  reset() { if (this.form === 1) this.grabbedOnce = false; this.clearMoments(); }
+  reset() { if (this.form === 1) this.grabbedOnce = false; this.offered = false; this.clearMoments(); }
   /** A fresh start: no moment is playing and no reward is on offer. */
-  clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; }
+  clearMoments() { this.held = null; this.rite = null; this.reward = null; this.rewardLeft = 0; this.stage = this.sp = 0; this.buckle = 0; }
   /** Which staged moment is playing, if any (the page stages the camera and the hero for it). */
   get staging(): 'noose' | 'rope' | 'ride' | null { return this.held ?? this.rite; }
   /** The hero's throat at the noose's clock t (the hand holds it there), and the King's turn. He is lifted, the King turns him once round (swing), then he is thrown in an arc to where he lands (release, land). */
