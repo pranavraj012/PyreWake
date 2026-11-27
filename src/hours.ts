@@ -95,7 +95,7 @@ export async function bootHours(c: Ctx) {
   dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 4 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
   turn.onEnd = () => { follow.snap(m, sim); hd.teach(); }; const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2')); m.z = direct ? 5.2 : 15.5;
   /** The one reset: every death, the retry, the menu and a fresh start run it (Fight resets the fight, this clears the page). */
-  fight.onReset = () => { moment.reset(); staged = null; qte.hide(); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; hud.verse(''); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
+  fight.onReset = () => { moment.reset(); staged = null; qte.hide(); ending.stop(); turn.stop(); hd.reset(); prompts.reset(); turnWait = -1; hud.verse(''); sound.score?.set(fight.round === 2 ? 'pall' : 'hours'); };
   hud.onRestart = () => { fight.reset(fight.phase === 'won'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
