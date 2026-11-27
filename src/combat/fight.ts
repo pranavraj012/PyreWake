@@ -280,7 +280,7 @@ export class Fight {
   get trail() { return this.boomAt; }
   /** The scene is over: round 2 begins whole, and is a checkpoint. */
   beginRound2() {
-    const m = this.m, k = this.king; this.round = 2; this.phase = 'r2'; this.hp = D.hp; this.heals = D.heals; this.flame = true; this.bossHp = k.hp[1]; this.hazards.length = 0; this.shots.length = 0; this.invuln = 1.2; this.slowT = this.stop = 0; this.reelCd = 2; this.sceneMove = { x: 0, z: 0 };
+    const m = this.m, k = this.king; this.round = 2; this.phase = 'r2'; this.fire = 50; this.hp = D.hp; this.heals = D.heals; this.flame = true; this.bossHp = k.hp[1]; this.hazards.length = 0; this.shots.length = 0; this.invuln = 1.2; this.slowT = this.stop = 0; this.reelCd = 2; this.sceneMove = { x: 0, z: 0 };
     k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2' && k.mode !== 'riseW') k.set('idle'); k.reset?.(); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' }); this.wakeAt2 = this.wake;
   }
   reset(all = false) {
