@@ -29,7 +29,7 @@ import { SisterView } from './boss/hours/sisterView.ts';
 import { PallView } from './boss/hours/pallView.ts';
 import { HoursDirector } from './boss/hours/hoursDirector.ts';
 import { HOURS_NAMES } from './game/hoursScript.ts';
-import { Moment, Prompt, type MomentSpec } from './game/moment.ts';
+import { Moment, Offer, Prompt, offerSpec, type MomentSpec } from './game/moment.ts';
 import { GRIP, PIERCE, gripLift, gripTumble } from './boss/hours/sister.ts';
 import { HoursIntro, HoursTurn, HoursEnding } from './game/hoursScenes.ts';
 import type { Ctx } from './core/boot.ts';
@@ -89,7 +89,8 @@ export async function bootHours(c: Ctx) {
   };
   hd.onGrab = () => { staged = 'hurl'; moment.start(hurl); };
   hd.onFree = () => { if (staged === 'hurl') { moment.stop(); staged = null; follow.snap(m, sim); } };
-  hd.onOpen = () => qte.show('attack', 'Climb her', PIERCE.window, input.lastDevice);
+  // the chance to climb her: the same low looming shot the Ferryman and the King offer (it slows time and frames her), then the press
+  const offer = new Offer(moment, offerSpec(m, () => ({ x: sim.hx, y: 1.9, z: sim.hz })), (_r, secs) => qte.show('attack', 'Climb her', secs, input.lastDevice));
   hd.onStrike = () => m.begin('flick');
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, house, hd }, intro = new HoursIntro(kit), turn = new HoursTurn(kit), ending = new HoursEnding(kit);
   dir.onHalf = () => { turnWait = 0.9; if (Q.has('turn')) fight.passive = false; }; dir.onWon = () => { saveSettings({ beaten: settings.beaten | 4 }); ending.start(); }; let turnWait = -1, t = 0, frames = 0;
@@ -121,7 +122,7 @@ export async function bootHours(c: Ctx) {
     else if (intro.active) { if (intro.t > 0.6 && ev.some(e => !e.up)) intro.skip(); else mz = intro.step(dt, t); ev = []; }
     else { const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move; mx = mv.x * cc - mv.y * s; mz = -mv.x * s - mv.y * cc; }
     // a staged moment: the fight goes on beneath it, but the hero is the scene's
-    qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.climb()) { qte.hide(); climbFrom.set(m.x, 0, m.z); staged = 'climb'; moment.start(climb); }
+    offer.step(dt, sim.mode === 'sag' && sim.open > 0 ? 'climb' : null, sim.open, staged !== null); qte.step(dt); if (qte.on && ev.some(e => e.a === 'attack' && !e.up) && sim.climb()) { qte.hide(); climbFrom.set(m.x, 0, m.z); staged = 'climb'; moment.start(climb); }
     if (staged === 'climb' && sim.mode !== 'pierced') { moment.stop(); staged = null; follow.snap(m, sim); }
     if (moment.active) { ev = []; mx = mz = 0; } pv.tumble = moment.hero(sim.mt, pv.offset);
     if (turn.active && ev.some(e => !e.up)) turn.skip(); if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
@@ -152,7 +153,7 @@ export async function bootHours(c: Ctx) {
     else if (intro.active) intro.camera(cam, t, c.baseFov());
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, c.baseFov())) { follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5 && !sim.hidden, h: sim.form === 2 ? v2.camH : 2.2 }, input.takeLook(), t, c.baseFov());
-    document.body.classList.toggle("letter", moment.letterbox);
+    document.body.classList.toggle('letter', moment.letterbox);
     if (!SHOT && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
     { const fz = cam.userData.focus as THREE.Vector3 | undefined, film = menu.open || turn.active || ending.active || intro.active, on = film || cam.userData.frame === true, want = on && fz ? (menu.open ? 0.4 : film ? 0.8 : 0.6) : 0; cam.userData.frame = false; post.dof.amt += (want - post.dof.amt) * (want && post.dof.amt < 0.02 ? 1 : Math.min(1, ms / 90)); if (fz) post.dof.focus = Math.max(0.5, fz.distanceTo(cam.position)); }
     c.sky.position.copy(cam.position); cam.updateMatrixWorld();
