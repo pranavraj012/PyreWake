@@ -2,6 +2,7 @@
 import { onSettings, settings } from '../core/settings.ts';
 import { Score } from './score.ts';
 import { Tracks } from './tracks.ts';
+import { keepAudioAwake } from './resume.ts';
 
 /** Tuned to the score: never detuned at random. */
 const EXACT = /^(doom|drop|braam|rise|riser|swell|barFill|aura|finalCut|ritesCut|uiGo|die|heart|break|parry|perfect)/;
@@ -32,7 +33,7 @@ class Sound {
       const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.18; comp.connect(clip);
       this.lp = c.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 20000; this.lp.connect(comp); this.master = g(this.muted ? 0 : 0.9, this.lp);
       this.duckG = g(1, this.master); this.bus = { sfx: g(0.68, this.master), voice: g(0.6, this.master), amb: g(0.32, this.duckG), music: g(0.32, this.duckG) };
-      this.tracks = new Tracks(c, this.bus.music); document.addEventListener('visibilitychange', () => this.tracks?.hush(document.hidden));
+      this.tracks = new Tracks(c, this.bus.music); document.addEventListener('visibilitychange', () => this.tracks?.hush(document.hidden)); keepAudioAwake(c, window, document, () => this.tracks?.resync());
       onSettings(() => this.volumes());
       this.rev = g(0.2, this.master); this.reverb(); this.flush();
     } catch { this.ctx = null; }
