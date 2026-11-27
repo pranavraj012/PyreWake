@@ -2,8 +2,8 @@
 // Headless: the geometry is pure. The damage-once and the heavy-attack cases are in momentStates.test.ts.
 import { describe, expect, it } from 'vitest';
 import { Motor } from '../src/player/motor.ts';
-import { River, LANTERN } from '../src/boss/river/river.ts';
-import { LanternGeo, RewardRun, type RewardKit } from '../src/game/rewardShots.ts';
+import { River, LANTERN, CHAIN } from '../src/boss/river/river.ts';
+import { ChainGeo, LanternGeo, RewardRun, type RewardKit } from '../src/game/rewardShots.ts';
 import * as THREE from 'three';
 
 const kit = { fx: null as never, kick() { } } as RewardKit;
@@ -24,5 +24,23 @@ describe('the lantern scene', () => {
     const p = geo.hero(LANTERN.hit, new THREE.Vector3()); expect(p.y).toBeGreaterThan(1); expect(p.y).toBeLessThan(2);
     expect(Math.hypot(p.x - geo.L.x, p.z - geo.L.z)).toBeLessThan(2.2);
     let top = 0; for (let t = 0; t < LANTERN.len; t += 1 / 60) top = Math.max(top, geo.hero(t, new THREE.Vector3()).y); expect(top).toBeLessThan(2);
+  });
+});
+
+describe('the chain scene', () => {
+  it('ends with the hero on the floor, inside the arena, clear of the boss, whatever the chain and his start', () => {
+    const sim = new River();
+    for (const len of [2.5, 4, 7]) for (let a = 0; a < 6.28; a += 0.8) for (const r of [2, 5, 11]) for (const ex of [0, 15]) {
+      const boss = new THREE.Vector3(ex, 1, -3), anchor = { x: boss.x + len * Math.sin(a), z: boss.z + len * Math.cos(a) }; if (Math.hypot(anchor.x, anchor.z) > 20) continue;
+      sim.x = boss.x; sim.z = boss.z; sim.lastAnchor = anchor; const m = new Motor(); m.x = anchor.x + r * Math.cos(a); m.z = anchor.z - r * Math.sin(a); if (Math.hypot(m.x, m.z) > m.arena - 1) continue;
+      const geo = new ChainGeo(), run = new RewardRun(kit); geo.init(sim, m, boss);
+      const p = geo.hero(CHAIN.len, new THREE.Vector3()); run.last.set(p.x - m.x, p.y, p.z - m.z); run.end(m);
+      expect(p.y).toBeCloseTo(0, 5); expect(Math.hypot(m.x, m.z)).toBeLessThanOrEqual(m.arena - 0.5); expect(Math.hypot(m.x - boss.x, m.z - boss.z)).toBeGreaterThan(1.3);
+    }
+  });
+  it('lands low and quick: the bound is under a metre and under 0.7 s', () => {
+    const sim = new River(); sim.x = 0; sim.z = -4; sim.lastAnchor = { x: 3, z: 0 }; const m = new Motor(); m.x = 2; m.z = 1; const geo = new ChainGeo(); geo.init(sim, m, new THREE.Vector3(0, 1, -4));
+    let top = 0, air = 0; for (let t = 0; t < CHAIN.len; t += 1 / 60) { const y = geo.hero(t, new THREE.Vector3()).y; top = Math.max(top, y); if (y > 0.02) air += 1 / 60; }
+    expect(top).toBeLessThan(1); expect(air).toBeLessThan(0.72);
   });
 });

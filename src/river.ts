@@ -101,7 +101,7 @@ export async function bootRiver(c: Ctx) {
     if (moment.active) mx = mz = 0; // the fight drops his presses while a moment is on, and keeps the releases
     const sd = fight.step(dt * pace, mx, mz, ev), kv = dir.kv;
     // a reward scene: the hero's clip runs on the scene's clock, and its beats (the shatter, the snap) fire on the frame they land
-    if (sim.rite) { if (rewardRun.kind !== sim.rite) { beginReward(sim.rite, m); rewardRun.begin(sim.rite); } syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end(m);
+    if (sim.rite) { if (rewardRun.kind !== sim.rite) { beginReward(sim.rite, m); rewardRun.begin(sim.rite); } syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, m, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end(m);
     { const want = sim.staging; if (want !== staged) { staged = want; dragK = 0; if (want) { qte.hide(); moment.start(want === 'drag' ? dSpec : rSpecs[want]); } else moment.stop(); } }
     // the drag's beats, on the boss's clock: a groan as he is pulled under, the bite, and a slam as he is heaved onto the steps
     // under the water: a green wash over the view, and bubbles rising from him while he is held down
