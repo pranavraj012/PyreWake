@@ -16,6 +16,7 @@ export class Turn {
   constructor(kit: SceneKit, dis: { value: number }) { this.kit = kit; this.dis = dis; }
   onEnd: () => void = () => { };
   get active() { return this.t >= 0; }
+  /** Ends a turn at once (a restart or a return to the menu). */ stop() { this.t = -1; this.rest(); document.body.classList.remove('cine'); }
   private rest() { this.omen = this.dawn = this.mono = this.flash = this.dark = 0; this.flame = this.dim = this.rate = 1; }
   start() { this.t = 0; this.off = false; this.done.clear(); this.burst = false; this.rest(); this.ring = 0; this.lens.cut = 0; const { m, king: k } = this.kit.f; this.A.k.set(k.x, 0, k.z); this.A.d.set(m.x - k.x, 0, m.z - k.z).normalize(); if (Math.hypot(m.x - k.x, m.z - k.z) < 3) { m.revive(k.x + this.A.d.x * 3, k.z + this.A.d.z * 3, Math.atan2(-this.A.d.x, -this.A.d.z)); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.play('kDeath', { x: k.x, z: k.z, bus: 'voice', gain: 1 }); sound.play('doom', { gain: 0.8 }); sound.duck(0.15, 2); sound.score?.set('scene'); }
   private off = false; private at(t: number, id: string, f: () => void) { if (this.t >= t && !this.done.has(id)) { this.done.add(id); if (!this.off) f(); } }

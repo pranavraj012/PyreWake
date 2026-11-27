@@ -28,6 +28,7 @@ export class Moment {
   get active() { return !!this.spec; }
   get letterbox() { return !!this.spec?.letterbox; }
   /** After a stop, the camera eases from where the moment left it to wherever the follow camera puts it. */ private ease = 0; private fromFp = false; private from = new THREE.Vector3(); private fromQ = new THREE.Quaternion(); private last = new THREE.Vector3(); private lastQ = new THREE.Quaternion();
+  /** A hard reset for a fresh attempt: nothing staged, no ease back, no shake. */ reset() { this.spec = null; this.ease = 0; this.fromFp = false; this.trauma = 0; this.cued = 0; }
   start(spec: MomentSpec) { this.spec = spec; this.fresh = true; this.cued = 0; this.trauma = 0; this.ease = 0; }
   stop() { if (this.spec) { this.from.copy(this.last); this.fromQ.copy(this.lastQ); this.ease = EASE_OUT; this.fromFp = !!this.spec.first; } this.spec = null; }
   /** Whether the hero's own body is hidden: in first person, and while the camera is still close to where it was. */
@@ -86,6 +87,7 @@ export class Offer {
   private on = false; private age = 0; private shown = '';
   private moment: Moment; private spec: MomentSpec; private show: (reward: string, secs: number) => void; private settleAt: number;
   constructor(moment: Moment, spec: MomentSpec, show: (reward: string, secs: number) => void, settleAt = 0.9) { this.moment = moment; this.spec = spec; this.show = show; this.settleAt = settleAt; }
+  /** Forgets any offer on the table (a fresh attempt). */ reset() { this.on = false; this.age = 0; this.shown = ''; }
   get active() { return this.on; }
   step(dt: number, reward: string | null, left: number, staged: boolean) {
     if (staged || !reward) { if (this.on) { this.on = false; this.shown = ''; if (!staged) this.moment.stop(); } return; }
