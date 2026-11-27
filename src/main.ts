@@ -38,6 +38,7 @@ import { KING_CLIPS } from './boss/clips.ts';
 import { BENEATH_MODES, KING_MODES } from './boss/king.ts';
 import { KingView } from './boss/kingView.ts';
 import { FollowCam, menuCam } from './game/camera.ts';
+import { mountTheatre } from './dev/theatre.ts';
 import './ui/style.css';
 
 const Q = new URLSearchParams(location.search), SHOT = Q.get('shot'), BENCH = Q.get('bench');
@@ -225,6 +226,8 @@ async function boot() {
     if (!SHOT && !BENCH && frames > 60 && dyn.update(ms)) resize();
     Object.assign(window, { __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: court, __king: king.sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __story: story, __lessons: lessons, __hud: hud, __ending: ending, __sound: sound, __dir: dir, __camPos: () => cam.position.toArray(), __bill: bill, __moment: moment, __qte: qte, __kOffer: kOffer, __menu: menu, __post: post, __FOG: FOG, __moon: moon, __hemi: hemi, __kick: kick });
   };
+  // ?moment=<name> (and, in dev with ?dev, the moment theatre panel): see src/dev/theatre.ts
+  mountTheatre({ Q, boss: 'king', ctx: () => ({ fight, m, sim: king.sim, round2: () => { omen(1); king.show(false); beneath.show(true); fight.beginRound2(); }, halfway: () => dir.onHalf() }), reset: () => { hud.onRestart(); fight.reset(true); king.show(true); beneath.show(false); omen(0); } }).boot();
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }
 /** Each fight past the first has its own page, loaded only when asked for. */

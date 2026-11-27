@@ -49,5 +49,10 @@ export class Tracks {
     if (T.xf && t > end - T.xf) { const old = c; this.cur = this.put(c.name, T.from, T.xf); this.drop(old, T.xf); }
   }
   /** The page was hidden or shown again. */
-  hush(on: boolean) { for (const d of this.decks) if (on) d.el.pause(); else if (d.name) void d.el.play().catch(() => { }); }
+  hush(on: boolean) { if (on) { for (const d of this.decks) d.el.pause(); } else this.resync(); }
+  /** After the page was hidden or the audio was interrupted: the piece that was playing plays again, once (a playing element is left alone, so nothing doubles), and a piece that was fading out stays silent. */
+  resync() {
+    for (const d of this.decks) if (d !== this.cur && d.stopAt) { d.el.pause(); d.stopAt = 0; d.name = null; d.el.playbackRate = 1; d.g.gain.cancelScheduledValues(this.ctx.currentTime); d.g.gain.setValueAtTime(0, this.ctx.currentTime); }
+    const c = this.cur; if (c?.name && this.primed && c.el.paused) void c.el.play().catch(() => { /* waits for a tap */ });
+  }
 }

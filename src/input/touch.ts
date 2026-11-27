@@ -1,6 +1,10 @@
 // On-screen joystick and buttons (multi-touch, safe-area aware).
 import type { Action, Input } from './input.ts';
 import type { Spell } from '../combat/spells.ts';
+import { onViewport, viewport } from '../core/viewport.ts';
+
+/** The buttons and the stick scale with the short side of the page (`--q` in style.css): 0.55 to 1 of the original sizes. */
+export const stickScale = (w: number, h: number) => Math.min(1, Math.max(0.55, Math.min(w, h) / 575));
 
 export const ICON: Record<string, string> = {
   attack: '<path d="M5 19 17 5l2-1-1 2L7 18z M4 16l4 4"/>',
@@ -24,7 +28,7 @@ export function mountTouch(root: HTMLElement, input: Input) {
       `<button class="tb tb-${a}" data-a="${a}" aria-label="${a}"><b></b><svg viewBox="0 0 24 24">${ICON[a]}</svg>${LABEL[a] ? `<i>${LABEL[a]}</i>` : ''}</button>`).join('');
   root.append(ui); input.lastDevice = 'touch';
   const L = ui.querySelector<HTMLElement>('.pad-l')!, R = ui.querySelector<HTMLElement>('.pad-r')!, base = ui.querySelector<HTMLElement>('.base')!, knob = ui.querySelector<HTMLElement>('.knob')!;
-  let sid = -1, ox = 0, oy = 0; const rad = 56;
+  let sid = -1, ox = 0, oy = 0, rad = 56 * stickScale(viewport().w, viewport().h); onViewport(() => { const v = viewport(); rad = 56 * stickScale(v.w, v.h); });
   const move = (e: PointerEvent) => {
     if (e.pointerId !== sid) return;
     let dx = e.clientX - ox, dy = e.clientY - oy; const l = Math.hypot(dx, dy);

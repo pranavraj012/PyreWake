@@ -27,7 +27,7 @@ describe('the Sister of Hours and the Pall', () => {
   });
   it('every move can be dodged: a dodge as each blow comes takes no damage', () => {
     for (const [mode, form, near] of RANGE.filter(r => r[0] !== 'hourHand' && r[0] !== 'noon')) {
-      const { f, k } = go(near + 0.6, mode, form), times = A[mode].map(s => s.t[0] - 0.12).filter((t, i, a) => i === 0 || t - a[i - 1] > 0.3); let ti = 0; f.invuln = 0;
+      const { f, k } = go(near + 0.6, mode, form); if (mode === 'gather') k.grabs = 1; const times = A[mode].map(s => s.t[0] - 0.12).filter((t, i, a) => i === 0 || t - a[i - 1] > 0.3); let ti = 0; f.invuln = 0;
       const ev = run(f, 7, () => { if (ti < times.length && k.mode === mode && k.mt >= times[ti]) { ti++; return tap('dodge'); } return []; });
       expect(n(ev, 'hurt'), mode).toBe(0);
     }
@@ -60,8 +60,14 @@ describe('the Sister of Hours and the Pall', () => {
   it('The Gathering: caught, the Weight of Hours always plays out and costs a great deal', () => {
     const { f, k } = go(5, 'gather', 2); let held = false; run(f, 7, () => { if (k.mode === 'grip') held = true; return []; }); expect(held).toBe(true); expect(100 - f.hp).toBeGreaterThan(30);
   });
+  it('the first Gathering of the Pall always catches, even from the side; the next one can be missed', () => {
+    // she turns to face you as the arm goes out, so the step aside has to come after her turn (about 0.4 s in)
+    const aside = (f: Fight) => (i: number): Press[] => { if (i === 24) { f.m.x = 3.4; f.m.z = -4; } return []; };
+    const first = go(4, 'gather', 2, 0); run(first.f, 4, aside(first.f)); expect(first.k.grabs, 'first grab from the side').toBe(1);
+    const again = go(4, 'gather', 2, 0); again.k.grabs = 1; run(again.f, 4, aside(again.f)); expect(again.k.grabs, 'second grab from the side is not forced').toBe(1);
+  });
   it('a linen arm left on the floor can be cut', () => {
-    const { f, k } = go(4, 'gather', 2, 0.6); f.invuln = 3; run(f, 1.2); expect(k.laid.length).toBe(1);
+    const { f, k } = go(4, 'gather', 2, 0.6); k.grabs = 1; f.invuln = 3; run(f, 1.2); expect(k.laid.length).toBe(1);
     const l = k.laid[0]; f.m.x = l.x + Math.sin(l.yaw) * 5 + Math.cos(l.yaw) * 0.6; f.m.z = l.z + Math.cos(l.yaw) * 5 - Math.sin(l.yaw) * 0.6; f.m.yaw = Math.atan2(-Math.cos(l.yaw), Math.sin(l.yaw));
     let cut = false; run(f, 1, i => i === 2 ? tap('attack') : [], () => { if (k.severed[l.arm] >= 0) cut = true; return [0, 0]; }); expect(cut).toBe(true);
   });

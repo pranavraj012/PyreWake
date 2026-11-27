@@ -45,10 +45,11 @@ export class Sister implements Boss {
   private moved = 0; private side = 1; private sideT = 0; private from = { x: 0, z: 0 }; private cut = new Set<string>(); private px = 0; private pz = 5; private burnedAt = -9;
 
   /** Arms lying on the floor; seconds since each of the six was cut (negative: whole); arms cut since she last staggered. */ laid: Laid[] = []; severed = [-1, -1, -1, -1, -1, -1]; private cuts = 0;
+  /** Grabs made this fight: the first Gathering of the Pall always catches (the scripted first grab). */ grabs = 0;
   /** Seconds left in which the hero can climb her (she is on her knees from two arms cut). */ open = 0;
   get r() { return this.form === 2 ? 1.4 : 0.85; }
   set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; this.counted = 0; if (COUNT.includes(mode)) this.embers = 7; this.hidden = false; this.whorl = null; }
-  reset() { this.laid = []; this.severed = [-1, -1, -1, -1, -1, -1]; this.cuts = 0; this.open = 0; this.counted = 0; this.embers = 7; this.strips = []; this.stake = null; this.lit = 0; this.exposed = 0; this.hidden = false; this.whorl = null; this.sunk = 0; this.hugT = 0; this.out = []; this.y = 0; this.cut.clear(); }
+  reset() { this.grabs = 0; this.laid = []; this.severed = [-1, -1, -1, -1, -1, -1]; this.cuts = 0; this.open = 0; this.counted = 0; this.embers = 7; this.strips = []; this.stake = null; this.lit = 0; this.exposed = 0; this.hidden = false; this.whorl = null; this.sunk = 0; this.hugT = 0; this.out = []; this.y = 0; this.cut.clear(); }
   private say(e: string, x = this.x, z = this.z, n = 0) { this.out.push({ e, x, z, n }); }
 
   get hx() { return this.x; } get hz() { return this.z; } /** What a blow reaches: the drawn hem for the Pall, her frame's radius for the Sister. Her movement keeps using r. */ get hr() { return this.form === 2 ? PALL_HEM : this.r; }
@@ -153,9 +154,9 @@ export class Sister implements Boss {
     // --- the Gathering: the arm goes out; it catches you or it lies on the floor
     if (this.mode === 'gather' && p < 0.95 && mt >= 0.95) {
       const sx = Math.sin(this.yaw), sz = Math.cos(this.yaw), dx = m.x - this.x, dz = m.z - this.z, fw = dx * sx + dz * sz, sd = Math.abs(dx * sz - dz * sx), on = fw > -0.5 && fw < 11 && sd < 1.25;
-      const r = on ? (m.over ? 'over' : m.safe > 0 || m.clip?.name === 'rush' ? 'safe' : f.invuln > 0 ? 'inv' : 'hit') : 'miss';
+      const r = this.grabs === 0 && this.form === 2 ? 'hit' : on ? (m.over ? 'over' : m.safe > 0 || m.clip?.name === 'rush' ? 'safe' : f.invuln > 0 ? 'inv' : 'hit') : 'miss';
       if (r === 'over') f.leapt(); else if (r === 'safe') f.evade();
-      if (r === 'hit') { this.set('grip'); this.say('grab', m.x, m.z); }
+      if (r === 'hit') { this.grabs++; this.set('grip'); this.say('grab', m.x, m.z); }
       else this.lay(1, 10);
     }
     if (this.mode === 'wardStands' && p < 1.3 && mt >= 1.3) [-0.8, -0.4, 0, 0.4, 0.8].forEach((o, i) => this.lay([0, 2, 1, 3, 4][i], 11, o));

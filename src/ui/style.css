@@ -11,23 +11,28 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 #touch { position: absolute; inset: 0; z-index: 3; --r: max(18px, env(safe-area-inset-right)); --b: max(16px, env(safe-area-inset-bottom)); --l: max(24px, env(safe-area-inset-left)); }
 .pad-l { position: absolute; left: 0; top: 12%; bottom: 0; width: 42%; touch-action: none; }
 .pad-r { position: absolute; right: 0; top: 0; bottom: 0; width: 55%; touch-action: none; }
-.base { position: fixed; left: calc(var(--l) + 62px); bottom: calc(var(--b) + 62px); width: 0; height: 0; opacity: .5; }
+/* Touch controls and their icons scale with the short side of the visible page (phones in landscape: about 0.68 of the old sizes; tablets: the old sizes). Keep in step with stickReach() in src/input/touch.ts. */
+:root { --q: 1px; }
+body.touch { --u: min(var(--vw, 100vw), var(--vh, 100dvh)); --q: clamp(0.55px, calc(var(--u) / 575), 1px); }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.base { position: fixed; left: calc(var(--l) + var(--q) * 62); bottom: calc(var(--b) + var(--q) * 62); width: 0; height: 0; opacity: .5; }
 .base.on { left: 0; top: 0; bottom: auto; opacity: .95; }
-.base::before { content: ""; position: absolute; inset: -58px; border-radius: 50%; border: 1.5px solid #d8cfc0aa; background: radial-gradient(#0000, #0006); }
-.knob { position: absolute; left: -26px; top: -26px; width: 52px; height: 52px; border-radius: 50%; background: radial-gradient(#e9dfce99, #8f847577); border: 1px solid #f3e9d8aa; }
-.tb { position: absolute; padding: 0; border-radius: 50%; border: 1.5px solid #d8cfc088; background: radial-gradient(#1a1613aa, #000a); color: #e8dfd0; width: 60px; height: 60px; display: grid; place-items: center; touch-action: none; }
+.base::before { content: ""; position: absolute; inset: calc(var(--q) * -58); border-radius: 50%; border: 1.5px solid #d8cfc0aa; background: radial-gradient(#0000, #0006); }
+.knob { position: absolute; left: calc(var(--q) * -26); top: calc(var(--q) * -26); width: calc(var(--q) * 52); height: calc(var(--q) * 52); border-radius: 50%; background: radial-gradient(#e9dfce99, #8f847577); border: 1px solid #f3e9d8aa; }
+.tb { position: absolute; padding: 0; border-radius: 50%; border: 1.5px solid #d8cfc088; background: radial-gradient(#1a1613aa, #000a); color: #e8dfd0; width: max(44px, calc(var(--q) * 60)); height: max(44px, calc(var(--q) * 60)); display: grid; place-items: center; touch-action: none; }
 .tb svg { width: 52%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.tb i { position: absolute; bottom: 5px; font: 600 8.5px system-ui; letter-spacing: .04em; opacity: .8; }
+.tb i { position: absolute; bottom: 5px; font: 600 max(8px, calc(var(--q) * 8.5)) system-ui; letter-spacing: .04em; opacity: .8; }
 .tb.dn { background: radial-gradient(#ff8a3a66, #2008); border-color: #ffb27a; }
-.tb-attack { width: 88px; height: 88px; right: var(--r); bottom: var(--b); border-color: #e7b98a; }
-.tb-dodge { width: 66px; height: 66px; right: calc(var(--r) + 98px); bottom: var(--b); }
-.tb-guard { width: 66px; height: 66px; right: calc(var(--r) + 84px); bottom: calc(var(--b) + 76px); }
-.tb-jump { width: 58px; height: 58px; right: calc(var(--r) + 158px); bottom: calc(var(--b) + 68px); }
-.tb-skill1 { right: calc(var(--r) + 14px); bottom: calc(var(--b) + 98px); }
-.tb-skill2 { right: calc(var(--r) + 14px); bottom: calc(var(--b) + 166px); }
-.tb-ultimate { right: calc(var(--r) + 88px); bottom: calc(var(--b) + 152px); opacity: 0; pointer-events: none; transition: opacity .3s; } .tb-ultimate.ready { opacity: 1; pointer-events: auto; }
-.tb-heal { width: 52px; height: 52px; right: calc(var(--r) + 174px); bottom: calc(var(--b) + 2px); }
-.tb-pause { width: 38px; height: 38px; right: var(--r); top: 12px; opacity: .7; }
+.tb-attack { width: max(56px, calc(var(--q) * 88)); height: max(56px, calc(var(--q) * 88)); right: var(--r); bottom: var(--b); border-color: #e7b98a; }
+.tb-dodge { width: max(44px, calc(var(--q) * 66)); height: max(44px, calc(var(--q) * 66)); right: calc(var(--r) + calc(var(--q) * 98)); bottom: var(--b); }
+.tb-guard { width: max(44px, calc(var(--q) * 66)); height: max(44px, calc(var(--q) * 66)); right: calc(var(--r) + calc(var(--q) * 84)); bottom: calc(var(--b) + calc(var(--q) * 76)); }
+.tb-jump { width: max(44px, calc(var(--q) * 58)); height: max(44px, calc(var(--q) * 58)); right: calc(var(--r) + calc(var(--q) * 158)); bottom: calc(var(--b) + calc(var(--q) * 68)); }
+.tb-skill1 { right: calc(var(--r) + calc(var(--q) * 14)); bottom: calc(var(--b) + calc(var(--q) * 98)); }
+.tb-skill2 { right: calc(var(--r) + calc(var(--q) * 14)); bottom: calc(var(--b) + calc(var(--q) * 166)); }
+.tb-ultimate { right: calc(var(--r) + calc(var(--q) * 88)); bottom: calc(var(--b) + calc(var(--q) * 152)); opacity: 0; pointer-events: none; transition: opacity .3s; } .tb-ultimate.ready { opacity: 1; pointer-events: auto; }
+.tb-heal { width: max(44px, calc(var(--q) * 52)); height: max(44px, calc(var(--q) * 52)); right: calc(var(--r) + calc(var(--q) * 174)); bottom: calc(var(--b) + calc(var(--q) * 2)); }
+.tb-pause { width: max(34px, calc(var(--q) * 38)); height: max(34px, calc(var(--q) * 38)); right: var(--r); top: 12px; opacity: .7; }
+.touch .prompt svg { width: max(18px, calc(var(--q) * 24)); height: max(18px, calc(var(--q) * 24)); }
 #app::before, #app::after { content: ""; position: absolute; left: 0; right: 0; height: 0; background: #000; z-index: 2; transition: height .7s ease; pointer-events: none; }
 #app::before { top: 0; } #app::after { bottom: 0; }
 .cine #app::before, .cine #app::after, .letter #app::before, .letter #app::after { height: 11%; }
