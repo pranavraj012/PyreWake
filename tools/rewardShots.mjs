@@ -13,12 +13,12 @@ const OUT = outArg ?? path.join('shots_out', 'A5');
 fs.mkdirSync(OUT, { recursive: true });
 /** The scene times (stage seconds) to film. The contact is frame-held for the hit-stop, so a few frames sit on it. */
 const TIMES = {
-  lantern: [0.0, 0.2, 0.4, 0.55, 0.75, 0.95, 1.19, 1.25, 1.35, 1.5, 1.7, 1.95, 2.3, 2.7, 3.1, 3.38],
+  lantern: [0.0, 0.2, 0.4, 0.6, 0.85, 1.05, 1.19, 1.25, 1.35, 1.5, 1.7, 1.95, 2.3, 2.7, 3.1, 3.38],
   chain: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.35, 1.46, 1.5, 1.58, 1.8, 2.2, 2.6, 3.0, 3.38],
   rope: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2, 2.6, 3.0, 3.4, 3.7],
-  ride: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.15, 1.3, 1.5, 1.7, 1.9, 2.2, 2.5, 2.8, 3.1, 3.3],
+  ride: [0.0, 0.4, 0.8, 1.0, 1.15, 1.3, 1.45, 1.75, 1.95, 2.2, 2.4, 2.7, 3.0, 3.3, 3.6, 3.78],
 }[kind];
-const LEN = { lantern: 3.4, chain: 3.4, rope: 3.7, ride: 3.3 }[kind];
+const LEN = { lantern: 3.4, chain: 3.4, rope: 3.7, ride: 3.8 }[kind];
 const PORT = 5240;
 const srv = await createServer({ server: { port: PORT }, logLevel: 'error' }); await srv.listen();
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--force-high-performance-gpu', '--autoplay-policy=no-user-gesture-required'] });
@@ -44,7 +44,8 @@ if (kind === 'lantern' || kind === 'chain') {
   if (kind === 'lantern') await p.evaluate(() => { __king.reward = 'lantern'; __king.rewardLeft = 1.8; });
   else await p.evaluate(() => { const k = __king; k.chain = { x: 2.6, z: 1.0, len: 4, hp: 1, t: 0, cut: 0 }; k.lastAnchor = { x: 2.6, z: 1.0 }; k.offer('chain'); });
 } else {
-  await p.evaluate(() => { __f.passive = true; __f.invuln = 99; __f.hp = 100; __king.set('hang'); __m.revive(0, __king.z + 2.2, Math.PI); });
+  if (kind === 'ride') await p.evaluate(() => { __f.passive = true; __f.invuln = 99; __f.hp = 100; __king.set('idle'); __king.x = 0; __king.z = -4; __m.revive(1.5, __king.z + 4.5, Math.PI); });
+  else await p.evaluate(() => { __f.passive = true; __f.invuln = 99; __f.hp = 100; __king.set('hang'); __m.revive(0, __king.z + 2.2, Math.PI); });
   await run(600);
   await p.evaluate(kind => { __king.reward = kind; __king.rewardLeft = 1.8; }, kind === 'rope' ? 'rope' : 'ride');
 }

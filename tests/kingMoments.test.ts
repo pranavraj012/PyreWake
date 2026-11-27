@@ -68,7 +68,7 @@ describe('the rewards', () => {
     const f = mk(2); K(f).set('hang'); steps(f, 1.0); expect(K(f).reward).toBe('rope');
     K(f).reward = null; K(f).set('noose'); K(f).held = 'noose'; steps(f, 0.3);
     expect(K(f).reward).toBeNull();
-    expect(RIP.cut).toBeLessThan(RIP.len); expect(RIDE.hit).toBeLessThan(RIDE.len); expect(NOOSE.land).toBeLessThan(NOOSE.end);
+    expect(RIP.cut).toBeLessThan(RIP.len); expect(RIDE.hits[0]).toBeLessThan(RIDE.len); expect(NOOSE.land).toBeLessThan(NOOSE.end);
   });
 });
 

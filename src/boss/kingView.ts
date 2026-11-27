@@ -58,6 +58,7 @@ export class KingView {
     for (const n of ['hips', 'spine1', 'spine2', 'chest', 'thigh.L', 'thigh.R', 'shin.L', 'shin.R', 'head', 'foreArm.L', 'hand.L']) { this.rig.bones[this.rig.i(n)].getWorldPosition(p); const k = Math.max(0, Math.min(1, p.clone().sub(a).dot(ab) / L)), q = a.clone().addScaledVector(ab, k), d = q.distanceTo(p); if (d < best) { best = d; out.copy(q).lerp(p, Math.min(1, 0.55 + Math.max(0, d - 0.5))); } }
     return out;
   }
+  /** A scene sinks him this far (metres) under a blow: the ride's buckle. Zero leaves him alone. */ dip = 0;
   mark(m: 'cleaver' | 'handL' | 'head', out: THREE.Vector3) { return m === 'head' ? this.rig.bones[this.rig.i('head')].localToWorld(out.set(0, 0.1, 0.1)) : m === 'cleaver' ? (this.cleaver.visible ? this.cleaver.localToWorld(out.set(0, 1.1, 0)) : this.rig.bones[this.rig.i('hand.R')].localToWorld(out.set(0, -0.3, 0))) : this.rig.bones[this.rig.i('hand.L')].localToWorld(out.set(0, -0.2, 0)); }
   /** Where the body can be struck right now (world). */
   hurt(out: THREE.Vector3) { this.rig.bones[this.rig.i(this.sim.hanging ? 'head' : 'chest')].getWorldPosition(out); return out; }
@@ -95,7 +96,7 @@ export class KingView {
       g.quaternion.copy(q).multiply(yq).multiply(flip); const local = V(0, 0.14, 0).applyQuaternion(g.quaternion); g.position.set(S0.x + (off.x - local.x - S0.x) * up, (off.y - local.y) * up, S0.z + (off.z - local.z - S0.z) * up);
       const L = pivot.distanceTo(off); this.rope.position.copy(pivot); this.rope.quaternion.copy(q); this.rope.scale.set(1.1, (L + 0.1) / 6.2, 1.1);
      
-    } else { g.position.set(S0.x, S0.y, S0.z); { const y = S0.yaw; g.position.x -= Math.sin(y) * lim4(this.fl[3], 0.12); g.position.z -= Math.cos(y) * lim4(this.fl[3], 0.12); } g.rotation.set(0, S0.yaw + p[IX.tw] * 0.01745, 0); }
+    } else { g.position.set(S0.x, S0.y - this.dip, S0.z); { const y = S0.yaw; g.position.x -= Math.sin(y) * lim4(this.fl[3], 0.12); g.position.z -= Math.cos(y) * lim4(this.fl[3], 0.12); } g.rotation.set(0, S0.yaw + p[IX.tw] * 0.01745, 0); }
     g.updateMatrixWorld(true); const root = this.rootM.copy(g.matrixWorld), inv = root.clone().invert(), lim = this.body.limbs;
 
     // --- limbs

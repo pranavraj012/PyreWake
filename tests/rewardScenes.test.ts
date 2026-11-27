@@ -44,3 +44,23 @@ describe('the chain scene', () => {
     expect(top).toBeLessThan(1); expect(air).toBeLessThan(0.72);
   });
 });
+
+import { King, RIDE } from '../src/boss/king.ts';
+import { RideGeo } from '../src/game/kingRewards.ts';
+
+describe('the ride scene', () => {
+  it('ends with the hero on the floor, inside the arena, clear of the King, whatever his start and the King\'s facing', () => {
+    for (const yaw of [0, 1.3, 2.9, -2]) for (const kx of [0, 14, -14]) for (const [dx, dz] of [[3, 3], [-4, 2], [0, -5], [5, -5], [-2, 7]]) {
+      const sim = new King(); sim.x = kx; sim.z = -3; sim.yaw = yaw; const m = new Motor(); m.x = kx + dx; m.z = -3 + dz; if (Math.hypot(m.x, m.z) > m.arena - 1) continue;
+      const geo = new RideGeo(), run = new RewardRun(kit), chest = new THREE.Vector3(kx, 1.7, -3); geo.init(sim, m, chest);
+      const p = geo.hero(sim, chest, RIDE.len, new THREE.Vector3()); run.last.set(p.x - m.x, p.y, p.z - m.z); run.end(m);
+      expect(p.y).toBeCloseTo(0, 5); expect(Math.hypot(m.x, m.z)).toBeLessThanOrEqual(m.arena - 0.5); expect(Math.hypot(m.x - sim.x, m.z - sim.z)).toBeGreaterThan(1.8);
+    }
+  });
+  it('is on his back at every blow, and his leap is the game\'s own gravity (under 3 m, under 0.8 s)', () => {
+    const sim = new King(); sim.x = 0; sim.z = -4; sim.yaw = 0; const m = new Motor(); m.x = 1.5; m.z = 0.5; const geo = new RideGeo(), chest = new THREE.Vector3(0, 1.7, -4.5); geo.init(sim, m, chest);
+    for (const h of RIDE.hits) { const p = geo.hero(sim, chest, h, new THREE.Vector3()), b = geo.back(chest, new THREE.Vector3()); expect(Math.hypot(p.x - b.x, p.z - b.z)).toBeLessThan(0.05); expect(Math.abs(p.y - b.y)).toBeLessThan(0.3); }
+    let top = 0, air = 0; for (let t = 0; t < RIDE.hits[0]; t += 1 / 60) { const y = geo.hero(sim, chest, t, new THREE.Vector3()).y; top = Math.max(top, y); if (y > 0.05) air += 1 / 60; }
+    expect(top).toBeLessThan(3); expect(air).toBeLessThan(0.8);
+  });
+});

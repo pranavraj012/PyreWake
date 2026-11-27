@@ -160,7 +160,7 @@ export class Ending {
 
 // ---------------------------------------------------------------- the moments (the grabs and the rewards)
 /** Each moment is staged on the boss's own clock (`stage`), so it never runs ahead of or behind the blows: the page plays these specs while the simulation holds the hero. */
-export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope' | 'ride', MomentSpec> {
+export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope', MomentSpec> {
   /** From the King toward the hero, on the ground, and its right-hand side. */
   const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { ux, uz, sx: -uz, sz: ux }; };
   /** How high his feet are on the noose at its clock (the sim has him where he is in the plane). */
@@ -221,16 +221,5 @@ export function kingMoments(sim: King, m: Motor): Record<'noose' | 'rope' | 'rid
     tumble: t => t > RIP.cut + 0.3 ? Math.min(2.2, (t - RIP.cut - 0.3) * 3) : 0,
     rate: t => t > RIP.cut - 0.1 && t < RIP.cut + 0.15 ? 0.3 : 1,
   };
-  /** On his back: the hero leaps up onto him, drives the khanda in, and is thrown off to the side. */
-  const ride: MomentSpec = {
-    frame: (t, eye, at) => { const { sx, sz } = away(), u = E(0.6, 0.9, t), d = E(2.2, 2.8, t);
-      eye.set(sim.x - sx * 4.8 + Math.sin(sim.yaw) * 1.6, 2.6 - 0.4 * u + 0.8 * d, sim.z - sz * 4.8 + Math.cos(sim.yaw) * 1.6); at.set(sim.x, 1.5 + 0.3 * u, sim.z); return 50 - 4 * u; },
-    hero: (t, o) => { const { sx, sz } = away(), c = E(0, 0.6, t), d = E(2.2, 2.8, t), bx = sim.x - m.x, bz = sim.z - m.z;
-      // the leap lands on his back; the khanda goes in at RIDE.hit (a dip); the hero is thrown off to the side at the end
-      const y = t < 0.6 ? 1.5 * c + 2.0 * Math.sin(Math.PI * c) : t < 2.2 ? 1.5 - (t > RIDE.hit && t < RIDE.hit + 0.12 ? 0.2 : 0) : 1.5 * (1 - d);
-      o.set(t < 0.6 ? bx * c : bx + sx * 1.6 * d, y, t < 0.6 ? bz * c : bz + sz * 1.6 * d); },
-    tumble: t => t > 2.2 ? Math.min(1.6, (t - 2.2) * 2) : 0,
-    rate: t => t > RIDE.hit - 0.1 && t < RIDE.hit + 0.1 ? 0.3 : 1,
-  };
-  return { noose, rope, ride };
+  return { noose, rope };
 }

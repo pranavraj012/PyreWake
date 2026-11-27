@@ -10,40 +10,53 @@ import type { MomentSpec } from './moment.ts';
 import type { Motor } from '../player/motor.ts';
 import type { Fx } from '../render/impact.ts';
 import { RewardChain } from './rewardChain.ts';
+import { RideGeo } from './kingRewards.ts';
 import { KHANDA } from '../weapons/khanda.ts';
 import { CHAIN, LANTERN, type River } from '../boss/river/river.ts';
 import type { RiverView } from '../boss/river/riverView.ts';
-import { RIDE, RIP, type King } from '../boss/king.ts';
+import { RIDE, RIP } from '../boss/king.ts';
+import type { KingView } from '../boss/kingView.ts';
 
 export type RewardKind = 'lantern' | 'chain' | 'rope' | 'ride';
 /** What a reward scene needs from the page: the effects, the sound, the camera shake, and the clock. */
-export interface RewardKit { fx: Fx; kick(v: number): void; /** The lantern's view, when the scene shows it (the Ferryman's). */ river?: RiverView }
+export interface RewardKit { fx: Fx; kick(v: number): void; /** The lantern's view, when the scene shows it (the Ferryman's). */ river?: RiverView; /** The King's view, when the scene shows him (the court's). */ king?: KingView }
 
-const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
+export const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z); export const E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 /** Hit-stop, in real milliseconds: the frame the blade lands holds still this long, whatever the moment's clock says. */
 export const HITSTOP_MS = 100;
 
 /** A clip of the khanda's own strike, retimed: `map` sends each authored key time to the scene's time, and the clip ends at `dur`. No hit windows, so the
  *  blow lands only where the scene says it does, and no root travel, so the hero stays where the scene puts him. */
-function retime(name: string, src: Clip, dur: number, map: (t: number) => number): Clip {
+export function retime(name: string, src: Clip, dur: number, map: (t: number) => number): Clip {
   const keys: Key[] = src.keys.map(k => ({ ...k, t: Math.min(dur, Math.max(0, map(k.t))) })).filter((k, i, a) => i === 0 || k.t >= a[i - 1].t);
   if (keys[keys.length - 1].t < dur) keys.push({ ...keys[keys.length - 1], t: dur });
   const def: ClipDef = { dur, blend: 0.06, keys };
   return clip(name, def);
 }
 /** Piecewise-linear time map through (from, to) pairs. */
-const warp = (pairs: [number, number][]) => (t: number) => { if (t <= pairs[0][0]) return pairs[0][1]; for (let i = 1; i < pairs.length; i++) { const [a, ta] = pairs[i - 1], [b, tb] = pairs[i]; if (t <= b) return ta + (tb - ta) * (t - a) / (b - a); } return pairs[pairs.length - 1][1]; };
+export const warp = (pairs: [number, number][]) => (t: number) => { if (t <= pairs[0][0]) return pairs[0][1]; for (let i = 1; i < pairs.length; i++) { const [a, ta] = pairs[i - 1], [b, tb] = pairs[i]; if (t <= b) return ta + (tb - ta) * (t - a) / (b - a); } return pairs[pairs.length - 1][1]; };
 
 /** The reward's clip, built once from the khanda's vertical two-handed cut (light3) for the lantern and chain, and its heavy crescent for the King. */
 const CLIPS: Partial<Record<RewardKind, Clip>> = {};
 function clipFor(kind: RewardKind): Clip {
   if (CLIPS[kind]) return CLIPS[kind]!;
   const c = KHANDA.clips; let made: Clip;
-  if (kind === 'lantern') made = retime('rewardLantern', c.light3, LANTERN_LEN, warp([[0, 0.5], [0.2, 1.0], [0.255, LANTERN.hit], [0.33, LANTERN.hit + 0.3], [0.74, 2.7], [0.74, LANTERN_LEN]]));
+  if (kind === 'lantern') made = retime('rewardLantern', c.light3, LANTERN_LEN, warp([[0, 0.55], [0.2, 1.0], [0.255, LANTERN.hit], [0.33, LANTERN.hit + 0.3], [0.74, 2.7], [0.74, LANTERN_LEN]]));
   else if (kind === 'chain') made = retime('rewardChain', c.light3, CHAIN_LEN, warp([[0, 0.4], [0.2, 1.05], [0.285, CHAIN.hit], [0.36, CHAIN.hit + 0.3], [0.74, 2.9], [0.74, CHAIN_LEN]]));
   else if (kind === 'rope') made = retime('rewardRope', c.light5, RIP.len + 0.5, warp([[0, 0.3], [0.53, RIP.cut], [1.5, RIP.len + 0.5]]));
-  else made = retime('rewardRide', c.heavy, RIDE.len, warp([[0, 0.4], [0.26, RIDE.hit], [1.25, RIDE.len]]));
+  else made = compose('rewardRide', RIDE.len, RIDE.hits.map((h, i) => i < RIDE.hits.length - 1 ? { src: c.light3, hit: 0.255, at: h, k: 1.1 } : { src: c.light5, hit: 0.53, at: h, k: 0.8 }));
   CLIPS[kind] = made; return made;
+}
+/** One clip out of several blows: each part is a strike of the khanda, retimed so its authored contact falls at `at` (scaled by `k`), and it runs until the next part's wind-up. */
+export function compose(name: string, dur: number, parts: { src: Clip; hit: number; at: number; k: number }[]): Clip {
+  const keys: Key[] = [];
+  parts.forEach((p, i) => {
+    const map = (t: number) => p.at + (t - p.hit) * p.k, from = i === 0 ? 0 : parts[i].at - p.hit * p.k, to = i < parts.length - 1 ? parts[i + 1].at - parts[i + 1].hit * parts[i + 1].k : dur;
+    for (const key of p.src.keys) { const t = map(key.t); if (t < from - 1e-6 || t >= to) continue; if (keys.length && t <= keys[keys.length - 1].t) continue; keys.push({ ...key, t }); }
+    if (i === 0 && (keys.length === 0 || keys[0].t > 0)) keys.unshift({ ...p.src.keys[0], t: 0 });
+  });
+  if (keys[keys.length - 1].t < dur) keys.push({ ...keys[keys.length - 1], t: dur });
+  return clip(name, { dur, blend: 0.06, keys });
 }
 const LANTERN_LEN = LANTERN.len, CHAIN_LEN = CHAIN.len;
 
@@ -56,13 +69,18 @@ export function syncReward(m: Motor, stage: number) { if (m.state === 'clip' && 
 
 /** One reward's run: the wall-clock hit-stop, and the effects that fire once at each cue. */
 export class RewardRun {
-  kind: RewardKind | null = null; /** The hero's drawn offset on the last frame: where he really stands once the scene lets go of him. */ last = V(); lantern = new LanternGeo(); chainGeo = new ChainGeo(); chain: RewardChain | null = null; private lastT = -1; /** Seconds since the last call, from the scene's clock (0 on the first). */ tick(time: number) { const d = this.lastT < 0 ? 0 : Math.min(0.05, Math.max(0, time - this.lastT)); this.lastT = time; return d; } private hitAt = -1; private fired = new Set<string>();
+  kind: RewardKind | null = null; /** The hero's drawn offset on the last frame: where he really stands once the scene lets go of him. */ last = V(); lantern = new LanternGeo(); chainGeo = new ChainGeo(); ride = new RideGeo(); private hitAts = new Map<number, number>(); chain: RewardChain | null = null; private lastT = -1; /** Seconds since the last call, from the scene's clock (0 on the first). */ tick(time: number) { const d = this.lastT < 0 ? 0 : Math.min(0.05, Math.max(0, time - this.lastT)); this.lastT = time; return d; } private hitAt = -1; private fired = new Set<string>();
   private kit: RewardKit;
   constructor(kit: RewardKit) { this.kit = kit; }
-  begin(kind: RewardKind) { this.kind = kind; this.lantern.ready = false; this.chainGeo.ready = false; this.lastT = -1; this.hitAt = -1; this.fired.clear(); }
-  end(m?: Motor) { if (m) { m.x += this.last.x; m.z += this.last.z; } this.last.set(0, 0, 0); this.lantern.ready = false; this.chainGeo.ready = false; this.lastT = -1; this.chain?.hide(); if (this.kit.river) this.kit.river.poleAim = null; this.kind = null; this.hitAt = -1; this.fired.clear(); if (this.kit.river) this.kit.river.lampHidden = false; }
+  begin(kind: RewardKind) { this.kind = kind; this.lantern.ready = false; this.chainGeo.ready = false; this.ride.ready = false; this.hitAts.clear(); this.lastT = -1; this.hitAt = -1; this.fired.clear(); }
+  end(m?: Motor) { if (m) { m.x += this.last.x; m.z += this.last.z; } this.last.set(0, 0, 0); this.lantern.ready = false; this.chainGeo.ready = false; this.ride.ready = false; this.hitAts.clear(); this.lastT = -1; this.chain?.hide(); if (this.kit.river) this.kit.river.poleAim = null; this.kind = null; this.hitAt = -1; this.fired.clear(); if (this.kit.river) this.kit.river.lampHidden = false; }
   /** A once-only cue on the scene's clock. */
   once(name: string, t: number, at: number, f: () => void) { if (t >= at && !this.fired.has(name)) { this.fired.add(name); f(); } }
+  /** The rate with several blows: slow into each, and hold still for HITSTOP_MS of real time on the frame each lands. */
+  rateAt(t: number, hits: readonly number[], now: number): number {
+    for (let i = 0; i < hits.length; i++) { const h = hits[i]; if (t < h) return t > h - 0.15 ? 0.5 : 1; if (!this.hitAts.has(i)) this.hitAts.set(i, now); if (now - this.hitAts.get(i)! < HITSTOP_MS) return 0.02; }
+    return 1;
+  }
   /** The moment's rate: slow into a blow, then hold for HITSTOP_MS of real time on the frame it lands. */
   rate(t: number, hit: number, now: number): number {
     if (t < hit) return t > hit - 0.2 ? 0.5 : 1;
@@ -73,7 +91,7 @@ export class RewardRun {
 
 // ---------------------------------------------------------------- the Ferryman's lantern
 /** The scene's numbers. He kneels and swings his pole out so the lamp hangs ahead of him at a height a leap can reach; the hero leaps, cuts it down, springs back and lands braced. */
-const LEAP = { from: 0.5, apex: 1.1, peak: 1.5, gap: 1.25, back: 1.3, off: 1.0, brace: 0.7, lampY: 2.8, bear: 0.62, swing: 0.45 };
+const LEAP = { from: 0.8, apex: 1.15, peak: 1.5, gap: 1.25, back: 1.3, off: 1.0, brace: 0.7, lampY: 2.8, bear: 0.62, swing: 0.45 };
 const LEAP_END = LEAP.apex + (LEAP.apex - LEAP.from);
 /** The hero's height at scene time t: a crouch, the leap (gravity), a braced landing. */
 function leapY(t: number) {
@@ -147,7 +165,7 @@ export function lanternBeats(sim: River, m: Motor, kit: RewardKit, run: RewardRu
 
 // ---------------------------------------------------------------- the Ferryman's chain
 /** The chain's numbers. It runs taut from the anchor to his hand; the hero bounds in low and brings the khanda down on it, a third of the way from his hand; it parts, and both halves whip back. */
-const LINK = { launch: 0.86, air: 0.64, cutAt: 0.5, off: 0.5, gap: 1.15, peak: 0.5, brace: 0.7, fade: [2.4, 3.2] as [number, number] };
+const LINK = { launch: 1.1, air: 0.4, cutAt: 0.5, off: 0.5, gap: 1.15, peak: 0.5, brace: 0.7, fade: [2.4, 3.2] as [number, number] };
 export class ChainGeo {
   ready = false; start = V(); A = V(); Hd = V(); B = V(); perp = { x: 0, z: 0 }; side = 1; arena = 21;
   /** Fixed on the scene's first frame: the anchor, which side the hero stands, and the place he will cut from. */
