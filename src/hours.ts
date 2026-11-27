@@ -73,7 +73,7 @@ export async function bootHours(c: Ctx) {
       if (t < GRIP.throw) { const l = Math.min(1, t / 0.6); eye.set(m.x + ux * 4.4 + uz * 2.3, 1.15 + 0.35 * l, m.z + uz * 4.4 - ux * 2.3); at.set(m.x * 0.55 + sim.x * 0.45, 2.5 + 0.7 * l, m.z * 0.55 + sim.z * 0.45); return 52 - 4 * l; }
       if (t < GRIP.impact) { eye.set(m.x + ux * 7.5 + uz * 3.2, 0.9, m.z + uz * 7.5 - ux * 3.2); at.set(m.x, y, m.z); return 56; }
       eye.set(m.x + ux * 4.6 + uz * 2.6, 2.6, m.z + uz * 4.6 - ux * 2.6); at.set(m.x, 0.5, m.z); return 46; },
-    hero: (t, o) => o.set(0, gripLift(t), 0), tumble: gripTumble, rate: t => t > GRIP.impact - 0.2 && t < GRIP.impact + 0.15 ? 0.3 : 1,
+    letterbox: true, hero: (t, o) => o.set(0, gripLift(t), 0), tumble: gripTumble, rate: t => t > GRIP.impact - 0.2 && t < GRIP.impact + 0.15 ? 0.3 : 1,
   };
   /** Up her: a run at her knee, a bound up the length of her arm, the cut across her face, and down again behind the blade. */
   const climbAt = (t: number, o: THREE.Vector3) => { const [ux, uz] = toHer(), face = new THREE.Vector3(sim.x + ux * 1.1, 2.9, sim.z + uz * 1.1), base = new THREE.Vector3(sim.x + ux * 2.0, 0, sim.z + uz * 2.0), E2 = (a: number, b: number) => { const u = Math.max(0, Math.min(1, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
@@ -85,7 +85,7 @@ export async function bootHours(c: Ctx) {
       if (t < 1.4) { eye.set(sim.x + ux * 5.5 + uz * 5.0, 1.2, sim.z + uz * 5.5 - ux * 5.0); at.copy(h); return 50; }
       if (t < 1.8) { eye.set(sim.x + ux * 2.6 + uz * 2.4, 4.2, sim.z + uz * 2.6 - ux * 2.4); at.set(sim.x + ux * 0.6, 3.4, sim.z + uz * 0.6); return 40; }
       eye.set(sim.x + ux * 8 + uz * 3, 2.2, sim.z + uz * 8 - ux * 3); at.set(sim.x, 2.6, sim.z); return 48; },
-    hero: climbAt, tumble: t => t > 1.7 && t < 2.5 ? (t - 1.7) * 7.85 : 0, rate: t => t > PIERCE.hit - 0.12 && t < PIERCE.hit + 0.25 ? 0.25 : 1,
+    letterbox: true, hero: climbAt, tumble: t => t > 1.7 && t < 2.5 ? (t - 1.7) * 7.85 : 0, rate: t => t > PIERCE.hit - 0.12 && t < PIERCE.hit + 0.25 ? 0.25 : 1,
   };
   hd.onGrab = () => { staged = 'hurl'; moment.start(hurl); };
   hd.onFree = () => { if (staged === 'hurl') { moment.stop(); staged = null; follow.snap(m, sim); } };
@@ -152,6 +152,7 @@ export async function bootHours(c: Ctx) {
     else if (intro.active) intro.camera(cam, t, c.baseFov());
     else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, c.baseFov())) { follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
     else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5 && !sim.hidden, h: sim.form === 2 ? v2.camH : 2.2 }, input.takeLook(), t, c.baseFov());
+    document.body.classList.toggle("letter", moment.letterbox);
     if (!SHOT && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
     { const fz = cam.userData.focus as THREE.Vector3 | undefined, film = menu.open || turn.active || ending.active || intro.active, on = film || cam.userData.frame === true, want = on && fz ? (menu.open ? 0.4 : film ? 0.8 : 0.6) : 0; cam.userData.frame = false; post.dof.amt += (want - post.dof.amt) * (want && post.dof.amt < 0.02 ? 1 : Math.min(1, ms / 90)); if (fz) post.dof.focus = Math.max(0.5, fz.distanceTo(cam.position)); }
     c.sky.position.copy(cam.position); cam.updateMatrixWorld();
