@@ -11,7 +11,7 @@ describe('the production build', () => {
     const outputs: Rollup.RollupOutput[] = Array.isArray(out) ? out : [out as Rollup.RollupOutput];
     const code = outputs.flatMap(o => o.output).map(c => (c.type === 'chunk' ? c.code : '')).join('\n');
     expect(code.length).toBeGreaterThan(10000);
-    for (const label of ['MOMENT THEATRE', 'R replays the last', 'Moment theatre']) expect(code).not.toContain(label);
+    for (const label of ['MOMENT THEATRE', '(backquote) replays the last', 'Moment theatre']) expect(code).not.toContain(label);
     // the ?moment flag itself is not dev-only: the moment's plans are in the bundle
     expect(code).toContain('noose');
   }, 120000);

@@ -105,7 +105,7 @@ function devPanel(h: TheatreHost, replay: (name: string) => void, last: () => st
     b.onclick = () => { replay(name); };
     box.appendChild(b);
   }
-  const hint = document.createElement('small'); hint.textContent = 'R replays the last'; box.appendChild(hint);
+  const hint = document.createElement('small'); hint.textContent = '` (backquote) replays the last'; box.appendChild(hint);
   document.body.appendChild(box);
   // the pad: a pause-menu entry that opens the panel for navigation (padNav reads the body class `theatre`)
   const pause = document.querySelector('.pause');
@@ -115,7 +115,7 @@ function devPanel(h: TheatreHost, replay: (name: string) => void, last: () => st
     pause.appendChild(p);
   }
   addEventListener('keydown', e => {
-    if (e.code !== 'KeyR' || e.repeat) return; const t = e.target as HTMLElement | null; if (t && /INPUT|TEXTAREA/.test(t.tagName)) return;
+    if (e.code !== 'Backquote' || e.repeat) return; const t = e.target as HTMLElement | null; if (t && /INPUT|TEXTAREA/.test(t.tagName)) return;
     const n = last(); if (n) replay(n);
   });
 }
