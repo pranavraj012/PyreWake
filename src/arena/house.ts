@@ -5,7 +5,7 @@ import { loadGeo, loadJson, type TexSet } from '../render/assets.ts';
 import { DEPTH, FOG, surface } from '../render/surface.ts';
 import { Ruin } from './ruin.ts';
 import { makeHouseProps } from './props.ts';
-import { slabs } from './court.ts';
+import { slabs } from '../bosses/king/court.ts';
 import { makeAsh } from '../render/ambient.ts';
 import { shadowOnly } from '../render/shadowProxy.ts';
 import type { Tier } from '../core/quality.ts';

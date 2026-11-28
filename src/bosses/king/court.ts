@@ -1,10 +1,10 @@
 // Round 1 arena: the charnel court.
 import * as THREE from 'three';
-import { loadGeo, loadJson, type TexSet } from '../render/assets.ts';
-import { DEPTH, FOG, surface } from '../render/surface.ts';
-import { Ruin } from './ruin.ts';
-import { STORM, makeAsh, makeEmbers, makeFires, makeSmoke } from '../render/ambient.ts';
-import type { Tier } from '../core/quality.ts';
+import { loadGeo, loadJson, type TexSet } from '../../render/assets.ts';
+import { DEPTH, FOG, surface } from '../../render/surface.ts';
+import { Ruin } from '../../arena/ruin.ts';
+import { STORM, makeAsh, makeEmbers, makeFires, makeSmoke } from '../../render/ambient.ts';
+import type { Tier } from '../../core/quality.ts';
 
 export const COURT_R = 23;
 const seeded = (s: number) => () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };

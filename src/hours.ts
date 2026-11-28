@@ -22,7 +22,7 @@ import { sound } from './audio/sound.ts';
 import { PlayerView } from './player/view.ts';
 import { Director } from './game/director.ts';
 import { FollowCam, menuCam } from './game/camera.ts';
-import { actionCam } from './game/cinema.ts';
+import { actionCam } from './bosses/king/cinema.ts';
 import { Sister } from './boss/hours/sister.ts';
 import { HoursBrain } from './boss/hours/brain.ts';
 import { SisterView } from './boss/hours/sisterView.ts';

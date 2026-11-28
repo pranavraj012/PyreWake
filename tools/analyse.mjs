@@ -1,5 +1,5 @@
 // node tools/analyse.mjs [fights] : what different kinds of player actually see. Moves, spells and music, from headless fights.
-import { makeProps } from '../src/arena/props.ts'; import { Fight } from '../src/combat/fight.ts'; import { Motor } from '../src/player/motor.ts'; import { King } from '../src/boss/king.ts'; import { Brain } from '../src/boss/brain.ts'; import { KHANDA } from '../src/weapons/khanda.ts'; import { D } from '../src/combat/difficulty.ts';
+import { makeProps } from '../src/arena/props.ts'; import { Fight } from '../src/combat/fight.ts'; import { Motor } from '../src/player/motor.ts'; import { King } from '../src/bosses/king/king.ts'; import { Brain } from '../src/bosses/king/brain.ts'; import { KHANDA } from '../src/weapons/khanda.ts'; import { D } from '../src/combat/difficulty.ts';
 const N = +(process.argv[2] ?? 60), DT = 1 / 60, tap = a => [{ a, up: false }, { a, up: true }];
 const MUSIC = { executioner: 'king', crawler: 'crawl', hanged: 'hang', blades: 'beneath', eclipse: 'beneath' };
 /** mash: only attack. dodger: mashes and dodges about two blows in three. explorer: also holds, jumps, sprints, spells. */

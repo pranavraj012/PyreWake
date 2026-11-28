@@ -45,8 +45,8 @@ describe('the chain scene', () => {
   });
 });
 
-import { King, RIDE } from '../src/boss/king.ts';
-import { RideGeo } from '../src/game/kingRewards.ts';
+import { King, RIDE } from '../src/bosses/king/king.ts';
+import { RideGeo } from '../src/bosses/king/kingRewards.ts';
 
 describe('the ride scene', () => {
   it('ends with the hero on the floor, inside the arena, clear of the King, whatever his start and the King\'s facing', () => {
@@ -65,8 +65,8 @@ describe('the ride scene', () => {
   });
 });
 
-import { RopeGeo, ROPE_GO } from '../src/game/kingRewards.ts';
-import { RIP, ROPE } from '../src/boss/king.ts';
+import { RopeGeo, ROPE_GO } from '../src/bosses/king/kingRewards.ts';
+import { RIP, ROPE } from '../src/bosses/king/king.ts';
 
 describe('the rope scene', () => {
   it('the cut is on the rope, above his ankles; the hero leaps in place on the game\'s gravity and ends on the floor', () => {

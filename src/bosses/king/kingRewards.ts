@@ -1,13 +1,13 @@
 // The hero's two rewards against the Hanged King (module A, fix-reward-scenes): the ride (on the kneeling King's back, three blows, each with contact)
 // and the rope. Same method as rewardShots.ts: the simulation owns the timings (RIDE, RIP) and the damage; this stages the hero, the camera and the effects.
 import * as THREE from 'three';
-import { sound } from '../audio/sound.ts';
-import type { MomentSpec } from './moment.ts';
-import type { Motor } from '../player/motor.ts';
-import { RIDE, RIP, ROPE, type King } from '../boss/king.ts';
-import type { KingView } from '../boss/kingView.ts';
-import { RewardChain } from './rewardChain.ts';
-import { E, V, type RewardKit, type RewardRun } from './rewardShots.ts';
+import { sound } from '../../audio/sound.ts';
+import type { MomentSpec } from '../../game/moment.ts';
+import type { Motor } from '../../player/motor.ts';
+import { RIDE, RIP, ROPE, type King } from './king.ts';
+import type { KingView } from './kingView.ts';
+import { RewardChain } from '../../game/rewardChain.ts';
+import { E, V, type RewardKit, type RewardRun } from '../../game/rewardShots.ts';
 
 /** The ride's numbers: the hero crouches, bounds over the King's flank onto his back (the game's own gravity), strikes three times, is thrown clear and lands braced. */
 const GO = { launch: 0.57, off: 2.45, brace: 0.55, g: 24, side: 2.0, away: 3.2, back: -0.25, up: -0.02 };

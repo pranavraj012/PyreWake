@@ -1,5 +1,5 @@
 // What the referee needs from any boss and from its brain. The King is one; the Ferryman and the Weight are another. No rendering imports.
-import type { Strike } from './moves2.ts';
+import type { Strike } from '../bosses/king/moves2.ts';
 import type { Fight } from '../combat/fight.ts';
 
 export interface Boss {

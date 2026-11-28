@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { GRAB_DMG, NOOSE, OFFER, REWARD_SHARE, RIDE, RIP, type King } from '../src/boss/king.ts';
+import { GRAB_DMG, NOOSE, OFFER, REWARD_SHARE, RIDE, RIP, type King } from '../src/bosses/king/king.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60;
@@ -75,8 +75,8 @@ describe('the rewards', () => {
 describe('the first grab in training', () => {
   // The Red lesson's first grab is the boss's first throw, so it always connects; the lesson must let it play out (it used to cut it at about 1.2 s).
   it('the noose plays to its end and costs, uninterrupted, when training throws it', async () => {
-    const { Lessons } = await import('../src/game/lessons.ts');
-    const { isAttack } = await import('../src/boss/king.ts');
+    const { Lessons } = await import('../src/bosses/king/lessons.ts');
+    const { isAttack } = await import('../src/bosses/king/king.ts');
     const f = new Fight(new Motor()), L = new Lessons(f); L.start(); const DT2 = 1 / 60;
     const tap = (a: string): Press[] => [{ a: a as Press['a'], up: false }, { a: a as Press['a'], up: true }];
     let upAt = -1, down = '', heldAt = -1, seizedAt = -1, endAt = -1, endStage = 0, hp0 = 0, lowest = Infinity;

@@ -14,7 +14,7 @@ import { Crescents, Marks } from '../render/marks.ts';
 import type { Post } from '../render/post.ts';
 import type { Hud } from '../ui/hud.ts';
 import type { FollowCam } from './camera.ts';
-import { KING_CALLS, KING_TITLES } from './kingScript.ts';
+import { KING_CALLS, KING_TITLES } from '../bosses/king/kingScript.ts';
 /** What the director needs of the place: the court and the ghats both have it. */
 export interface Court { ruin: Ruin; breach(x: number, z: number, r: number, n: number): void; tear(x: number, z: number, r: number, n: number): void; ripple?(x: number, z: number, amp: number, t: number): void }
 

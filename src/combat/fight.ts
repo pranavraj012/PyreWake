@@ -1,7 +1,7 @@
 // The referee: health, fire, hits, guard, parry, cues, ground danger, projectiles, aura, phases. No rendering imports.
-import type { Strike, Zone } from '../boss/moves2.ts';
-import { King } from '../boss/king.ts';
-import { Brain } from '../boss/brain.ts';
+import type { Strike, Zone } from '../bosses/king/moves2.ts';
+import { King } from '../bosses/king/king.ts';
+import { Brain } from '../bosses/king/brain.ts';
 import type { Boss, BossBrain } from '../boss/boss.ts';
 import type { Motor, Press } from '../player/motor.ts';
 import { FALL, type Prop } from '../arena/props.ts';

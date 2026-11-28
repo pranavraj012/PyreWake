@@ -1,9 +1,9 @@
 // The boss's simulation in both forms: where it is, what it is doing, what it threatens. Runs headless.
-import { moveAt } from '../anim/pose.ts';
-import { D } from '../combat/difficulty.ts';
+import { moveAt } from '../../anim/pose.ts';
+import { D } from '../../combat/difficulty.ts';
 import { ATTACKS, LEAPS, type Strike } from './moves2.ts';
 import { KING_CLIPS as K } from './clips.ts';
-import type { Fight } from '../combat/fight.ts';
+import type { Fight } from '../../combat/fight.ts';
 
 export type KingMode = 'idle' | 'stalk' | 'strafe' | 'crawl' | 'hang' | 'slam' | 'sweep' | 'drag' | 'leap' | 'grab' | 'pounce' | 'rake' | 'hangSwing' | 'hangSwipe' | 'crash' | 'reel' | 'kneel' | 'fall'
   | 'flurry' | 'cross' | 'skewer' | 'rupture' | 'rain' | 'wheel' | 'hop' | 'reel2' | 'rise2' | 'die2' | 'noose' | 'rope';

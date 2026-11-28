@@ -12,7 +12,7 @@ import type { Fx } from '../render/impact.ts';
 import { DAWN } from '../render/sky.ts';
 import { LEVEL } from '../render/water.ts';
 import type { Hud } from '../ui/hud.ts';
-import { Cues, Lens } from './scenes.ts';
+import { Cues, Lens } from './sceneKit.ts';
 import { RIVER_ENDING, RIVER_INTRO, RIVER_TURN, speak } from './riverScript.ts';
 import { CHAIN, DRAG, LANTERN, type River as RiverSim } from '../boss/river/river.ts';
 import type { Motor, Press } from '../player/motor.ts';

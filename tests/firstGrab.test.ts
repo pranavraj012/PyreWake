@@ -2,11 +2,11 @@
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { FIRST_GRAB_BY } from '../src/boss/brain.ts';
+import { FIRST_GRAB_BY } from '../src/bosses/king/brain.ts';
 import { River } from '../src/boss/river/river.ts';
 import { RiverBrain } from '../src/boss/river/brain.ts';
 import { Motor } from '../src/player/motor.ts';
-import type { King } from '../src/boss/king.ts';
+import type { King } from '../src/bosses/king/king.ts';
 
 const DT = 1 / 60;
 /** Plays a real round 1 with the hero standing still in reach, keeping him alive; returns the second the boss first has a moment (held) and whether it was the grab. */

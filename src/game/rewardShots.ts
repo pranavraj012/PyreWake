@@ -10,12 +10,12 @@ import type { MomentSpec } from './moment.ts';
 import type { Motor } from '../player/motor.ts';
 import type { Fx } from '../render/impact.ts';
 import { RewardChain } from './rewardChain.ts';
-import { RideGeo, RopeGeo } from './kingRewards.ts';
+import { RideGeo, RopeGeo } from '../bosses/king/kingRewards.ts';
 import { KHANDA } from '../weapons/khanda.ts';
 import { CHAIN, LANTERN, type River } from '../boss/river/river.ts';
 import type { RiverView } from '../boss/river/riverView.ts';
-import { RIDE, RIP } from '../boss/king.ts';
-import type { KingView } from '../boss/kingView.ts';
+import { RIDE, RIP } from '../bosses/king/king.ts';
+import type { KingView } from '../bosses/king/kingView.ts';
 
 export type RewardKind = 'lantern' | 'chain' | 'rope' | 'ride';
 /** What a reward scene needs from the page: the effects, the sound, the camera shake, and the clock. */

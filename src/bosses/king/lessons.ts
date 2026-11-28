@@ -1,10 +1,10 @@
 // Training. The King attacks on request and the world holds its breath until you press the button; nothing moves on until you have done the thing.
-import { sound } from '../audio/sound.ts';
-import { isAttack, type King, type KingMode } from '../boss/king.ts';
-import type { Fight, FightEvent } from '../combat/fight.ts';
-import { D } from '../combat/difficulty.ts';
-import type { Action } from '../input/input.ts';
-import type { Press } from '../player/motor.ts';
+import { sound } from '../../audio/sound.ts';
+import { isAttack, type King, type KingMode } from './king.ts';
+import type { Fight, FightEvent } from '../../combat/fight.ts';
+import { D } from '../../combat/difficulty.ts';
+import type { Action } from '../../input/input.ts';
+import type { Press } from '../../player/motor.ts';
 
 export interface Card { id: string; n: number; of: number; title: string; text: string; action: Action | 'move'; /** The world is waiting for this press. */ held: boolean; /** Just done. */ ok: boolean; /** Hold, rather than tap. */ hold: boolean }
 export const LESSONS = ['move', 'attack', 'heavy', 'dodge', 'guard', 'parry', 'jump', 'red', 'rush', 'sunder', 'heal', 'rites'] as const;

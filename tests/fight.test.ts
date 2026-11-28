@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { Fight, type FightEvent } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { King, isAttack } from '../src/boss/king.ts';
-import { Brain } from '../src/boss/brain.ts';
-import { ATTACKS, LEAPS } from '../src/boss/moves2.ts';
-import { KING_CLIPS } from '../src/boss/clips.ts';
+import { King, isAttack } from '../src/bosses/king/king.ts';
+import { Brain } from '../src/bosses/king/brain.ts';
+import { ATTACKS, LEAPS } from '../src/bosses/king/moves2.ts';
+import { KING_CLIPS } from '../src/bosses/king/clips.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 import { BODY_CLIPS } from '../src/player/clips.ts';
 import { KHANDA } from '../src/weapons/khanda.ts';
 import { Prompts } from '../src/ui/prompts.ts';
 import { FALL, makeProps } from '../src/arena/props.ts';
-import { LESSONS, Lessons } from '../src/game/lessons.ts';
+import { LESSONS, Lessons } from '../src/bosses/king/lessons.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }], down = (a: string): Press[] => [{ a, up: false }], up = (a: string): Press[] => [{ a, up: true }];
 /** Player 2 m in front of the King, both facing each other. */

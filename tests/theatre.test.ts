@@ -1,7 +1,7 @@
 // The moment theatre: every ?moment= name starts its own moment within a second of the fight's clock, on the same boot a real fight takes.
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
-import { King } from '../src/boss/king.ts';
+import { King } from '../src/bosses/king/king.ts';
 import { River } from '../src/boss/river/river.ts';
 import { RiverBrain } from '../src/boss/river/brain.ts';
 import { Sister } from '../src/boss/hours/sister.ts';

@@ -3,11 +3,11 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { Fight } from '../src/combat/fight.ts';
-import { GRAB_DMG, NOOSE, King } from '../src/boss/king.ts';
+import { GRAB_DMG, NOOSE, King } from '../src/bosses/king/king.ts';
 import { DRAG, River } from '../src/boss/river/river.ts';
 import { RiverBrain } from '../src/boss/river/brain.ts';
 import { Motor } from '../src/player/motor.ts';
-import { kingMoments } from '../src/game/scenes.ts';
+import { kingMoments } from '../src/bosses/king/scenes.ts';
 import { riverMoments } from '../src/game/riverScenes.ts';
 import { Moment, Offer, offerSpec, OFFER_SLOW } from '../src/game/moment.ts';
 

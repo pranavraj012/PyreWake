@@ -1,5 +1,5 @@
 // The referee for a crowd: one hero against many lesser foes. The hero's motor, blades, guard, dodges, cues and ground danger work as in fight.ts; each foe is its own small simulation (src/foes/foe.ts). No rendering imports.
-import type { Strike } from '../boss/moves2.ts';
+import type { Strike } from '../bosses/king/moves2.ts';
 import type { FightEvent, Hazard } from './fight.ts';
 import type { Blocker, Motor, Press } from '../player/motor.ts';
 import type { Foe, FoeCtx } from '../foes/foe.ts';

@@ -1,7 +1,7 @@
 // The second boss's simulation in both rounds: the Ferryman (form 1) and the Unburdened (form 2), the same man with the net gone. Runs headless; its own mechanics resolve in tick().
 import { moveAt } from '../../anim/pose.ts';
 import type { Boss } from '../boss.ts';
-import type { Strike } from '../moves2.ts';
+import type { Strike } from '../../bosses/king/moves2.ts';
 import type { Fight, Hazard } from '../../combat/fight.ts';
 import { D } from '../../combat/difficulty.ts';
 import { RIVER_CLIPS as C } from './clips.ts';

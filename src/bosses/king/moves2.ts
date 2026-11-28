@@ -1,5 +1,5 @@
 // More moves: the aggressive Executioner, the Crawler, the Hanged, and the One Beneath (round 2).
-import { clip, makePose, type Clip, type Key } from '../anim/pose.ts';
+import { clip, makePose, type Clip, type Key } from '../../anim/pose.ts';
 
 /** Round 2: low, wide, every arm out. */
 export const STAND2 = makePose({ hx: 0, hy: -0.34, hz: -0.06, hp: 24, hw: 0, hr: 0, sp: 24, sw: 0, sr: 0, np: -46, nw: 0, nr: 6, ra: -64, re: -34, rl: 0.8, ba: -30, be: 10, la: 64, le: -34, ll: 0.8, xl: 10, xr: 10, flx: 0.14, flz: 0.4, flw: 12, frx: -0.14, frz: -0.3, frw: -24 });

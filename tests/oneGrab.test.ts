@@ -2,7 +2,7 @@
 // a new fight forces the first throw again; the grabs that were removed (the King's skewer, the Ferryman's thrust) never seize.
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
-import { GRAB_DMG, type King } from '../src/boss/king.ts';
+import { GRAB_DMG, type King } from '../src/bosses/king/king.ts';
 import { GRAB_DRAG, River } from '../src/boss/river/river.ts';
 import { RiverBrain } from '../src/boss/river/brain.ts';
 import { Motor, type Press } from '../src/player/motor.ts';

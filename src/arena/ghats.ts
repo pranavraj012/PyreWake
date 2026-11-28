@@ -5,7 +5,7 @@ import { DEPTH, FOG, surface } from '../render/surface.ts';
 import { LINE } from '../render/sky.ts';
 import { Ruin } from './ruin.ts';
 import { makeGhatProps } from './props.ts';
-import { slabs } from './court.ts';
+import { slabs } from '../bosses/king/court.ts';
 import { makeAsh, makeFires } from '../render/ambient.ts';
 import { LEVEL, Water } from '../render/water.ts';
 import type { Tier } from '../core/quality.ts';

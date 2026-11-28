@@ -1,5 +1,5 @@
 // Decides what the boss does: a health-gated style script over an attack picker that plays in strings and keeps the pressure on.
-import { D } from '../combat/difficulty.ts';
+import { D } from '../../combat/difficulty.ts';
 import { isAttack, type King, type KingMode } from './king.ts';
 
 export type Style = 'executioner' | 'crawler' | 'hanged' | 'blades' | 'eclipse';

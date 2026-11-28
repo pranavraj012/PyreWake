@@ -21,7 +21,7 @@
 // King.dodged, ...), so a moment played here runs the code a real fight runs. Only the boss's position and the hero's are staged.
 import type { Fight } from '../combat/fight.ts';
 import type { Motor } from '../player/motor.ts';
-import { OFFER, type King } from '../boss/king.ts';
+import { OFFER, type King } from '../bosses/king/king.ts';
 import type { River } from '../boss/river/river.ts';
 import type { Sister } from '../boss/hours/sister.ts';
 

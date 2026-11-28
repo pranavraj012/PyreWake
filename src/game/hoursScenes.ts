@@ -12,7 +12,7 @@ import type { Fight } from '../combat/fight.ts';
 import type { PlayerView } from '../player/view.ts';
 import type { Fx } from '../render/impact.ts';
 import type { Hud } from '../ui/hud.ts';
-import { Cues, Lens } from './scenes.ts';
+import { Cues, Lens } from './sceneKit.ts';
 import { HOURS_ENDING, HOURS_INTRO, HOURS_TURN, speak } from './hoursScript.ts';
 import { SISTER_SCALE } from '../boss/hours/frame.ts';
 

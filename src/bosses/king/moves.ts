@@ -1,5 +1,5 @@
 // The King's grab, reactions, and the attack table the combat code reads.
-import { clip, type Clip } from '../anim/pose.ts';
+import { clip, type Clip } from '../../anim/pose.ts';
 
 export function addMoves(K: Record<string, Clip>) {
 // a long-armed lunge with the empty hand: the unblockable

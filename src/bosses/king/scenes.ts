@@ -1,29 +1,19 @@
 // The way in and the way out: the intro before round 1 and the ending after the last blow. Both skippable.
 import * as THREE from 'three';
-import { sound } from '../audio/sound.ts';
-import type { KingView } from '../boss/kingView.ts';
-import { NOOSE, RIDE, RIP, type King } from '../boss/king.ts';
-import type { Fight } from '../combat/fight.ts';
-import type { Motor } from '../player/motor.ts';
-import type { PlayerView } from '../player/view.ts';
-import type { MomentSpec } from './moment.ts';
-import type { Fx } from '../render/impact.ts';
-import type { Hud } from '../ui/hud.ts';
+import { sound } from '../../audio/sound.ts';
+import type { KingView } from './kingView.ts';
+import { NOOSE, RIDE, RIP, type King } from './king.ts';
+import type { Fight } from '../../combat/fight.ts';
+import type { Motor } from '../../player/motor.ts';
+import type { PlayerView } from '../../player/view.ts';
+import type { MomentSpec } from '../../game/moment.ts';
+import type { Fx } from '../../render/impact.ts';
+import type { Hud } from '../../ui/hud.ts';
 import { KING_LINES, KING_STORY, KING_TITLES } from './kingScript.ts';
+import { Cues, Lens } from '../../game/sceneKit.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 export interface SceneKit { f: Fight; pv: PlayerView; k1: KingView; k2: KingView; fx: Fx; hud: Hud }
-/** Shared by every scene: one-shot cues, a hand-held lens, and cuts that don't smear. */
-export class Lens {
-  trauma = 0; cut = 0; private look = V();
-  /** Frame a shot. A new `n` is a cut; the same one eases. */
-  aim(cam: THREE.PerspectiveCamera, n: number, p: THREE.Vector3, l: THREE.Vector3, fov: number, time: number, roll = 0) {
-    if (this.cut !== n) { this.cut = n; this.look.copy(l); } else this.look.lerp(l, 0.2);
-    cam.position.copy(p); cam.lookAt(this.look); cam.userData.focus = this.look; cam.fov = fov * (cam.aspect > 1.9 ? 0.94 : 1);
-    const k = this.trauma * this.trauma; cam.rotateZ(roll + Math.sin(time * 47) * 0.014 * k + Math.sin(time * 0.7) * 0.004); cam.rotateX(Math.sin(time * 59) * 0.016 * k + Math.sin(time * 0.9) * 0.0022); cam.rotateY(Math.sin(time * 0.6 + 1) * 0.0026); cam.updateProjectionMatrix();
-  }
-}
-export class Cues { private done = new Set<string>(); /** Skipped: what was still to come never happens. */ off = false; at(now: number, t: number, id: string, f: () => void) { if (now >= t && !this.done.has(id)) { this.done.add(id); if (!this.off) f(); } } clear() { this.done.clear(); this.off = false; } }
 
 // ---------------------------------------------------------------- why
 export const STORY = KING_STORY;

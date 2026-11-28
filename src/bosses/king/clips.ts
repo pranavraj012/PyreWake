@@ -1,5 +1,5 @@
 // The Hanged King's poses, clips and attack data. No rendering imports.
-import { clip, makePose, type Clip } from '../anim/pose.ts';
+import { clip, makePose, type Clip } from '../../anim/pose.ts';
 import { addMoves } from './moves.ts';
 import { addMoves2 } from './moves2.ts';
 

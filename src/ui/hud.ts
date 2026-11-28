@@ -5,10 +5,10 @@ import type { Action, Input } from '../input/input.ts';
 import { ICON, spellButtons } from '../input/touch.ts';
 import type { Spell } from '../combat/spells.ts';
 import { label } from '../input/bindings.ts';
-import type { Card } from '../game/lessons.ts';
+import type { Card } from '../bosses/king/lessons.ts';
 import type { Prompts } from './prompts.ts';
 import { sound } from '../audio/sound.ts';
-import { KING_TITLES } from '../game/kingScript.ts';
+import { KING_TITLES } from '../bosses/king/kingScript.ts';
 import { saveSettings, settings, settingsPanel } from '../core/settings.ts';
 import { canFullscreen, isFullscreen, onFullscreen, setFullscreen } from '../core/fullscreen.ts';
 

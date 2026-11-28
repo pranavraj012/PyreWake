@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { Motor } from '../src/player/motor.ts';
-import { King } from '../src/boss/king.ts';
-import { Brain } from '../src/boss/brain.ts';
+import { King } from '../src/bosses/king/king.ts';
+import { Brain } from '../src/bosses/king/brain.ts';
 import { SPELLS, SPELL_IDS, sane, type SpellId } from '../src/combat/spells.ts';
 
 const DT = 1 / 60, tap = (a: string) => [{ a, up: false }, { a, up: true }];

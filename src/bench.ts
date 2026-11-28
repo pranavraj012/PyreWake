@@ -3,8 +3,8 @@ import * as THREE from 'three';
 import type { Clip } from './anim/pose.ts';
 import type { Motor } from './player/motor.ts';
 import type { PlayerView } from './player/view.ts';
-import type { KingMode } from './boss/king.ts';
-import type { KingView } from './boss/kingView.ts';
+import type { KingMode } from './bosses/king/king.ts';
+import type { KingView } from './bosses/king/kingView.ts';
 
 interface B { scene: THREE.Scene; cam: THREE.PerspectiveCamera; m: Motor; pv: PlayerView; king: KingView; clips: Record<string, Clip>; kingClips: Record<string, Clip>; modes: KingMode[]; which: string; step: (dt: number) => void; setTime: (t: number) => void }
 

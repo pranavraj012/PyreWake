@@ -1,8 +1,9 @@
 // The turn: a false victory, then what was inside it. Skippable; ends as round 2's checkpoint.
 import * as THREE from 'three';
-import { sound } from '../audio/sound.ts';
-import type { Fight } from '../combat/fight.ts';
-import { Lens, type SceneKit } from './scenes.ts';
+import { sound } from '../../audio/sound.ts';
+import type { Fight } from '../../combat/fight.ts';
+import { Lens } from '../../game/sceneKit.ts';
+import type { SceneKit } from './scenes.ts';
 import { KING_LINES, KING_TITLES } from './kingScript.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };

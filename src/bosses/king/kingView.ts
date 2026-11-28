@@ -1,11 +1,11 @@
 // Draws the Hanged King from its simulation: gait, pose blending, flinches, hair, the hang rig.
 import * as THREE from 'three';
-import { Body, Footing, Gait, KING_SPEC } from '../anim/body.ts';
-import { Chains, type ChainSpec } from '../anim/chains.ts';
-import { IX, Inertial, N, sampleClip, type Pose } from '../anim/pose.ts';
-import { Rig } from '../anim/rig.ts';
-import { BENEATH, KING } from '../anim/skeletons.ts';
-import type { Fx } from '../render/fx.ts';
+import { Body, Footing, Gait, KING_SPEC } from '../../anim/body.ts';
+import { Chains, type ChainSpec } from '../../anim/chains.ts';
+import { IX, Inertial, N, sampleClip, type Pose } from '../../anim/pose.ts';
+import { Rig } from '../../anim/rig.ts';
+import { BENEATH, KING } from '../../anim/skeletons.ts';
+import type { Fx } from '../../render/fx.ts';
 import { CRAWL, HANG, KING_CLIPS as K, STAND } from './clips.ts';
 import { King, NOOSE, ROPE } from './king.ts';
 import { STAND2 } from './moves2.ts';

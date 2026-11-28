@@ -1,5 +1,5 @@
 // A lesser foe: a small simulation of its own, built for crowds. It speaks the boss strike language (white, red, ground; the same Strike type) but has no rig, no phases and no brain. Kinds subclass Foe and override `pick` (what to throw next) or `think` (how to move). No rendering imports.
-import type { Strike } from '../boss/moves2.ts';
+import type { Strike } from '../bosses/king/moves2.ts';
 
 /** Data a kind is made of. `life` is health in the hero's damage units. */
 export interface FoeSpec {

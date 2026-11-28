@@ -26,7 +26,7 @@ import { sound } from './audio/sound.ts';
 import { PlayerView } from './player/view.ts';
 import { Director } from './game/director.ts';
 import { FollowCam, menuCam } from './game/camera.ts';
-import { actionCam } from './game/cinema.ts';
+import { actionCam } from './bosses/king/cinema.ts';
 import { DRAG, River } from './boss/river/river.ts';
 import { dragSpec, dragUnder } from './boss/river/dragShot.ts';
 import { RiverBrain } from './boss/river/brain.ts';

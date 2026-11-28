@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { Motor } from '../src/player/motor.ts';
 import { KHANDA } from '../src/weapons/khanda.ts';
-import { KING_MODES, type KingMode } from '../src/boss/king.ts';
+import { KING_MODES, type KingMode } from '../src/bosses/king/king.ts';
 import { Bursts } from '../src/render/impact.ts';
 import { PlayerView } from '../src/player/view.ts';
 import { HUMAN_SPEC } from '../src/anim/body.ts';
-import { KingView } from '../src/boss/kingView.ts';
+import { KingView } from '../src/bosses/king/kingView.ts';
 import { Puffs, Sparks } from '../src/render/fx.ts';
 
 const FX = () => ({ sparks: new Sparks(50, 1), gore: new Sparks(50, 1, true), puffs: new Puffs(), bursts: new Bursts() });
