@@ -4,7 +4,7 @@ import { Foe, type Attack, type FoeCtx, type FoeSpec } from '../src/foes/foe.ts'
 import { Motor, type Press } from '../src/player/motor.ts';
 import { KHANDA } from '../src/weapons/khanda.ts';
 import { D } from '../src/combat/difficulty.ts';
-import type { Strike } from '../src/bosses/king/moves2.ts';
+import type { Strike } from '../src/boss/strike.ts';
 
 const DT = 1 / 60;
 const tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }];

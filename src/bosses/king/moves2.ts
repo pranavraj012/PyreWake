@@ -1,5 +1,6 @@
 // More moves: the aggressive Executioner, the Crawler, the Hanged, and the One Beneath (round 2).
 import { clip, makePose, type Clip, type Key } from '../../anim/pose.ts';
+import type { Strike, Zone } from '../../boss/strike.ts';
 
 /** Round 2: low, wide, every arm out. */
 export const STAND2 = makePose({ hx: 0, hy: -0.34, hz: -0.06, hp: 24, hw: 0, hr: 0, sp: 24, sw: 0, sr: 0, np: -46, nw: 0, nr: 6, ra: -64, re: -34, rl: 0.8, ba: -30, be: 10, la: 64, le: -34, ll: 0.8, xl: 10, xr: 10, flx: 0.14, flz: 0.4, flw: 12, frx: -0.14, frz: -0.3, frw: -24 });
@@ -83,17 +84,6 @@ export function addMoves2(K: Record<string, Clip>) {
     { t: 0.9, sp: -40, nr: 50, ra: -110, la: 110 }, { t: 1.4, hy: -1.1, hp: 10, sp: 6, np: 10, ra: -50, re: -60, la: 50, le: -60, flp: 50, frp: 56, flz: 0.1, frz: -0.5 }, { t: 2.2, hy: -1.16, sp: -20, np: 40, nr: 0, ra: -80, re: -10, la: 80, le: -10 }, { t: 5.5, hy: -1.18, sp: -24, np: 46 } ] });
 }
 
-/** Ground danger. Circles and lines go off after `delay`; a ring rolls outward from the boss. */
-export interface Zone { shape: 'circle' | 'line' | 'ring' | 'sweep'; at: 'mark' | 'self' | 'player'; r?: number; len?: number; half?: number; yaw?: number; delay: number; speed?: number; max?: number; /** A circle with a safe middle this wide; a sweep that misses inside this radius. */ inner?: number; /** A sweep turns this far (radians) over `dur` seconds after its delay. */ spin?: number; dur?: number }
-/** white: dodge or guard. red: dodge only. ground: leave the glowing area, or dodge as it goes off. */
-export interface Strike {
-  kind: 'white' | 'red' | 'ground'; t: [number, number]; cue: number; dmg: number; down?: boolean; mark: 'cleaver' | 'handL' | 'head';
-  /** A box ahead (length, half width), a sector (radius, half arc in degrees), or a disc around the hanging head, metres. */
-  box?: [number, number]; arc?: [number, number]; head?: number; /** Comes in at leg height: a jump clears it. */ low?: boolean;
-  /** Ground marks drawn from the cue. With no box/arc/head of its own, the zone does the damage. */ zones?: Zone[];
-  /** Hit only outside this radius (a sweep with a safe place at the boss's feet). */ inner?: number; /** The zone is only drawn: the boss resolves it itself. */ silent?: boolean;
-  /** When it connects, the boss seizes the hero into a staged moment instead of the plain blow (Boss.seize). */ seize?: string;
-}
 /** Attacks that fly to a marked spot: launch, landing, height. `past` overshoots through the target. */
 export const LEAPS: Record<string, { t0: number; t1: number; h: number; max: number; past?: number }> = {
   leap: { t0: 0.62, t1: 1.3, h: 3.4, max: 11 }, pounce: { t0: 0.62, t1: 1.16, h: 1.5, max: 9 }, wheel: { t0: 0.6, t1: 1.22, h: 2.8, max: 10 }, cross: { t0: 0.72, t1: 1.0, h: 0.15, max: 9, past: 3.2 },

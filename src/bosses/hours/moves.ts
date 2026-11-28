@@ -1,6 +1,6 @@
 // The Sister of Hours (form 1) and the Pall (form 2): what each move threatens, and when. No rendering imports.
 // Cues keep their meanings: white = dodge or guard, red = dodge, ground = leave the glowing area or jump it.
-import type { Strike, Zone } from '../king/moves2.ts';
+import type { Strike, Zone } from '../../boss/strike.ts';
 
 const D = Math.PI / 180;
 const line = (len: number, half: number, delay: number, yaw = 0): Zone => ({ shape: 'line', at: 'self', len, half, delay, yaw });

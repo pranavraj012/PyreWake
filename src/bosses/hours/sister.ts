@@ -1,7 +1,7 @@
 // The third boss's simulation: the Sister of Hours (form 1) and the Pall (form 2). Runs headless; her own mechanics (the count, the linen, the stake) resolve in tick().
 import { moveAt } from '../../anim/pose.ts';
 import type { Boss } from '../../boss/boss.ts';
-import type { Strike } from '../king/moves2.ts';
+import type { Strike } from '../../boss/strike.ts';
 import type { Fight } from '../../combat/fight.ts';
 import { HOURS_CLIPS as C } from './clips.ts';
 import { HOURS_ATTACKS as A } from './moves.ts';

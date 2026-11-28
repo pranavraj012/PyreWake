@@ -1,5 +1,5 @@
 // The Ferryman's attack tables, net on and net off: what each move threatens, and when. No rendering imports.
-import type { Strike, Zone } from '../king/moves2.ts';
+import type { Strike, Zone } from '../../boss/strike.ts';
 
 const circle = (r: number, delay: number, at: Zone['at'] = 'mark'): Zone => ({ shape: 'circle', at, r, delay });
 export type RiverMode = 'idle' | 'stalk' | 'strafe' | 'lowWater' | 'sounding' | 'pushOff' | 'turnBoat' | 'cast' | 'haul' | 'haulIn' | 'wheelIron' | 'dragDeep' | 'gather' | 'wrongShore' | 'coldHands'

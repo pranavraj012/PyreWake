@@ -1,7 +1,8 @@
 // The boss's simulation in both forms: where it is, what it is doing, what it threatens. Runs headless.
 import { moveAt } from '../../anim/pose.ts';
 import { D } from '../../combat/difficulty.ts';
-import { ATTACKS, LEAPS, type Strike } from './moves2.ts';
+import { ATTACKS, LEAPS } from './moves2.ts';
+import type { Strike } from '../../boss/strike.ts';
 import { KING_CLIPS as K } from './clips.ts';
 import type { Fight } from '../../combat/fight.ts';
 
