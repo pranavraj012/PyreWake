@@ -8,7 +8,6 @@ import { FOG, installFog, setScars } from './render/surface.ts';
 import { makeSky } from './render/sky.ts';
 import { Post } from './render/post.ts';
 import { BOSSES } from './bosses/index.ts';
-import { bootKing } from './bosses/king/page.ts';
 import type { Ctx } from './core/boot.ts';
 import './ui/style.css';
 
@@ -48,5 +47,6 @@ else if (!SHOT && !BENCH) canvas.addEventListener('click', () => { if (!document
 const status = (s: string) => { document.querySelector('#load span')!.textContent = s; };
 /** The one Ctx every page boots from: the shared boot's objects (renderer, scene, camera, lights, sky, post, input). */
 const ctx: Ctx = { Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH };
-const page = BOSSES.find(b => b.load && String(b.n) === Q.get('boss'));
-(page ? page.load!().then(b => b(ctx)) : bootKing(ctx)).catch(e => { console.error(e); status('Could not start: ' + e.message); });
+// every boss boots the same way: ?boss=N names the page, and no ?boss= (or an unknown one) is the King
+const page = BOSSES.find(b => String(b.n) === Q.get('boss')) ?? BOSSES[0];
+page.load().then(b => b(ctx)).catch(e => { console.error(e); status('Could not start: ' + e.message); });

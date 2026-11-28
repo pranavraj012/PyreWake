@@ -1,5 +1,6 @@
 // The boss registry: every boss in fight order, as plain data. The menu's fight list, the ?boss= page switch and the moment theatre all read it.
 // Only dynamic import() appears here (inside each load), so any page can import this without pulling in another boss's code.
+// main.ts boots whichever page ?boss= names (the King when it is absent), through the same load.
 import type { Ctx } from '../core/boot.ts';
 
 export type BossId = 'king' | 'river' | 'hours';
@@ -15,12 +16,12 @@ export interface BossEntry {
   name: string;
   /** The ?moment= names this boss's page takes (dev/theatre.ts). */
   moments: string[];
-  /** The page's boot, loaded on demand. Null for the King: his page is main.ts itself. */
-  load: (() => Promise<BossBoot>) | null;
+  /** The page's boot, loaded on demand (every page, the King's too). */
+  load: () => Promise<BossBoot>;
 }
 
 export const BOSSES: readonly BossEntry[] = [
-  { id: 'king', n: 1, name: 'The Hanged King', moments: ['noose', 'rope', 'ride'], load: null },
+  { id: 'king', n: 1, name: 'The Hanged King', moments: ['noose', 'rope', 'ride'], load: () => import('./king/page.ts').then(r => r.bootKing) },
   { id: 'river', n: 2, name: 'The Ferryman', moments: ['drag', 'chain', 'lantern'], load: () => import('./river/page.ts').then(r => r.bootRiver) },
   { id: 'hours', n: 3, name: 'The Sister of Hours', moments: ['gather', 'turn'], load: () => import('./hours/page.ts').then(r => r.bootHours) },
 ];

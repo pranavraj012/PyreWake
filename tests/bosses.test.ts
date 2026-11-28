@@ -15,9 +15,8 @@ describe('the boss registry', () => {
     expect(BOSSES.map(b => b.n).sort()).toEqual([1, 2, 3]);
   });
 
-  it('gives the King no loader (main.ts is his page) and the others one', () => {
-    expect(BOSSES.find(b => b.id === 'king')!.load).toBeNull();
-    expect(BOSSES.filter(b => b.id !== 'king').every(b => typeof b.load === 'function')).toBe(true);
+  it('gives every boss a loader: the King too, so main.ts boots every page the same way', () => {
+    expect(BOSSES.every(b => typeof b.load === 'function')).toBe(true);
   });
 });
 
