@@ -47,7 +47,9 @@ export async function player(): Promise<Mesh> {
   face.put(ell([0, 1.625, 0.036], [0.068, 0.075, 0.072])).put(ell([0, 1.65, 0.0], [0.086, 0.06, 0.1])).put(cone([0, 1.645, 0.1], [0, 1.63, 0.116], 0.014, 0.017), { k: 0.025 });
   face.put(cone([0, 1.57, 0.01], [0, 1.5, -0.01], 0.062, 0.074), { bone: b.neck });
   face.put(any((x, y, z) => y - (1.652 - 0.14 * Math.max(0, z - 0.1) + 0.004 * noise(x * 40, 0, z * 40) - x * x * 1.2)), { op: 'int', k: 0.005 });
-  face.displace((x, y, z) => { const u = (y + 0.35 * Math.abs(x) + 0.1 * z) * 46 + noise(x * 18, y * 18, z * 18) * 0.7, f = u - Math.floor(u); return -0.0035 * Math.sin(f * Math.PI) - 0.002 * ridged(x * 30, y * 55, z * 30, 2) + 0.001; }, 0.008);
+  const edge: V3[] = []; for (let i = 0; i <= 20; i++) { const x = (i / 20 - 0.5) * 0.13, z = 0.036 + 0.079 * Math.sqrt(Math.max(0, 1 - (x / 0.071) ** 2)); edge.push([x, 1.652 - 0.14 * Math.max(0, z - 0.1) - 1.2 * x * x + 0.002, z]); }
+  face.put(tube(edge, () => 0.0068), { k: 0.008 });
+  face.displace((x, y, z) => { const u = (y + 0.35 * Math.abs(x) + 0.1 * z) * 46 + noise(x * 18, y * 18, z * 18) * 0.7, f = u - Math.floor(u); return -0.0062 * Math.sin(f * Math.PI) - 0.003 * ridged(x * 30, y * 55, z * 30, 2) + 0.0012 + 0.0025 * sstep(0.82, 0.98, f); }, 0.008);
 
   const hood = F(0.03, 0.0042, 5, 3800); hood.bone = b.head;
   hood.put(ell([0, 1.69, 0.0], [0.118, 0.137, 0.14])).put(ell([0, 1.66, -0.08], [0.08, 0.1, 0.085]), { k: 0.05 }).put(ell([0, 1.765, 0.06], [0.078, 0.052, 0.085]), { k: 0.05 });
@@ -61,10 +63,11 @@ export async function player(): Promise<Mesh> {
   hood.put(ell([0, 1.665, 0.012], [0.086, 0.108, 0.116]), { op: 'sub', k: 0.016 });
   hood.put(ell([0, 1.64, 0.165], [0.07, 0.098, 0.1]), { op: 'sub', k: 0.03 });
   // stiff peaked brim over the eyes, a crown point that droops behind, a heavy cowl fold at each cheek
-  hood.put(ell([0, 1.742, 0.098], [0.09, 0.022, 0.062], [-0.3, 0, 0]), { k: 0.035 });
-  hood.put(cone([0, 1.77, -0.02], [0, 1.74, -0.17], 0.06, 0.022), { k: 0.06 });
+  hood.put(ell([0, 1.742, 0.098], [0.09, 0.018, 0.068], [-0.3, 0, 0]), { k: 0.03 });
+  hood.put(cone([0, 1.76, 0.0], [0, 1.845, -0.14], 0.08, 0.005), { k: 0.045 });
+  hood.put(cone([0, 1.74, -0.06], [0, 1.69, -0.215], 0.07, 0.012), { k: 0.05 });
   for (const [, s] of SIDES) hood.put(cone([0.108 * s, 1.68, 0.04], [0.098 * s, 1.55, 0.07], 0.03, 0.04), { k: 0.04 });
-  hood.displace((x, y, z) => { const a = Math.atan2(x, z + 0.01); return -0.012 * ridged(a * 1.7, y * 6 + Math.abs(a) * 1.4, 3, 2) - 0.004 * ridged(a * 4, y * 14, 5, 2) + 0.008 + 0.002 * noise(x * 50, y * 50, z * 50); }, 0.014);
+  hood.displace((x, y, z) => { const a = Math.atan2(x, z + 0.01); return -0.0135 * ridged(a * 1.8, y * 6.5 + Math.abs(a) * 1.5, 3, 2) - 0.0045 * ridged(a * 4, y * 14, 5, 2) + 0.008 + 0.002 * noise(x * 50, y * 50, z * 50); }, 0.014);
 
   // shoulder mantle
   const mantle = F(0.03, 0.0045, 5, 3600); mantle.bone = b.chest;
@@ -235,28 +238,6 @@ export async function player(): Promise<Mesh> {
   const stringB = F(0.004, 0.0028, 3, 1200); stringB.bone = b.chest;
   bp0.slice(1).forEach((p, i) => stringB.put(cone(bp0[i], p, 0.0032, 0.0032), { k: 0.002 }));
   kit.displace((x, y, z) => 0.0012 * fbm(x * 55, y * 55, z * 55, 2), 0.002);
-
-  // ---- above the neck: iron brow band with ember studs, nose guard, cheek plates, knotted wrap tails, throat clasp
-  const hk = F(0.004, 0.0026, 4, 3600); hk.bone = b.head;
-  const brow: V3[] = []; for (let i = 0; i <= 16; i++) { const a = (i / 16 - 0.5) * 2.5; brow.push([Math.sin(a) * 0.078, 1.706 - 0.012 * Math.abs(Math.sin(a)), Math.cos(a) * 0.104]); }
-  hk.put(tube(brow, () => 0.0062), { k: 0.003 });
-  hk.put(cone([0, 1.69, 0.1], [0, 1.658, 0.118], 0.0095, 0.0075), { k: 0.004 });
-  for (const [, s] of SIDES) {
-    hk.put(ell([0.05 * s, 1.625, 0.084], [0.009, 0.024, 0.022]), { k: 0.004 });
-    hk.put(ball([0.052 * s, 1.636, 0.1], 0.0036), { k: 0.002 }).put(ball([0.052 * s, 1.612, 0.1], 0.0036), { k: 0.002 });
-  }
-  hk.put(ell([0, 1.528, 0.128], [0.028, 0.028, 0.008]), { k: 0.004, bone: b.neck });
-  const em = F(0.006, 0.0022, 22, 1100); em.bone = b.head;
-  for (const x of [-0.045, 0, 0.045]) em.put(ball([x, 1.7065 - (x ? 0.012 * Math.abs(Math.sin(x * 12)) : 0), 0.1075 - Math.abs(x) * 0.45], 0.0072), { k: 0.002 });
-  em.put(ball([0, 1.528, 0.137], 0.011), { k: 0.003, bone: b.neck });
-  const wrp = F(0.01, 0.0026, 2, 1800); wrp.bone = b.head;
-  wrp.put(ball([0.05, 1.588, 0.088], 0.017), { k: 0.01 });
-  for (const [dx, dz, ln] of [[0.01, 0.012, 0.11], [0.028, -0.01, 0.085]] as const) {
-    const tp = curve([[0.05 + dx, 1.58, 0.09], [0.058 + dx, 1.56, 0.15], [0.06 + dx * 1.6, 1.55 - ln * 0.5, 0.185 + dz]], 10);
-    tp.slice(1).forEach((q, i) => wrp.put(cone(tp[i], q, 0.011 - i * 0.0006, 0.011 - (i + 1) * 0.0006), { k: 0.004 }));
-    em.put(ball(tp[tp.length - 1], 0.008), { k: 0.002 });
-  }
-  wrp.displace((x, y, z) => 0.0014 * fbm(x * 55, y * 55, z * 55, 2), 0.002);
 
   // ---- braid
   const hair = F(0.004, 0.0034, 7, 2600);
