@@ -12,7 +12,8 @@ import { Offer, offerSpec, type MomentSpec } from '../../game/moment.ts';
 import { RIVER_NAMES, RIVER_PRESS, RIVER_WORDS } from './riverScript.ts';
 import { buildGhats } from './ghats.ts';
 import { DRAG, River } from './river.ts';
-import { dragSpec, dragUnder } from './dragShot.ts';
+import { underWater } from './dragShot.ts';
+import { UnderSet, UNDER } from './underSet.ts';
 import { RiverBrain } from './brain.ts';
 import { RiverView } from './riverView.ts';
 import { RiverDirector } from './riverDirector.ts';
@@ -74,16 +75,26 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
   const { c, parts, m, fight, pv, fx, hud, dir, moment, qte, menuOpen } = k;
   const { sim, arena: ghats } = parts;
   const [v1, v2] = parts.views;
-  const { input, post, app } = c;
+  const { input, post, scene } = c;
   // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
-  const rSpecs = { ...riverMoments(sim, m) } as Record<'drag' | 'chain' | 'lantern', MomentSpec>;
-  const dSpec = dragSpec(sim, m);
-  const under = document.createElement('div');
+  const cur = () => (sim.form === 2 ? v2 : v1);
+  const rSpecs = { ...riverMoments(sim, m, { hand: o => cur().mark('handL', o), head: o => cur().mark('head', o) }) } as Record<'drag' | 'chain' | 'lantern', MomentSpec>;
+  const uset = new UnderSet(scene, { ferry: v1.mesh.geometry, arm: v1.fxv.arms.geometry, drowned: v1.fxv.souls.geometry });
+  let heroHid = false, dimOn = false;
   let staged: 'drag' | 'chain' | 'lantern' | null = null;
-  let dragK = 0;
   // the reward on offer: the slow low shot by the hero's feet, then the press; the drag's own beats: the pull under, the bite, the heave
-  under.style.cssText = 'position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;background:radial-gradient(ellipse at 50% 45%, rgba(40,92,72,0.18), rgba(8,36,28,0.8))';
-  app.appendChild(under);
+  /** The drag's cues (dragShot.ts names them): the sound, the spray, the shake. */
+  const dragCue = (name: string, t: number) => {
+    const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+    if (name === 'grip') { sound.play('armsClench', { gain: 0.8, x: m.x, z: m.z }); sound.play('groan', { gain: 0.6, x: sim.x, z: sim.z }); fx.puffs.emit(V(m.x, 1.2, m.z), 10, 2.2, 0.9, t); moment.kick(0.6); }
+    else if (name === 'haul') { sound.play('poleDrag', { gain: 0.7, wet: 0.5 }); sound.play('breathIn', { gain: 0.5, wet: 0.7, bus: 'voice', rate: 0.8, x: m.x, z: m.z }); }
+    else if (name === 'dip') { sound.play('splash', { gain: 0.9, x: m.x, z: m.z }); fx.puffs.emit(V(m.x, 0.25, m.z), 30, 4, 1.4, t); fx.sparks.emit(V(m.x, 0.2, m.z), V(0, 1, 0), 30, 3, 1.2, 0.5, t); ghats.ripple(m.x, m.z, 1, t); moment.kick(0.5); }
+    else if (name === 'under') { sound.play('wave', { gain: 0.6, wet: 0.9 }); sound.play('boil', { gain: 0.5, wet: 0.9 }); uset.burst(V(UNDER.x + 0.15, -0.3, 3.6)); }
+    else if (name === 'hands') { sound.play('handsRise', { gain: 0.8 }); sound.play('moan', { gain: 0.5, wet: 0.9 }); }
+    else if (name === 'heave') { sound.play('splash', { gain: 1, x: sim.x, z: sim.z }); sound.play('whooshH', { gain: 0.9, x: m.x, z: m.z }); fx.puffs.emit(V(sim.x + Math.sin(sim.yaw) * 0.5, 0.3, sim.z + Math.cos(sim.yaw) * 0.5), 28, 4, 1.4, t); moment.kick(0.5); }
+    else if (name === 'land') { sound.play('slam', { gain: 0.9, x: m.x, z: m.z }); sound.play('thud', { gain: 0.9, x: m.x, z: m.z }); fx.puffs.emit(V(m.x, 0.1, m.z), 22, 3, 1.4, t); fx.sparks.emit(V(m.x, 0.15, m.z), V(0, 1, 0), 16, 3, 1.0, 0.5, t); ghats.ripple(m.x, m.z, 1.4, t); moment.kick(1); }
+    else if (name === 'rise') sound.play('breathIn', { gain: 0.6, wet: 0.6, bus: 'voice', x: m.x, z: m.z });
+  };
   const kOffer = new Offer(moment, offerSpec(m, () => ({ x: sim.x, y: 2.2, z: sim.z })), (r, secs) => qte.show('attack', RIVER_PRESS[r as 'chain' | 'lantern'], secs, input.lastDevice));
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud);
   const rKit: RiverRewardKit = { fx, kick: s => moment.kick(s), get river() { return sim.form === 2 ? v2 : v1; }, end: () => { const v = sim.form === 2 ? v2 : v1; v.poleAim = null; v.lampHidden = false; } };
@@ -115,19 +126,16 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
     after(sd: number, dt: number, t: number) {
       // a reward scene: the hero's clip runs on the scene's clock, and its beats (the shatter, the snap) fire on the frame they land
       if (sim.rite) { if (rewardRun.kind !== sim.rite) { beginReward(riverClip(sim.rite), m); rewardRun.begin(sim.rite); } syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, m, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end(m);
-      { const want = sim.staging; if (want !== staged) { staged = want; dragK = 0; if (want) { qte.hide(); moment.start(want === 'drag' ? dSpec : rSpecs[want]); } else moment.stop(); } }
-      // the drag's beats, on the boss's clock: a groan as he is pulled under, the bite, and a slam as he is heaved onto the steps
-      // under the water: a green wash over the view, and bubbles rising from him while he is held down
-      const wash = sim.held === 'drag' ? dragUnder(sim.stage) : 0;
-      under.style.opacity = String(wash);
-      // the landing is solid stone: while the eye is under the water the floor is lifted off, or it walls the whole view (the drag's camera went into the stone)
-      ghats.landing.visible = wash < 0.7;
-      if (sim.held === 'drag' && sim.stage > DRAG.under && sim.stage < DRAG.heave) { for (let q = 0; q < 2; q++) fx.sparks.emit(new THREE.Vector3(m.x + (Math.random() - 0.5) * 0.8, -0.4 - Math.random() * 1.4, m.z + (Math.random() - 0.5) * 0.8), new THREE.Vector3(0, 1, 0), 2, 0.5, 0.04, 1.4, t); }
-      if (sim.held === 'drag') { const beats = [DRAG.under, DRAG.dmg, DRAG.heave]; while (dragK < 3 && sim.stage >= beats[dragK]) { if (dragK === 0) sound.play('groan', { gain: 0.6, x: sim.x, z: sim.z }); else if (dragK === 1) { sound.play('doom', { gain: 0.8 }); moment.kick(0.7); } else { sound.play('slam', { gain: 0.8, x: sim.x, z: sim.z }); moment.kick(0.6); } dragK++; } }
-      document.body.classList.toggle('letter', moment.letterbox || sim.held === 'drag');
+      { const want = sim.staging; if (want !== staged) { staged = want; if (want) { qte.hide(); moment.start(rSpecs[want]); } else moment.stop(); } }
+      // the drag's cues, on the boss's clock; the under-water set is shown while he is held under; the hero's body is out of the lens (first person), and a dim goes over the picture
+      for (const name of moment.due(sim.stage)) dragCue(name, t);
+      uset.show(sim.held === 'drag' && underWater(sim.stage)); uset.reach = sim.held === 'drag' ? Math.min(1, Math.max(0, (sim.stage - 2.6) / 1.0)) : 0;
+      if (sim.held === 'drag' && sim.stage > 0.5 && sim.stage < 1.75 && Math.random() < 0.6) fx.puffs.emit(new THREE.Vector3(m.x - Math.sin(sim.yaw) * 0.3, 0.1, m.z - Math.cos(sim.yaw) * 0.3), 1, 1.4, 0.7, t);
+      document.body.classList.toggle('letter', moment.letterbox);
       kOffer.step(dt, sim.reward, sim.rewardLeft, sim.staging !== null);
       pv.tumble = moment.hero(sim.stage, pv.offset);
-      if (sim.held === 'drag' && sim.stage >= 0.55 && sim.stage < 0.62) fx.sparks.emit(new THREE.Vector3(m.x, 0.2, m.z), new THREE.Vector3(0, 1, 0), 40, 4, 1.2, 0.5, t);
+      if (heroHid !== moment.hideHero) { heroHid = moment.hideHero; pv.group.visible = !heroHid; pv.eye.mesh.visible = !heroHid; pv.blade.mesh.visible = !heroHid; }
+      { const md = moment.dimAt(sim.stage); if (md > 0 || dimOn) { dir.dark = md; dimOn = md > 0; } }
     },
     tick(sd: number, dt: number, t: number) {
       turn.step(dt, t);
@@ -139,6 +147,8 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
     clock: () => sim.stage,
     reset() {
       staged = null;
+      if (dimOn) dir.dark = 0;
+      dimOn = false; uset.show(false);
       ghats.landing.visible = true;
       kOffer.reset();
       rd.reset();
@@ -165,11 +175,13 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
       if (turn.active) { turn.camera(cam, t); return true; }
       if (ending.active) { ending.camera(cam, t); return true; }
       if (intro.active) { intro.camera(cam, t, c.baseFov()); return true; }
-      return !!(moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.stage, t));
+      const on = !!(moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.stage, t));
+      if (on && uset.group.visible) uset.update(sim.stage - DRAG.under, Math.min(ms / 1000, 0.05), cam.position, cam.userData.focus as THREE.Vector3);
+      return on;
     },
     followTarget: () => ({ x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5, h: sim.form === 2 ? 2.1 : 1.7 + sim.y * 0.6 }),
     frame(cam, ms) { moment.settle(cam, Math.min(ms / 1000, 0.05)); },
-    debug: () => ({ __rd: rd, __kOffer: kOffer }),
+    debug: () => ({ __rd: rd, __kOffer: kOffer, __uset: uset }),
   };
 }
 

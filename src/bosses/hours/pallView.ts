@@ -31,6 +31,7 @@ export class PallView implements BossView {
   pose: Pose = new Float32Array(N); private src = new Float32Array(N); private inert = new Inertial(); private last = ''; private chains: Chains; private chainRoot = new THREE.Matrix4(); private head = { w: 0 };
   /** The embers in the linen: how bright, how much they climb (the count), and Last Rites' burn. */ coals = { uT: FOG.uFogP, uK: { value: 1 }, uUp: { value: 0 }, uBurn: { value: 0 } };
   /** Seven embers at her face for the Long Count. */ embers: THREE.Sprite[] = []; private overlay: THREE.SkinnedMesh; private arms: Arm[];
+  /** A held view keeps the linen out of its near field: no arm link comes within `clearR` of `clearAt` (0 is off). */ clearAt = new THREE.Vector3(); clearR = 0;
   /** 0-1: Last Rites has burned her. */ burnt = 0; /** The camera looks this high at her. */ camH = 3.2; /** Kept for the page: her face never comes down to sword height now. */ headDown = 0; private headAt = V(); private spin = 0;
   constructor(scene: THREE.Scene, g: PallGeo, skin: THREE.Material, held: THREE.Material, depth: { skin: THREE.Material; still: THREE.Material }, fx: Fx, sim: Sister) {
     this.sim = sim; this.fx = fx; this.body = new Body(this.rig, PALL_SPEC); this.man.scale.setScalar(PALL_SCALE);
@@ -136,8 +137,11 @@ void main(){ if (abs(vM - 40.) > .5) discard; float t = uT.w; vec3 q = vP * vec3
       } else if (m === 'grip') {
         // the Weight of Hours: three arms wound round him at her face; then all six carry him up, and bring him down
         const h = V(px, gripLift(mt) + 0.9, pz), a = t * (1.6 + k) + k * 2.1;
-        if (mt < GRIP.throw) { if (k <= 2) { tip = h.clone().add(V(Math.sin(a) * 0.45, 0.3 * k - 0.3, Math.cos(a) * 0.45)); c1 = R.clone().add(V(0, 1.2, 0)).addScaledVector(dirW(F), 1.2); c2 = h.clone().add(V(0, 1.4, 0)); rate = 9; wave = 0.08; } }
-        else if (mt < GRIP.impact + 0.05) { tip = h.clone().add(V(Math.sin(a) * 0.5, -0.2 + 0.2 * row, Math.cos(a) * 0.5)); c1 = R.clone().add(V(0, 2.5, 0)).addScaledVector(dirW(F + (k - 2.5) * 0.3), 1.5); c2 = h.clone().add(V(0, -1.2, 0)).addScaledVector(dirW(F + Math.PI), 1.2); rate = 30; wave = 0.05; }
+        // closing, the three wind tight round him (seen from beside); once the view goes to his eyes they stand off him, below the lens, so his own held view is clear of them
+        const wide = E(0.7, 1.0, mt), rad = 0.45 + 0.6 * wide;
+        if (mt < GRIP.throw) { if (k <= 2) { tip = h.clone().add(V(Math.sin(a) * rad, 0.3 * k - 0.3 - 0.5 * wide, Math.cos(a) * rad)); c1 = R.clone().add(V(0, 1.2, 0)).addScaledVector(dirW(F), 1.2); c2 = h.clone().add(V(Math.sin(a) * rad * 1.6, 1.4 - 1.1 * wide, Math.cos(a) * rad * 1.6)); rate = 9; wave = 0.08; } }
+        else if (mt < GRIP.impact + 0.05 && mt > GRIP.top - 0.15) { const d = dirW(F + (k - 2.5) * 0.55); tip = V(px, 0.3, pz).addScaledVector(d, 2.8); c1 = R.clone().add(V(0, 2.5, 0)).addScaledVector(d, 1.0); c2 = tip.clone().add(V(0, 1.6, 0)); rate = 16; wave = 0.05; } // he is falling: the linen splays to the stones round where he will land, out of his way
+        else if (mt < GRIP.impact + 0.05) { tip = h.clone().add(V(Math.sin(a) * 1.7, -0.8 + 0.2 * row, Math.cos(a) * 1.7)); c1 = R.clone().add(V(0, 2.5, 0)).addScaledVector(dirW(F + (k - 2.5) * 0.3), 1.5); c2 = h.clone().add(V(0, -1.2, 0)).addScaledVector(dirW(F + Math.PI), 1.2); rate = 30; wave = 0.05; }
         else { const b = F + (k - 2.5) * 0.38, d = dirW(b); tip = V(px, 0.06, pz).addScaledVector(d, 1.4); c1 = R.clone().addScaledVector(dirW(F), 1.5).add(V(0, 0.8, 0)); c2 = V(px, 0.3, pz).addScaledVector(d, -0.5); rate = 16; wave = 0.04; }
       } else if (m === 'hemLash') {
         const wrap = E(0.2, 0.7, mt) * (1 - E(0.75, 0.95, mt)), out = E(0.75, 1.0, mt) * (1 - E(1.3, 1.8, mt)), a = F + k * Math.PI / 3 + 6.283 * E(0.75, 1.3, mt);
@@ -167,6 +171,7 @@ void main(){ if (abs(vM - 40.) > .5) discard; float t = uT.w; vec3 q = vP * vec3
       if (this.fresh) for (let j = 0; j <= ARM_ROWS; j++) arm.p[j].copy(arm.want[j]);
       for (let j = 1; j <= ARM_ROWS; j++) arm.p[j].lerp(arm.want[j], 1 - Math.exp(-dt * rate * (1.6 - 0.9 * j / ARM_ROWS)));
       arm.p[0].copy(R); for (let j = 1; j <= ARM_ROWS; j++) { tmp.copy(arm.p[j]).sub(arm.p[j - 1]); const l = tmp.length() || 1; arm.p[j].copy(arm.p[j - 1]).addScaledVector(tmp, SEG / l); if (arm.p[j].y < 0.04) arm.p[j].y = 0.04; }
+      if (this.clearR > 0) for (let j = 1; j <= ARM_ROWS; j++) { tmp.copy(arm.p[j]).sub(this.clearAt); const l = tmp.length(); if (l < this.clearR) arm.p[j].copy(this.clearAt).addScaledVector(l > 1e-3 ? tmp.divideScalar(l) : V(0, -1, 0), this.clearR); }
       // onto the rig: each link turned to point at the next
       for (let j = 0; j < ARM_ROWS; j++) {
         const i = r.i(`arm${k}_${j}`), rest = j < ARM_ROWS - 1 ? V(...armRest(k, j + 1)).sub(V(...armRest(k, j))).normalize() : V(...ARMS[k].dir).normalize();

@@ -14,7 +14,7 @@ const QUIET = ['reel', 'reel2', 'snap', 'kneel', 'fall', 'cradle', 'riseW', 'die
 export const isMove = (m: string) => m in C && !QUIET.includes(m);
 /** Where the turn stops, so the mark it threw is where it lands: the line is drawn at the cue. */
 const LOCK: Record<string, number> = { cast: 0.3, dragDeep: 0.4, haulIn: 0 };
-/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { under: 0.55, hold: 1.6, dmg: 1.7, heave: 3.6, end: 5.2 }, CHAIN = { hit: 1.5, len: 3.4 }, LANTERN = { hit: 1.25, len: 3.4 };export const GRAB_DRAG = { drag: 44 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
+/** The staged moments (module A): a grab that always plays out, and a reward the hero earns. Times are the moment's own clock, `stage`, in seconds. */export const DRAG = { grip: 0.45, haul: 1.75, under: 2.15, heave: 3.8, land: 4.3, dmg: 4.3, lie: 5.1, end: 5.9, walk: 4.2, hold: 1.3 }, CHAIN = { hit: 1.5, len: 3.4 }, LANTERN = { hit: 1.25, len: 3.4 };export const GRAB_DRAG = { drag: 44 }, RIVER_REWARD_SHARE = 0.09, RIVER_OFFER = 1.8;
 
 export interface Chain { x: number; z: number; len: number; hp: number; t: number; cut: number }
 export interface Lantern { x: number; z: number; real: boolean; t: number; gone: number }
@@ -35,6 +35,7 @@ export class River implements Boss {
 
   set(mode: string, rate = 1) { this.mode = mode; this.mt = this.prev = 0; this.moved = 0; this.rate = rate; this.serial++; this.y = 0; if (mode === 'wake') { this.jumped = false; this.from = { x: this.x, z: this.z }; } }
   /** Staged moments: the grab holding the hero, its clock, the reward in progress and the reward on offer. */
+  /** Where the boss stood when the drag took hold: he walks back from here with the hero by the throat. */ dragFrom = { x: 0, z: 0 };
   held: 'drag' | null = null; stage = 0; rite: 'chain' | 'lantern' | null = null; reward: 'chain' | 'lantern' | null = null; rewardLeft = 0; lastAnchor = { x: 0, z: 0 }; private sp = 0;
   /** One grab per boss: its first throw in a fight is forced to connect. Round 1 starts a fight afresh. */
   grabbedOnce = false; forcesGrab() { return !this.grabbedOnce; }
@@ -99,8 +100,8 @@ export class River implements Boss {
   }
   /** The grab connected (the drag's line): the boss takes the hero into a staged moment. It always plays out and always costs. */
   seize(kind: string, f: Fight) {
-    if (this.mode !== 'dragDeep') this.set('dragDeep'); // a blow may have reeled him out of the windup: he holds the hero in the drag's pose
-    this.stage = this.sp = 0; this.grabbedOnce = true; this.held = 'drag'; f.brain.seen.add('dragDeep');
+    this.set('dragHeld'); // a blow may have reeled him out of the windup: he holds the hero in the drag's pose, which runs on the drag's clock
+    this.stage = this.sp = 0; this.grabbedOnce = true; this.held = 'drag'; f.brain.seen.add('dragDeep'); this.dragFrom = { x: this.x, z: this.z };
     f.invuln = Math.max(f.invuln, 0.15);
   }
   /** A reward is on offer for a while (the chain cut, or the lamps gone out). */
@@ -123,7 +124,10 @@ export class River implements Boss {
     const pool = f.round === 2 ? D.boss.hp2 : D.boss.hp1;
     if (this.held === 'drag') {
       f.invuln = Math.max(f.invuln, 0.15);
-      if (this.stage < DRAG.heave) { m.x = this.x + Math.sin(this.yaw) * 1.6; m.z = this.z + Math.cos(this.yaw) * 1.6; }
+      // he walks backward with the hero by the throat, the way the river takes it (not out of the arena), then holds him where he stands
+      const u = sst(DRAG.grip, DRAG.haul, this.stage), bx = -Math.sin(this.yaw), bz = -Math.cos(this.yaw); let tx = this.dragFrom.x + bx * DRAG.walk, tz = this.dragFrom.z + bz * DRAG.walk; const tr = Math.hypot(tx, tz); if (tr > 16) { tx *= 16 / tr; tz *= 16 / tr; }
+      this.x = this.dragFrom.x + (tx - this.dragFrom.x) * u; this.z = this.dragFrom.z + (tz - this.dragFrom.z) * u;
+      if (this.stage < DRAG.land) { m.x = this.x + Math.sin(this.yaw) * DRAG.hold; m.z = this.z + Math.cos(this.yaw) * DRAG.hold; }
       if (cross(DRAG.dmg)) { f.invuln = 0; f.strikePlayer(GRAB_DRAG.drag, true, Math.atan2(this.x - m.x, this.z - m.z), 'dragDeep'); }
       if (this.stage >= DRAG.end) this.held = null;
     }

@@ -19,6 +19,7 @@ import { PallView } from './pallView.ts';
 import { HoursIntro, HoursTurn, HoursEnding } from './hoursScenes.ts';
 import { fightPage, type BuildKit, type FightPageSpec, type Parts, type Pre, type Vec2, type Wired, type WireKit } from '../../game/fightPage.ts';
 import type { Press } from '../../player/motor.ts';
+import { sound } from '../../audio/sound.ts';
 
 interface HoursParts extends Parts {
   arena: House;
@@ -81,12 +82,44 @@ function wireHours(k: WireKit<HoursParts>): Wired {
   const cloth = surf({ world: false, ash: 0.1, side: THREE.DoubleSide });
   const hd = new HoursDirector(dir, fight, house, v1, v2, post, hud, light, { cot, scythe, cloth, scene });
   const toHer = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1; return [dx / d, dz / d] as const; };
+  // The Gathering, in the order the King's noose reads: the linen closes on him (seen from beside), then he is carried up to her veiled face and
+  // held there (first person), drawn back and hurled; the world falls away under him and rushes up again; the slam; he lies there looking up at her.
+  const sm = (a: number, b: number, t: number) => { const u = Math.max(0, Math.min(1, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
+  const CUT = 0.85, LAND = GRIP.impact, headV = new THREE.Vector3();
   const hurl: MomentSpec = {
-    frame: (t, eye, at) => { const [ux, uz] = toHer(), y = gripLift(t) + 1.0;
-      if (t < GRIP.throw) { const l = Math.min(1, t / 0.6); eye.set(m.x + ux * 4.4 + uz * 2.3, 1.15 + 0.35 * l, m.z + uz * 4.4 - ux * 2.3); at.set(m.x * 0.55 + sim.x * 0.45, 2.5 + 0.7 * l, m.z * 0.55 + sim.z * 0.45); return 52 - 4 * l; }
-      if (t < GRIP.impact) { eye.set(m.x + ux * 7.5 + uz * 3.2, 0.9, m.z + uz * 7.5 - ux * 3.2); at.set(m.x, y, m.z); return 56; }
-      eye.set(m.x + ux * 4.6 + uz * 2.6, 2.6, m.z + uz * 4.6 - ux * 2.6); at.set(m.x, 0.5, m.z); return 46; },
-    letterbox: true, hero: (t, o) => o.set(0, gripLift(t), 0), tumble: gripTumble, rate: t => t > GRIP.impact - 0.2 && t < GRIP.impact + 0.15 ? 0.3 : 1,
+    snap: true,
+    frame: (t, eye, at) => {
+      const [ux, uz] = toHer(), sx = -uz, sz = ux, L = gripLift(t), head = v2.mark('head', headV);
+      if (t < CUT) { // the arms close: from beside him and a little behind, her coils winding round him as he is lifted off the stones
+        const u = t / CUT; eye.set(m.x + sx * (3.1 - 0.5 * u) + ux * 1.1, 1.05 + L * 0.55, m.z + sz * (3.1 - 0.5 * u) + uz * 1.1);
+        at.set(m.x - ux * (0.5 + 0.4 * u), L + 1.15, m.z - uz * (0.5 + 0.4 * u)); return 54 - 6 * u;
+      }
+      const lx = m.x, lz = m.z, hy = L + 1.55; // his eyes
+      if (t < GRIP.throw) { // held at her face: her veil fills the top of the frame, the linen round the edges, the view drawn back and in as she coils for the throw
+        const k = sm(CUT, CUT + 0.4, t), pull = sm(1.8, GRIP.throw, t), w = Math.sin(t * 5.3) * 0.012 * k;
+        eye.set(lx + ux * 0.1 * pull + w, hy - 0.1 * pull, lz + uz * 0.1 * pull);
+        at.set(head.x, head.y - 0.3 - 0.2 * pull, head.z); return 56 - 14 * pull;
+      }
+      if (t < LAND) { // the hurl: up and away, she shrinks below him with the linen flung out; at the top the view turns to the far wall (the world tumbling round it), and only in the last moments does the floor come up to meet him
+        const u = sm(GRIP.throw, GRIP.top, t), w1 = sm(GRIP.top, GRIP.top + 0.2, t), w2 = sm(LAND - 0.17, LAND - 0.02, t), v = sm(GRIP.top - 0.25, LAND, t);
+        eye.set(lx, hy, lz);
+        const bx = head.x + (sim.x - head.x) * u, by = head.y + (1.0 - head.y) * u, bz = head.z + (sim.z - head.z) * u; // her, from her face down to her feet
+        const fx = lx + ux * 10, fy = hy - 2.2, fz = lz + uz * 10; // the far wall, a little below the horizon
+        const gx = lx + ux * 0.35, gz = lz + uz * 0.35; // the stones, straight below
+        let ax = bx + (fx - bx) * w1, ay = by + (fy - by) * w1, az = bz + (fz - bz) * w1;
+        ax += (gx - ax) * w2; ay += (0 - ay) * w2; az += (gz - az) * w2;
+        at.set(ax, ay, az); return 58 + 8 * v;
+      }
+      // the landing: a low shot from in front of him, looking back along the stones: he lies there in the foreground and she towers behind; the view rises as he stirs
+      const g = sm(LAND + 0.5, GRIP.len, t), d = 2.5 + 0.6 * sm(LAND, GRIP.len, t);
+      eye.set(m.x + ux * d + sx * 0.7, 0.45 + 0.6 * g, m.z + uz * d + sz * 0.7); at.set(m.x - ux * 0.4, 0.9 + 1.3 * g, m.z - uz * 0.4); return 50;
+    },
+    roll: t => t < GRIP.throw + 0.15 ? 0.05 * Math.sin(t * 3.1) * sm(CUT, CUT + 0.4, t) : t < LAND ? -Math.PI * 2 * sm(GRIP.throw + 0.1, LAND - 0.05, t) : 0,
+    dim: t => t < LAND ? 0 : 0.7 * (1 - sm(LAND, LAND + 0.45, t)),
+    hero: (t, o) => o.set(0, gripLift(t), 0), tumble: gripTumble,
+    rate: t => t > LAND - 0.2 && t < LAND + 0.18 ? 0.3 : 1,
+    letterbox: true,
+    cues: [{ t: 0.04, name: 'close' }, { t: CUT, name: 'lift' }, { t: 1.9, name: 'draw' }, { t: GRIP.throw, name: 'throw' }, { t: LAND, name: 'land' }, { t: LAND + 0.9, name: 'rise' }],
   };
   /** Up her: a run at her knee, a bound up the length of her arm, the cut across her face, and down again behind the blade. */
   const climbAt = (t: number, o: THREE.Vector3) => { const [ux, uz] = toHer(), face = new THREE.Vector3(sim.x + ux * 1.1, 2.9, sim.z + uz * 1.1), base = new THREE.Vector3(sim.x + ux * 2.0, 0, sim.z + uz * 2.0), E2 = (a: number, b: number) => { const u = Math.max(0, Math.min(1, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
@@ -99,6 +132,17 @@ function wireHours(k: WireKit<HoursParts>): Wired {
       if (t < 1.8) { eye.set(sim.x + ux * 2.6 + uz * 2.4, 4.2, sim.z + uz * 2.6 - ux * 2.4); at.set(sim.x + ux * 0.6, 3.4, sim.z + uz * 0.6); return 40; }
       eye.set(sim.x + ux * 8 + uz * 3, 2.2, sim.z + uz * 8 - ux * 3); at.set(sim.x, 2.6, sim.z); return 48; },
     letterbox: true, hero: climbAt, tumble: t => t > 1.7 && t < 2.5 ? (t - 1.7) * 7.85 : 0, rate: t => t > PIERCE.hit - 0.12 && t < PIERCE.hit + 0.25 ? 0.25 : 1,
+  };
+  let heroHid = false, dimOn = false;
+  /** The Gathering's cues (the spec names them): the sound, the dust, the shake. */
+  const gripCue = (name: string, t: number) => {
+    const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+    if (name === 'close') { sound.play('armsClench', { gain: 0.8, x: m.x, z: m.z }); fx.puffs.emit(V(m.x, 1.1, m.z), 14, 2.4, 1.0, t); fx.sparks.emit(V(m.x, 1.1, m.z), V(0, 1, 0), 26, 3, 1.0, 0.5, t); moment.kick(0.6); }
+    else if (name === 'lift') { sound.play('breathIn', { gain: 0.6, wet: 0.8, bus: 'voice', rate: 0.8, x: m.x, z: m.z }); sound.play('creak', { gain: 0.6, wet: 0.7, x: sim.x, z: sim.z }); }
+    else if (name === 'draw') { sound.play('creak', { gain: 0.8, wet: 0.7, x: sim.x, z: sim.z }); moment.kick(0.3); }
+    else if (name === 'throw') { sound.play('whooshH', { gain: 0.9, x: m.x, z: m.z }); moment.kick(0.5); }
+    else if (name === 'land') moment.kick(1);
+    else if (name === 'rise') sound.play('breathIn', { gain: 0.6, wet: 0.6, bus: 'voice', x: m.x, z: m.z });
   };
   hd.onGrab = () => {
     staged = 'hurl';
@@ -150,7 +194,12 @@ function wireHours(k: WireKit<HoursParts>): Wired {
       if (ending.active && !ending.over && ev.some(e => !e.up)) ending.skip();
       return { ev, mx, mz };
     },
-    after(_sd: number, _dt: number, _t: number) {
+    after(_sd: number, _dt: number, t: number) {
+      for (const name of moment.due(sim.mt)) gripCue(name, t);
+      // first person from the cut: the hero's body and eye glow are out of the lens; a dim (the slam, the lie) goes over the picture
+      { const hide = staged === 'hurl' && sim.mt >= CUT && sim.mt < LAND; // first person: only from the cut to the slam
+        if (heroHid !== hide) { heroHid = hide; pv.group.visible = !hide; pv.eye.mesh.visible = !hide; pv.blade.mesh.visible = !hide; } }
+      { const md = moment.dimAt(sim.mt); if (md > 0 || dimOn) { dir.dark = md; dimOn = md > 0; } }
       if (still) { /* tools/hours.mjs films a move held at an exact moment */ const fz = (window as unknown as { __freezeAt?: number }).__freezeAt; if (fz !== undefined && sim.mt >= fz) sim.mt = sim.prev = fz; }
     },
     tick(sd: number, dt: number, t: number) {
@@ -164,6 +213,8 @@ function wireHours(k: WireKit<HoursParts>): Wired {
     reset() {
       offer.reset();
       staged = null;
+      if (dimOn) dir.dark = 0;
+      dimOn = false;
       hd.reset();
     },
     begin() {
@@ -186,14 +237,15 @@ function wireHours(k: WireKit<HoursParts>): Wired {
       return (busy && fight.phase !== 'won') || menuOpen();
     },
     camera(cam, ms, t) {
-      if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.mt)) return true;
+      if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.mt, t)) { v2.clearAt.copy(cam.position); v2.clearR = staged === 'hurl' && sim.mt >= CUT && sim.mt < LAND ? 1.8 : 0; return true; }
+      v2.clearR = 0;
       if (turn.active) { turn.camera(cam, t); return true; }
       if (ending.active) { ending.camera(cam, t); return true; }
       if (intro.active) { intro.camera(cam, t, c.baseFov()); return true; }
       return false;
     },
     followTarget: () => ({ x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5 && !sim.hidden, h: sim.form === 2 ? v2.camH : 2.2 }),
-    frame() { document.body.classList.toggle('letter', moment.letterbox); },
+    frame(cam, ms) { document.body.classList.toggle('letter', moment.letterbox); moment.settle(cam, Math.min(ms / 1000, 0.05)); },
     debug: () => ({ __hd: hd, __light: light }),
   };
 }

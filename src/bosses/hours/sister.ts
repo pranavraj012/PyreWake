@@ -64,6 +64,8 @@ export class Sister implements Boss {
   get vulnerable() { return !this.hidden && this.mode !== 'rise' && this.mode !== 'die'; }
   get dmgMul() { return this.exposed > 0 ? this.bonus : 1; }
   get hp(): [number, number] { return [4300, 3900]; }
+  /** Which staged moment is playing, if any: the Gathering's hold (the page stages the camera and the hero for it). */
+  get staging(): 'gather' | null { return this.mode === 'grip' ? 'gather' : null; }
   get reelMode() { return this.form === 2 ? 'reel2' : 'reel'; } get kneelMode() { return 'kneel'; } get downMode() { return 'fall'; } get dieMode() { return 'die'; } get reeling() { return this.mode === 'reel' || this.mode === 'reel2'; } get holdKneel() { return 1.6; } get holdDie() { return 6.4; }
   /** Counting now: the window in which blows break it. */ get counting() { return COUNT.includes(this.mode) && this.mt > 0.6 && this.mt < 6.0; }
   break() { this.set(this.reelMode); }

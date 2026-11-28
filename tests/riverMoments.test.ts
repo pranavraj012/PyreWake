@@ -22,9 +22,12 @@ describe('the drag (round 1)', () => {
   });
   it('the hero is held in the drag while the moment plays', () => {
     const { f, k } = mk(); f.brain.seen.add('dragDeep'); k.set('dragDeep'); expect(until(f, () => k.held === 'drag', 4)).toBe(true);
-    const gx = k.x + Math.sin(k.yaw) * 1.6, gz = k.z + Math.cos(k.yaw) * 1.6;
     steps(f, 0.4, () => { f.m.x += 0.6; });
+    // he holds him at arm's length in front of him (and walks back with him: the point is the hero's, not where he was)
+    const gx = k.x + Math.sin(k.yaw) * DRAG.hold, gz = k.z + Math.cos(k.yaw) * DRAG.hold;
     expect(Math.hypot(f.m.x - gx, f.m.z - gz)).toBeLessThan(0.05);
+    // he walks back with the hero by the throat, and does not leave the arena
+    expect(until(f, () => k.stage > DRAG.haul, 4)).toBe(true); expect(Math.hypot(k.x, k.z)).toBeLessThan(17);
   });
 });
 
@@ -56,7 +59,7 @@ describe('the rewards', () => {
     const { f, k } = mk(); const r = R(f); r.set('idle'); expect(r.takeReward()).toBeNull(); expect(k.mode).toBe('idle');
   });
   it('the moments have their timings in order', () => {
-    expect(DRAG.dmg).toBeLessThan(DRAG.heave); expect(DRAG.heave).toBeLessThan(DRAG.end);
+    expect(DRAG.grip).toBeLessThan(DRAG.haul); expect(DRAG.haul).toBeLessThan(DRAG.under); expect(DRAG.under).toBeLessThan(DRAG.heave); expect(DRAG.heave).toBeLessThan(DRAG.dmg); expect(DRAG.dmg).toBeLessThan(DRAG.end);
 
     expect(CHAIN.hit).toBeLessThan(CHAIN.len); expect(LANTERN.hit).toBeLessThan(LANTERN.len);
   });

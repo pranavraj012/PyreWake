@@ -14,7 +14,8 @@ import { LEVEL } from '../../render/water.ts';
 import type { Hud } from '../../ui/hud.ts';
 import { Cues, Lens } from '../../game/sceneKit.ts';
 import { RIVER_ENDING, RIVER_INTRO, RIVER_TURN, speak } from './riverScript.ts';
-import { CHAIN, DRAG, LANTERN, type River as RiverSim } from './river.ts';
+import { CHAIN, LANTERN, type River as RiverSim } from './river.ts';
+import { dragSpec, type Marks } from './dragShot.ts';
 import type { Motor, Press } from '../../player/motor.ts';
 import type { MomentSpec, Prompt } from '../../game/moment.ts';
 
@@ -276,18 +277,7 @@ export class RiverEnding {
 }
 
 // ---------------------------------------------------------------- the moments (the drag; the rewards are in rewardShots.ts)
-/** Each moment is staged on the boss's own clock (`stage`): the page plays these specs while the simulation holds the hero. */
-export function riverMoments(sim: RiverSim, m: Motor): { drag: MomentSpec } {
-  /** From the boat toward the hero, on the water, and its right-hand side. */
-  const away = () => { const dx = m.x - sim.x, dz = m.z - sim.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d; return { ux, uz, sx: -uz, sz: ux }; };
-  // the drag: hooked and pulled under, held down, and heaved up onto the steps
-  const drag: MomentSpec = {
-    frame: (t, eye, at) => { const { sx, sz, ux, uz } = away(), down = E(DRAG.under, DRAG.hold, t), up = E(DRAG.heave, DRAG.end, t), low = Math.max(down, 1 - up), hx = m.x, hz = m.z;
-      // above the water, then down under the surface as he goes, and up again as he is heaved out
-      eye.set(hx + sx * 4.6 + ux * 1.2, 2.2 - 3.0 * low, hz + sz * 4.6 + uz * 1.2); at.set(hx, 0.8 - 1.8 * low, hz); return 56 - 2 * low; },
-    hero: (t, o) => { o.y = t < DRAG.under ? 0 : t < DRAG.hold ? -1.6 * E(DRAG.under, DRAG.hold, t) : t < DRAG.heave ? -1.6 + 0.1 * Math.sin(t * 9) : -1.6 * (1 - E(DRAG.heave, DRAG.end, t)); },
-    tumble: t => t > DRAG.hold && t < DRAG.heave ? 0.25 * Math.sin(t * 6) : 0,
-    rate: t => t > DRAG.hold - 0.1 && t < DRAG.heave + 0.2 ? 0.4 : 1,
-  };
-  return { drag };
+/** The staged moments on the boss's own clock (`stage`): the page plays these specs while the simulation holds the hero. The page passes its view's marks. */
+export function riverMoments(sim: RiverSim, m: Motor, marks?: Marks): { drag: MomentSpec } {
+  return { drag: dragSpec(sim, m, marks) };
 }
