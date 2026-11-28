@@ -23,7 +23,7 @@ The boss files are final (refactor P2): each boss lives in its own folder under 
 - `src/foes/foe.ts`: lesser foes for crowds.
 - `src/anim/`: rig.ts (FK + two-bone IK), pose.ts (clip language), body.ts, chains.ts (verlet cape/hair), cloth.ts, skeletons.ts.
 - `src/render/`: surface.ts (THE surface shader, use it for every material), mats.ts (material ids), post.ts (HDR pipeline), fx.ts, impact.ts, marks.ts, ambient.ts, sky.ts, water.ts, shadowProxy.ts, assets.ts.
-- `src/audio/`: sound.ts (mixer), bank.ts (every sound, synthesised; also used by tools/sfx.mjs), bank.worker.ts, score.ts (adaptive score), tracks.ts (CC0 music), resume.ts (iOS).
+- `src/audio/`: sound.ts (mixer), bank/ (every sound, synthesised; also used by tools/sfx.mjs), bank.worker.ts, score.ts (adaptive score), tracks.ts (CC0 music), resume.ts (iOS). The bank is split by owner: bank/core.ts (RNG, buffers, filters, envelopes, render; the one place the seed is set), bank/common.ts (hero, weapons, impacts, UI, beds, score, danger: anything not one boss's), and a boss's sounds live in src/audio/bank/<id>.ts (king.ts, river.ts). bank/index.ts merges them into DEFS in the order they render, so keep the list there in order when adding a sound.
 - `src/ui/`: hud.ts (HUD, plain HTML), menu.ts (title), prompts.ts, talk.ts (dialogue box), padnav.ts (gamepad in menus), style.css, meta/* (shop, upgrade, map, inventory, sheets, rules).
 - `src/input/`: input.ts (one action map), bindings.ts, touch.ts.
 - `src/story/`: dialogue.ts (runner), people/*.ts, peopleScript.ts.
