@@ -60,6 +60,11 @@ describe('the Sister of Hours and the Pall', () => {
   it('The Gathering: caught, the Weight of Hours always plays out and costs a great deal', () => {
     const { f, k } = go(5, 'gather', 2); let held = false; run(f, 7, () => { if (k.mode === 'grip') held = true; return []; }); expect(held).toBe(true); expect(100 - f.hp).toBeGreaterThan(30);
   });
+  it('the Gathering lets go: the hold ends with a "released" event, so the page can hand the camera and the hero back', () => {
+    const { f, k } = go(5, 'gather', 2); const ev = run(f, 7) as unknown as { k: string; e?: string }[];
+    expect(ev.some(e => e.k === 'b' && e.e === 'grab')).toBe(true);
+    expect(ev.some(e => e.k === 'b' && e.e === 'released')).toBe(true); expect(k.mode).not.toBe('grip');
+  });
   it('the first Gathering of the Pall always catches, even from the side; the next one can be missed', () => {
     // she turns to face you as the arm goes out, so the step aside has to come after her turn (about 0.4 s in)
     const aside = (f: Fight) => (i: number): Press[] => { if (i === 24) { f.m.x = 3.4; f.m.z = -4; } return []; };

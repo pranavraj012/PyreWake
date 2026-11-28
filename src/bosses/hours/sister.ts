@@ -166,8 +166,9 @@ export class Sister implements Boss {
       if (mt < GRIP.impact) { m.x = this.x + sx * (this.r + 1.5); m.z = this.z + sz * (this.r + 1.5); f.invuln = Math.max(f.invuln, 0.15); }
       if (p < GRIP.throw && mt >= GRIP.throw) this.say('hurl', m.x, m.z);
       if (p < GRIP.impact && mt >= GRIP.impact) { f.invuln = 0; f.strikePlayer(GRIP.dmg, true, Math.atan2(this.x - m.x, this.z - m.z), 'gather'); this.say('slam', m.x, m.z); }
-      if (mt >= GRIP.len) { this.set('idle'); this.say('released', m.x, m.z); }
     }
+    // the hold ends with the clip (GRIP.len is the clip's length): step() has already ended the move and set idle, so the release is read from `ended`, not from the mode
+    if (this.ended === 'grip') this.say('released', m.x, m.z);
     // --- the climb: on her knees, the chance to run up her and cut her face
     this.open = this.mode === 'sag' ? Math.max(0, this.open - dt) : 0;
     if (this.mode === 'pierced') { f.invuln = Math.max(f.invuln, 0.2); if (p < PIERCE.hit && mt >= PIERCE.hit) { f.damage(PIERCE.dmg, 3.2, false, 0.2, 'blade', 'heavy'); this.say('pierce', this.x, this.z); } }
