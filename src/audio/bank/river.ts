@@ -1,4 +1,4 @@
-import { SR, R, rr, TAU, buf, ex, svf, noise, brown, shape, add, sat, hit, thump, modal, clash, draw, cracks, grains, early, voice, saws, fireBurst, whoosh, loop, V, splash, gulps, wood, lampPops } from './core.ts';
+import { SR, R, rr, buf, ex, svf, noise, brown, shape, add, sat, hit, thump, modal, clash, draw, cracks, grains, early, voice, saws, fireBurst, whoosh, V, splash, gulps, wood, lampPops } from './core.ts';
 import type { Def, F } from './core.ts';
 // --- the river: water, wood, rope and chain, lamps, and the voices of the Ferryman and the Weight. No bells, no tuned clicks.
 const chainRattle = (s: number, n: number, f0: number, f1: number, spread: (u: number) => number): F => { const o = buf(s); for (let k = 0; k < n; k++) { const at = spread(R()) * s, f = f0 * Math.pow(f1 / f0, R()); add(o, modal(0.07, [[f, 1, 0.012], [f * 1.9, 0.6, 0.008], [f * 3.1, 0.3, 0.005]], 0.0015), rr(0.3, 1), at); } return o; };
@@ -51,10 +51,4 @@ export const RIVER: Def[] = [
   ...V('wPain', 3, 0.85, i => { const o = buf(0.9); for (const [p, g] of [[140, 1], [200, 0.7], [80, 0.8]]) add(o, oldVoice(0.9, p * (1 + i * 0.05), -0.35, 2.8, u => Math.min(1, u * 18) * (1 - u)), g); return add(o, svf(shape(brown(0.9), hit(0.01, 0.3)), 260, 0.6, 'lp'), 0.5); }),
   ...V('wRoar', 2, 1.0, i => { const s = 3.0, o = buf(s); for (const [p, g] of [[54, 1], [82, 0.8], [118, 0.6], [165, 0.4], [41, 0.8]]) add(o, oldVoice(s, p * (1 + i * 0.05), 0.35, 2.8, u => Math.min(1, u * 10) * Math.min(1, (1 - u) * 2.4)), g * rr(0.8, 1.1)); add(o, wood(2.4, 110, 0.3), 0.5, 0.2); add(o, splash(s, 2400, 0.7), 0.5, 0.05); return sat(o, 1.2); }),
   { n: 'wDeath', peak: 1.0, make: () => { const s = 5.0, o = buf(s); for (const [p, g] of [[96, 1], [64, 0.9], [142, 0.6], [48, 0.8]]) add(o, oldVoice(s, p, -0.4, 2.4, u => Math.min(1, u * 6) * Math.pow(1 - u, 0.8)), g); add(o, splash(s, 3000, 1.2), 0.7, 0.2); return add(o, gulps(s, 40, 200, 900, 0.5), 0.8, 0.5); } },
-  // beds
-  { n: 'waterBed', peak: 0.35, make: () => { const s = 9, o = svf(shape(brown(s), t => 0.6 + 0.4 * Math.sin(t * TAU / 4.5)), 320, 0.6, 'lp'); add(o, svf(shape(noise(s), t => 0.5 + 0.5 * Math.sin(t * TAU / 3 + 1)), t => 900 + 400 * Math.sin(t * TAU / 6), 2.4, 'bp'), 0.1); add(o, gulps(s, 40, 300, 1400, 0.12), 1); return loop(o, 1.5); } },
-  { n: 'windLow', peak: 0.3, make: () => { const s = 9, o = svf(noise(s), t => 180 + 120 * Math.sin(t * TAU / 5.5) + 60 * Math.sin(t * TAU / 2.2), 2.0, 'bp'); return loop(o, 1.5); } },
-  { n: 'lampsBed', peak: 0.2, make: () => { const s = 7, o = lampPops(s, 80); add(o, svf(shape(noise(s), () => 0.2), 2200, 0.7, 'bp'), 0.3); return loop(o, 1.2); } },
-  // for the score: oars, wood and water
-  ...V('oar', 3, 0.35, i => { const s = 1.1, o = buf(s); let ph = 0; for (let k = 0; k < o.length; k++) { const t = k / SR; if (t < 0.5) { ph += (26 + 14 * t) / SR; if (ph > 1) { ph -= 1; o[k] = rr(0.4, 1); } } } add(o, svf(o, 480 + i * 80, 9, 'bp'), 0.7); add(o, svf(shape(noise(0.6), t => hit(0.08, 0.2)(t)), 900, 0.7, 'lp'), 0.9, 0.5); return add(o, svf(shape(brown(s), hit(0.1, 0.3)), 200, 0.6, 'lp'), 0.8, 0.45); }),
 ];
