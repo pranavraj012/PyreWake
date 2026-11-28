@@ -1,7 +1,5 @@
 // The referee: health, fire, hits, guard, parry, cues, ground danger, projectiles, aura, phases. No rendering imports.
 import type { Strike, Zone } from '../bosses/king/moves2.ts';
-import { King } from '../bosses/king/king.ts';
-import { Brain } from '../bosses/king/brain.ts';
 import type { Boss, BossBrain } from '../boss/boss.ts';
 import type { Motor, Press } from '../player/motor.ts';
 import { FALL, type Prop } from '../arena/props.ts';
@@ -32,7 +30,7 @@ export class Fight {
   spawn = { x: 0, z: 5.2, yaw: Math.PI }; private aim = { x: 0, z: 0, r: 0.75 };
   /** Wake as round 2 began: a death in round 2 returns to it. */ private wakeAt2 = 0;
   /** Runs at the end of every reset, so a page clears what the fight does not own (moments, offers, prompts, music). Set by the page once. */ onReset: ((all: boolean) => void) | null = null;
-  constructor(m: Motor, king: Boss = new King(), brain: BossBrain = new Brain()) { this.m = m; this.king = king; this.brain = brain; this.bossHp = king.hp[0]; m.target = this.aim; this.sync(); }
+  constructor(m: Motor, king: Boss, brain: BossBrain) { this.m = m; this.king = king; this.brain = brain; this.bossHp = king.hp[0]; m.target = this.aim; this.sync(); }
   get maxHp() { return this.king.hp[this.round - 1]; }
   /** Only what stands in front of you: what comes after has health of its own. */
   get bar() { return this.bossHp / this.maxHp; }

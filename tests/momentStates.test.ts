@@ -3,9 +3,10 @@
 // drop (a release still counts), and the moment must start, run to its end, leave the hero on the floor, inside the arena and controllable,
 // and pay its damage or reward exactly once.
 import { describe, expect, it } from 'vitest';
+import { Brain } from '../src/bosses/king/brain.ts';
 import { Fight } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { type King, OFFER, REWARD_SHARE } from '../src/bosses/king/king.ts';
+import { King, OFFER, REWARD_SHARE } from '../src/bosses/king/king.ts';
 import { River, RIVER_REWARD_SHARE } from '../src/bosses/river/river.ts';
 import { RiverBrain } from '../src/bosses/river/brain.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
@@ -37,7 +38,7 @@ const SCRIPT: Record<State, { press: Press[]; release?: number; ready: (m: Motor
 
 /** Hero two metres in front of the boss, facing it; a fresh fight with the boss passive (no moves of its own). */
 function setup(boss: Boss, moment: Moment) {
-  const f = boss === 'king' ? new Fight(new Motor()) : new Fight(new Motor(), new River(), new RiverBrain());
+  const f = boss === 'king' ? new Fight(new Motor(), new King(), new Brain()) : new Fight(new Motor(), new River(), new RiverBrain());
   if (moment === 'lantern') f.beginRound2();
   f.passive = true; f.invuln = 0; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; f.king.x = 0; f.king.z = -4; f.king.yaw = 0; f.fire = 100; f.hp = D.hp * 0.5;
   if (boss === 'river') f.brain.seen.add('dragDeep');

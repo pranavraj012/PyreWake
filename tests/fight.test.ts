@@ -14,7 +14,7 @@ import { LESSONS, Lessons } from '../src/bosses/king/lessons.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }], down = (a: string): Press[] => [{ a, up: false }], up = (a: string): Press[] => [{ a, up: true }];
 /** Player 2 m in front of the King, both facing each other. */
-const mk = (gap = 2, passive = true) => { const f = new Fight(new Motor()); f.passive = passive; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; return f; };
+const mk = (gap = 2, passive = true) => { const f = new Fight(new Motor(), new King(), new Brain()); f.passive = passive; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; return f; };
 const run = (f: Fight, secs: number, press: (i: number) => Press[] = () => []) => { const ev: FightEvent[] = []; for (let i = 0; i < secs * 60; i++) { f.step(DT, 0, 0, press(i)); ev.push(...f.ev); } return ev; };
 const n = (ev: FightEvent[], k: string) => ev.filter(e => e.k === k).length;
 /** Step until the King's clip reaches time t. */
@@ -137,7 +137,7 @@ describe('the court breaks', () => {
 describe('training', () => {
   /** Does what the card says, `late` seconds after it is asked; `clumsy` presses wrong things while the world waits. */
   const pupil = (o: { late?: number; clumsy?: boolean; stubborn?: boolean } = {}) => {
-    const f = new Fight(new Motor()), L = new Lessons(f); let done: boolean | null = null; L.onDone = s => { done = s; }; L.start(); const seen: string[] = []; let heldAt = -1, down = '', upAt = -1, stuck = 0, last = '';
+    const f = new Fight(new Motor(), new King(), new Brain()), L = new Lessons(f); let done: boolean | null = null; L.onDone = s => { done = s; }; L.start(); const seen: string[] = []; let heldAt = -1, down = '', upAt = -1, stuck = 0, last = '';
     for (let i = 0; i < 60 * 240 && done === null; i++) {
       const c = L.card, m = f.m; let p: Press[] = [], mz = 0, mx = 0; if (c && c.id !== seen.at(-1)) seen.push(c.id);
       const key = c ? c.id + c.title + c.held : ''; stuck = key === last ? stuck + 1 : 0; last = key; if (stuck > 60 * 25) throw new Error('stuck on ' + key + ' king ' + f.king.mode + ' hero ' + m.clip?.name + ' frozen ' + L.frozen + ' d ' + m.targetDist.toFixed(2) + ' seen ' + seen.join());
@@ -150,8 +150,8 @@ describe('training', () => {
   };
   it('a pupil who does as asked is taken through every lesson, unhurt, and comes out fresh', () => { const r = pupil(); expect(r.done).toBe(false); expect([...new Set(r.seen)]).toEqual([...LESSONS]); expect(r.f.deaths).toBe(0); expect(r.f.time).toBeLessThan(150); });
   it('the world waits however long you take, and only for the right button', () => { const r = pupil({ late: 3, clumsy: true }); expect(r.done).toBe(false); expect([...new Set(r.seen)]).toEqual([...LESSONS]); });
-  it('it never moves on by itself', () => { const f = new Fight(new Motor()), L = new Lessons(f); L.start(); for (let i = 0; i < 60 * 30; i++) { L.step(DT, f.step(DT, 0, 0, [])); } expect(L.card?.id).toBe('move'); expect(L.active).toBe(true); });
-  it('can be skipped', () => { const f = new Fight(new Motor()), L = new Lessons(f); let s: boolean | null = null; L.onDone = x => { s = x; }; L.start(); for (let i = 0; i < 60; i++) L.step(DT, f.step(DT, 0, 0, [])); L.skip(); expect(s).toBe(true); expect(L.active).toBe(false); });
+  it('it never moves on by itself', () => { const f = new Fight(new Motor(), new King(), new Brain()), L = new Lessons(f); L.start(); for (let i = 0; i < 60 * 30; i++) { L.step(DT, f.step(DT, 0, 0, [])); } expect(L.card?.id).toBe('move'); expect(L.active).toBe(true); });
+  it('can be skipped', () => { const f = new Fight(new Motor(), new King(), new Brain()), L = new Lessons(f); let s: boolean | null = null; L.onDone = x => { s = x; }; L.start(); for (let i = 0; i < 60; i++) L.step(DT, f.step(DT, 0, 0, [])); L.skip(); expect(s).toBe(true); expect(L.active).toBe(false); });
 });
 
 describe('outside events', () => { it('a reset from a button is seen by the next step', () => { const f = mk(); f.step(DT, 0, 0, []); f.reset(); f.step(DT, 0, 0, []); expect(f.ev.filter(e => e.k === 'reset').length).toBe(1); f.step(DT, 0, 0, []); expect(f.ev.filter(e => e.k === 'reset').length).toBe(0); }); });

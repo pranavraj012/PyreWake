@@ -1,6 +1,7 @@
 // The page side of the staged moments (module A): the scenes the page plays while the simulation holds the hero, and the reward offer.
 // Each grab's first throw must start its moment, and the moment's own shot, hero and cues must run to their end (not only the simulation).
 import { describe, expect, it } from 'vitest';
+import { Brain } from '../src/bosses/king/brain.ts';
 import * as THREE from 'three';
 import { Fight } from '../src/combat/fight.ts';
 import { GRAB_DMG, NOOSE, King } from '../src/bosses/king/king.ts';
@@ -33,7 +34,7 @@ function playPage(f: Fight, spec: (f: Fight) => ReturnType<typeof kingMoments>[k
 
 describe('the King: the first throw plays its scene on the page', () => {
   it('the noose starts its moment, runs its cues in order, with bars, and stays finite to the end', () => {
-    const f = new Fight(new Motor()); f.passive = true; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; f.king.yaw = 0; const K = f.king as King;
+    const f = new Fight(new Motor(), new King(), new Brain()); f.passive = true; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; f.king.yaw = 0; const K = f.king as King;
     K.set('grab'); f.brain.seen.add('grab');
     for (let i = 0; i < 4 * 60 && K.held !== 'noose'; i++) f.step(DT, 0, 0, []);
     expect(K.held).toBe('noose');

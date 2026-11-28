@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { King } from '../src/bosses/king/king.ts';
+import { Brain } from '../src/bosses/king/brain.ts';
 import { River } from '../src/bosses/river/river.ts';
 import { RiverBrain } from '../src/bosses/river/brain.ts';
 import { Sister } from '../src/bosses/hours/sister.ts';
@@ -15,7 +16,7 @@ const SECOND = 60;
 /** A fight as its page builds it: the boss's own brain, running. */
 function page(boss: Boss) {
   const m = new Motor();
-  if (boss === 'king') { const sim = new King(); return { f: new Fight(m, sim), m, sim }; }
+  if (boss === 'king') { const sim = new King(); return { f: new Fight(m, sim, new Brain()), m, sim }; }
   if (boss === 'river') { const sim = new River(); return { f: new Fight(m, sim, new RiverBrain()), m, sim }; }
   const sim = new Sister(); return { f: new Fight(m, sim, new HoursBrain()), m, sim };
 }

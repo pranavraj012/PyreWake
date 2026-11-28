@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { Brain } from '../src/bosses/king/brain.ts';
+import { King } from '../src/bosses/king/king.ts';
 import { Fight } from '../src/combat/fight.ts';
 import { Motor } from '../src/player/motor.ts';
 import { makeProps } from '../src/arena/props.ts';
@@ -6,7 +8,7 @@ import { makeProps } from '../src/arena/props.ts';
 const DT = 1 / 60;
 /** Private state, read or set by the restart tests. */
 const P = (f: Fight) => f as unknown as Record<string, any>;
-const mk = () => { const f = new Fight(new Motor()); f.passive = true; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; return f; };
+const mk = () => { const f = new Fight(new Motor(), new King(), new Brain()); f.passive = true; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; return f; };
 const die = (f: Fight) => { f.flame = false; f.hp = 1; f.strikePlayer(50, true, 0, 'x'); };
 const run = (f: Fight, s: number) => { for (let i = 0; i < s / DT; i++) f.step(DT, 0, 0, []); };
 

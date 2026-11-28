@@ -1,15 +1,16 @@
 // The Hanged King's staged moments (module A): two grabs that always play out and cost, and two rewards the hero earns.
 import { describe, expect, it } from 'vitest';
+import { Brain } from '../src/bosses/king/brain.ts';
 import { Fight } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { GRAB_DMG, NOOSE, OFFER, REWARD_SHARE, RIDE, RIP, type King } from '../src/bosses/king/king.ts';
+import { GRAB_DMG, NOOSE, OFFER, REWARD_SHARE, RIDE, RIP, King } from '../src/bosses/king/king.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60;
 /** The King itself (the Fight types it as the generic Boss). */
 const K = (f: Fight) => f.king as King;
 /** Hero two metres in front of the King, who faces him. Passive: the brain is not choosing attacks. */
-const mk = (gap = 2) => { const f = new Fight(new Motor()); f.passive = true; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; K(f).yaw = 0; return f; };
+const mk = (gap = 2) => { const f = new Fight(new Motor(), new King(), new Brain()); f.passive = true; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; K(f).yaw = 0; return f; };
 /** A fixed span of time (the Fight may slow itself after a perfect dodge, so spans are in seconds of the fight's own clock). */
 const steps = (f: Fight, secs: number, each?: (i: number) => void, press: (i: number) => Press[] = () => []) => { for (let i = 0; i < secs * 60; i++) { each?.(i); f.step(DT, 0, 0, press(i)); } };
 /** Steps until a condition holds, at most a long while. */
@@ -77,7 +78,7 @@ describe('the first grab in training', () => {
   it('the noose plays to its end and costs, uninterrupted, when training throws it', async () => {
     const { Lessons } = await import('../src/bosses/king/lessons.ts');
     const { isAttack } = await import('../src/bosses/king/king.ts');
-    const f = new Fight(new Motor()), L = new Lessons(f); L.start(); const DT2 = 1 / 60;
+    const f = new Fight(new Motor(), new King(), new Brain()), L = new Lessons(f); L.start(); const DT2 = 1 / 60;
     const tap = (a: string): Press[] => [{ a: a as Press['a'], up: false }, { a: a as Press['a'], up: true }];
     let upAt = -1, down = '', heldAt = -1, seizedAt = -1, endAt = -1, endStage = 0, hp0 = 0, lowest = Infinity;
     for (let i = 0; i < 60 * 240 && L.active && endAt < 0; i++) {
