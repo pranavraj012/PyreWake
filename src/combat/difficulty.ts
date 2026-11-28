@@ -7,7 +7,7 @@ export const D = {
   rush: { cost: 40, dmg: 110, delay: 0.98, width: 1.9 }, sunder: { cost: 50, dmg: 170 }, flare: { dmg: 22 }, rites: { dmg: 650 },
   /** The newer fire arts: Pyre Brand ring then eruption, Ashen Step's burst, each turn of the Funeral Wheel, each ember of Ashfall (seven). */ spell: { brand: [45, 150] as [number, number], step: 40, wheel: 20, fall: 26 },
   /** Unhurt hits needed for each aura step. */ aura: [6, 14, 26, 42],
-  /** Ultimate charge per point of damage. */ wakeGain: 0.05, /** Spells barely feed Last Rites: it has to be earned with the blade. */ spellWake: 0.15, /** Share of the King's health by which Last Rites is in your hands whatever happened. */ gift: 0.5,
+  /** Ultimate charge per point of damage. */ wakeGain: 0.05, /** Spells barely feed Last Rites: it has to be earned with the blade. */ spellWake: 0.15, /** Share of the boss's health by which Last Rites is in your hands whatever happened. */ gift: 0.5,
   /** The closing blow of a multi-hit attack hits this much harder. */ lastHit: { reckon: 4.2, alt5: 1.7, execute: 1.9, riposteB: 2.6 } as Record<string, number>,
   /** Jump: launch speed and gravity (m/s, m/s^2), and how high your feet must be for low blows and ground fire to pass under. */ jump: { v: 8.6, g: 24, clear: 0.42, /** Plunge power after leaping over something. */ bonus: 1.5 },
   /** Boss temper, chosen in the menu: rest between strings, overall pace, taste for long strings. */ temper: [{ rest: 1.8, pace: 0.94, long: 0.45 }, { rest: 1, pace: 1, long: 1 }, { rest: 0.45, pace: 1.07, long: 1.8 }],

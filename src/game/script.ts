@@ -1,4 +1,4 @@
-// How a scene speaks: a line shown at its time and cleared at `until`. Each fight's words live in its own script file (riverScript.ts, hoursScript.ts).
+// How a scene speaks: a line shown at its time and cleared at `until`. Each fight's words live in its own script file .
 export interface Line { at: number; text: string; until?: number; voice?: string }
 
 /** Shows each line at its time and clears it at `until`; pass the scene's clock every frame. */

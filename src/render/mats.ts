@@ -29,7 +29,7 @@ export const MATS: MatDef[] = [
   m(19, 3, 0.9, [0.05, 0.042, 0.038], { keep: 0.4, rough: 0.9, bump: 1.4, edge: 0.4, ember: 0.6 }),    // burnt wood
   m(20, 7, 1.0, [0.42, 0.37, 0.29], { keep: 0.2, rough: 0.7, bump: 0.7, edge: 0.3, grime: 1.0 }),      // loose bone
   m(21, 1, 0.35, [0.17, 0.16, 0.152], { keep: 0.35, rough: 0.97, bump: 1.2, edge: 0.0, grime: 0.4 }),  // ash ground
-  m(22, 3, 2.2, [0.12, 0.02, 0.008], { keep: 0.2, rough: 0.8, bump: 1.4, edge: 0, grime: 0, ember: 4 }),  // living fire: the One Beneath's core
+  m(22, 3, 2.2, [0.12, 0.02, 0.008], { keep: 0.2, rough: 0.8, bump: 1.4, edge: 0, grime: 0, ember: 4 }),  // living fire: the second form's core
   m(23, 5, 4.5, [0.03, 0.026, 0.024], { keep: 0.15, rough: 0.96, bump: 1.4, edge: 0.5, grime: 0.6, ember: 0.9 }),   // scorched cloth hem
   m(24, 2, 1.1, [0.085, 0.066, 0.05], { keep: 0.22, rough: 0.58, bump: 1.7, edge: 0.4, grime: 1.2 }),    // wet timber
   m(25, 1, 0.9, [0.14, 0.06, 0.035], { keep: 0.1, rough: 0.9, bump: 0.9, edge: 0.4, grime: 0.7 }),       // clay of the lamps
@@ -48,7 +48,7 @@ export const MATS: MatDef[] = [
   m(37, 6, 2.0, [0.46, 0.31, 0.11], { keep: 0.2, rough: 0.34, roughTex: 0.4, metal: 1, bump: 0.4, edge: 0.7, grime: 0.8 }), // brass hour lines
   m(38, 6, 2.4, [0.36, 0.15, 0.075], { keep: 0.25, rough: 0.4, roughTex: 0.45, metal: 1, bump: 0.6, edge: 0.7, grime: 1.0 }), // copper bowls
   m(39, 1, 2.2, [0.2, 0.192, 0.185], { keep: 0.3, rough: 0.99, bump: 1.1, edge: 0.2, grime: 0.5 }),     // ash shapes under ash sheets
-  m(40, 5, 2.0, [0.012, 0.011, 0.011], { keep: 0.1, rough: 0.9, bump: 1.5, edge: 0.35, grime: 0.6, ember: 0 }),  // the Pall's soot-black cloth
+  m(40, 5, 2.0, [0.012, 0.011, 0.011], { keep: 0.1, rough: 0.9, bump: 1.5, edge: 0.35, grime: 0.6, ember: 0 }),  // soot-black cloth
   m(41, 2, 1.6, [0.11, 0.085, 0.06], { keep: 0.25, rough: 0.88, bump: 1.5, edge: 0.45, grime: 1.1 }),   // dry cot timber
   m(42, 6, 1.4, [0.2, 0.06, 0.03], { keep: 0.1, rough: 0.26, roughTex: 0.3, metal: 1, bump: 0.3, edge: 0.9, grime: 0.3, ember: 1.6 }),   // the scythe's edge, kept red
 ];

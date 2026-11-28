@@ -1,4 +1,4 @@
-// What the director and the scenes need from the picture of a boss. The King's view and the Ferryman's both have it.
+// What the director and the scenes need from the picture of a boss. Every boss's view has it.
 import type * as THREE from 'three';
 import type { Boss } from './boss.ts';
 

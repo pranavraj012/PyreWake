@@ -102,7 +102,7 @@ export class Fight {
     if (!k.helpless) this.hero = false;
     const frozen = m.clip?.name === 'rites' && m.t < 3.6; // the world holds its breath
     if (!this.passive && !m.dead && live && !frozen && !this.momentKey) { this.brain.step(dt, k, m.x, m.z, this.hits, this.bossHp / this.maxHp); if (this.brain.began) this.ev.push({ k: 'style', style: this.brain.began }); if (this.brain.style === 'eclipse' && this.bossHp / this.maxHp < 0.36 && this.wake < 100 && !this.granted) { this.granted = true; this.wake = 100; } }
-    // every fire is in your hands before the King falls
+    // every fire is in your hands before the boss falls
     if (this.phase === 'r1' && !this.passive && !this.gifted && this.bossHp < this.maxHp * D.gift) { this.gifted = true; this.wake = 100; this.fire = Math.max(this.fire, D.sunder.cost); }
     if (this.phase === 'finish' && k.mode === k.kneelMode && k.mt > k.holdKneel) k.mt = k.prev = k.holdKneel;
     if (this.phase === 'won' && k.mode === k.dieMode && k.mt > k.holdDie) k.mt = k.prev = k.holdDie;

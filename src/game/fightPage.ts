@@ -10,7 +10,6 @@
 //     (round 1, round 2) and any extra it needs later (lights, meshes). The shell has already made the hero and the fx.
 //   wire(kit): makes its scenes (intro, turn, ending), its director and its staged moments, and returns the Wired hooks.
 // Each Wired hook is called where a page's own order needs it; the comment on each member says where and why.
-// The King (main.ts) is not on this shell yet (P4b): his prologue and training will be hooks here.
 import * as THREE from 'three';
 import { regainFullscreen } from '../core/fullscreen.ts';
 import { onSettings, saveSettings, settings } from '../core/settings.ts';
@@ -135,7 +134,7 @@ export interface Pre {
   ev: Press[];
   mx: number;
   mz: number;
-  /** The referee is held this frame (no step, the presses dropped): the King's training, while the world waits for a press. */
+  /** The referee is held this frame (no step, the presses dropped): a boss's training, while the world waits for a press. */
   hold?: boolean;
 }
 
@@ -180,20 +179,20 @@ export interface Wired {
   frame(cam: THREE.PerspectiveCamera, ms: number): void;
   /** Extra window debug globals for the tools. */
   debug(): Record<string, unknown>;
-  // The hooks below are optional: a page that has no such thing leaves them out (the Ferryman and the Sister do).
-  /** The menu's Play starts the boss's own scene (the King's prologue). Default: the intro. */
+  // The hooks below are optional: a page that has no such thing leaves them out (some bosses do not).
+  /** The menu's Play starts the boss's own scene (a boss's opening scene). Default: the intro. */
   play?(): void;
-  /** A scene that holds the world and the pause (the King's prologue). Pause, the busy checks and the film are off while it plays. */
+  /** A scene that holds the world and the pause (a boss's opening scene). Pause, the busy checks and the film are off while it plays. */
   sceneBusy?(): boolean;
-  /** Prompts are hidden while this holds (the King's prologue and training). */
+  /** Prompts are hidden while this holds (a boss's opening scene and training). */
   noPrompts?(): boolean;
-  /** The spell pair the hero is armed with, when it is not the player's (the King's training uses the starter pair). */
+  /** The spell pair the hero is armed with, when it is not the player's (a boss's training uses the starter pair). */
   spells?(): [SpellId, SpellId];
   /** The menu's Training button, for a page that has one in place (default: the ?train page). */
   train?(): void;
   /** The HUD's callbacks, after the shell's own defaults: the page's next fight, its restart and its skip. */
   hudOverride?(hud: Hud): void;
-  /** The shell's warm-up render, bracketed: on before the draw, off after it (the King's eclipse state is drawn once). */
+  /** The shell's warm-up render, bracketed: on before the draw, off after it (a boss's eclipse state is drawn once). */
   warm?(on: boolean): void;
   /** After the director step, last in the frame: the page's own visibility or highlight that must follow it. */
   end?(sd: number, dt: number, t: number): void;
@@ -296,7 +295,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     f: fight, pv, views: parts.views, fx, cam: follow, post, hud, input, camera: cam, court: arena, words: spec.words,
   });
   scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
-  /** The spell pair the hero is armed with: the page's own while it has one (the King's training), else the player's. */
+  /** The spell pair the hero is armed with: the page's own while it has one (a boss's training), else the player's. */
   const arm = () => {
     const sp = wired.spells?.() ?? settings.spells;
     m.spells = [...sp];
@@ -463,7 +462,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     FOG.uFogP.value.w = SHARED.uTime.value = t;
     const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move;
     const pre = wired.before(dt, t, ev, { x: mv.x * cc - mv.y * s, z: -mv.x * s - mv.y * cc });
-    // a held frame: the referee does not step and the presses it was given are dropped (the King's training)
+    // a held frame: the referee does not step and the presses it was given are dropped (a boss's training)
     const sd = pre.hold ? 0 : fight.step(dt * pace, pre.mx, pre.mz, pre.ev), kv = dir.kv;
     if (pre.hold) fight.ev.length = 0;
     wired.after(sd, dt, t);

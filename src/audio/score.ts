@@ -39,7 +39,7 @@ export class Score {
   constructor(s: S) { this.s = s; this.next = s.ctx!.currentTime + 0.1; }
   /** A world page drives this from the foes nearby: 0 is quiet, 1 is a pack at your back. It rises over about a second and falls more slowly. */
   setDanger(v: number) { this.danger = Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0)); }
-  /** The King changes its mind faster than a piece of music can bear: within round 1 a piece holds for a while before the next may take over. */
+  /** A boss changes its mind faster than a piece of music can bear: within round 1 a piece holds for a while before the next may take over. */
   set(m: Mood) {
     if (m === this.mood) { this.next_ = null; return; } const now = this.s.ctx?.currentTime ?? 0; if (STYLES.test(m) && STYLES.test(this.mood) && now - this.since < HOLD) { this.next_ = m; return; }
     if (this.pick(m) !== this.pick(this.mood)) this.since = now; this.next_ = null; this.turn(m);

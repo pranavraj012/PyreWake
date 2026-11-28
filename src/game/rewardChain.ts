@@ -1,5 +1,5 @@
-// The chain in the Ferryman's chain reward (module A): a taut chain from the anchor to his hand, and when the blade cuts it, two halves that whip back
-// on their own ends (a small verlet rope each), fall, lie slack, and fade. Drawn with the river's own link geometry and material.
+// The chain in a boss's chain reward (module A): a taut chain from the anchor to his hand, and when the blade cuts it, two halves that whip back
+// on their own ends (a small verlet rope each), fall, lie slack, and fade. Drawn with the boss's own link geometry and material.
 import * as THREE from 'three';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), STEP = 0.17, DT = 1 / 120;

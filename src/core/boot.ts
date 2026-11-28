@@ -1,4 +1,4 @@
-// What main.ts hands a fight's boot: the renderer, the lights, the camera, input and the page. Each boss's own page (river.ts, hours.ts) takes this.
+// What main.ts hands a fight's boot: the renderer, the lights, the camera, input and the page. Each boss's own page (src/bosses/<id>/page.ts) takes this.
 import type * as THREE from 'three';
 import type { DynamicScale, Tier } from './quality.ts';
 import type { Input } from '../input/input.ts';

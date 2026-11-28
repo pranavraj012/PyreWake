@@ -1,5 +1,5 @@
 // The fight's composed hero shots: the last rites, the finale, the execute and reckon finishers, and the hero's own turn. The follow camera
-// gives way to them while the hero is in one. Any boss's fight uses them (the Ferryman's and the Sister's too), so they live with the shared
+// gives way to them while the hero is in one. Any boss's fight uses them, so they live with the shared
 // camera. Returns false when the normal camera should run.
 import * as THREE from 'three';
 import type { Fight } from '../combat/fight.ts';

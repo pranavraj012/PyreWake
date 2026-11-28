@@ -8,7 +8,7 @@ const N = 24;
 export const LEVEL = 0.12;
 export class Water {
   mesh: THREE.Mesh; u: Record<string, THREE.IUniform>; private ring: THREE.Vector4[]; private n = 0;
-  /** 0-1: how lit the horizon line is. */ line = { value: 1 }; /** 0-1: darkness over everything (the Ferryman closes his hand). */ dark = { value: 0 };
+  /** 0-1: how lit the horizon line is. */ line = { value: 1 }; /** 0-1: darkness over everything (a boss's scene closes it). */ dark = { value: 0 };
   /** The river boiled away: centre x, z, radius, and how far gone. */ boil = { value: new THREE.Vector4(0, 0, 0, 0) };
   constructor(tier: Tier, moon: THREE.Vector3) {
     const ph = tier.name === 'phone', cnt = ph ? 12 : N; this.ring = Array.from({ length: cnt }, () => new THREE.Vector4(0, 0, -99, 0));
