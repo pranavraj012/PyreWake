@@ -118,7 +118,10 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
       { const want = sim.staging; if (want !== staged) { staged = want; dragK = 0; if (want) { qte.hide(); moment.start(want === 'drag' ? dSpec : rSpecs[want]); } else moment.stop(); } }
       // the drag's beats, on the boss's clock: a groan as he is pulled under, the bite, and a slam as he is heaved onto the steps
       // under the water: a green wash over the view, and bubbles rising from him while he is held down
-      under.style.opacity = String(sim.held === 'drag' ? dragUnder(sim.stage) : 0);
+      const wash = sim.held === 'drag' ? dragUnder(sim.stage) : 0;
+      under.style.opacity = String(wash);
+      // the landing is solid stone: while the eye is under the water the floor is lifted off, or it walls the whole view (the drag's camera went into the stone)
+      ghats.landing.visible = wash < 0.7;
       if (sim.held === 'drag' && sim.stage > DRAG.under && sim.stage < DRAG.heave) { for (let q = 0; q < 2; q++) fx.sparks.emit(new THREE.Vector3(m.x + (Math.random() - 0.5) * 0.8, -0.4 - Math.random() * 1.4, m.z + (Math.random() - 0.5) * 0.8), new THREE.Vector3(0, 1, 0), 2, 0.5, 0.04, 1.4, t); }
       if (sim.held === 'drag') { const beats = [DRAG.under, DRAG.dmg, DRAG.heave]; while (dragK < 3 && sim.stage >= beats[dragK]) { if (dragK === 0) sound.play('groan', { gain: 0.6, x: sim.x, z: sim.z }); else if (dragK === 1) { sound.play('doom', { gain: 0.8 }); moment.kick(0.7); } else { sound.play('slam', { gain: 0.8, x: sim.x, z: sim.z }); moment.kick(0.6); } dragK++; } }
       document.body.classList.toggle('letter', moment.letterbox || sim.held === 'drag');
@@ -136,6 +139,7 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
     clock: () => sim.stage,
     reset() {
       staged = null;
+      ghats.landing.visible = true;
       kOffer.reset();
       rd.reset();
     },

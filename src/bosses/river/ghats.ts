@@ -36,7 +36,7 @@ export async function buildGhats(tex: TexSet, tier: Tier, moon: THREE.Vector3) {
   const M = (x: number, y: number, z: number, ry = 0, s = 1, rx = 0, rz = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz, 'YXZ')), new THREE.Vector3(s, s, s));
 
   // --- the drowned landing, and the bed under everything
-  mesh(slabs(r, lo), floor, false);
+  const landing = mesh(slabs(r, lo), floor, false);
   const bed = new THREE.PlaneGeometry(520, 520, 1, 1).rotateX(-Math.PI / 2); bed.setAttribute('aInfo', new THREE.BufferAttribute(new Uint8Array([40, 128, 0, 21, 40, 128, 0, 21, 40, 128, 0, 21, 40, 128, 0, 21]), 4, true)); const bedMesh = mesh(bed, floor, false); bedMesh.position.y = -3.2;
   // --- steps up to the town, plinths under the pavilions
   const B = new Blocks();
@@ -103,7 +103,7 @@ void main(){ float t = uT.w, fl = .8 + .2 * sin(t * 7. + vf * 40.) + .1 * sin(t 
   const fog0 = FOG.uFogCol.value.clone(), fogCold = new THREE.Color(0.003, 0.011, 0.034); let fieldK = -1;
   let lampTo = 1, flameK = 1, lastT = 0, lit = 1;
   return {
-    group, ruin, water, /** The lamps you can see, 0-1 lit. The next call eases to it; `at` jumps. */ lamps(k: number, at = false) { lampTo = k; if (at) { lit = k; lamp.u.uLit.value = k; } },
+    group, ruin, water, /** The landing's stone floor: the drag hides it while the camera is under the water. */ landing, /** The lamps you can see, 0-1 lit. The next call eases to it; `at` jumps. */ lamps(k: number, at = false) { lampTo = k; if (at) { lit = k; lamp.u.uLit.value = k; } },
     /** 0-1: pyre light. Unused here; the lamp posts burn. */ flames(k: number) { flameK = k; (lampFire.material as THREE.ShaderMaterial).uniforms.uGain.value = k; }, omen(_k: number) { /* no eclipse on the river */ }, storm(_k: number) { }, breach() { }, tear() { },
     /** The fire running from lamp to lamp: how far out from the boat it has caught, in metres. 0 is off. */ setFront(d: number) { lamp.u.uFront.value = d; },
     /** 0-1, the Unburdened's river: the water rises over the landing, the fare coins lie on the bed, the last daylight goes, the fog turns cold. */
