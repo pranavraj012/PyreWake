@@ -17,7 +17,7 @@ import { BODY_CLIPS } from '../../player/clips.ts';
 import type { Press } from '../../player/motor.ts';
 import type { Hud } from '../../ui/hud.ts';
 import { Offer, offerSpec, type MomentSpec } from '../../game/moment.ts';
-import { RewardRun, beginReward, syncReward, type RewardKit } from '../../game/rewardShots.ts';
+import { RewardRun, beginReward, syncReward } from '../../game/rewardShots.ts';
 import {
   fightPage, type BenchRun, type BuildKit, type FightPageSpec, type IntroRun, type Parts, type Pre, type Vec2,
   type Wired, type WireKit,
@@ -29,7 +29,7 @@ import { BENEATH_MODES, KING_MODES, King } from './king.ts';
 import { Brain } from './brain.ts';
 import { Turn } from './cinema.ts';
 import { Ending, Intro, Prologue, kingMoments } from './scenes.ts';
-import { rideBeats, rideSpec, ropeBeats, ropeSpec } from './kingRewards.ts';
+import { RideGeo, RopeGeo, kingClip, rideBeats, rideSpec, ropeBeats, ropeSpec, type KingRewardKit, type KingRewardProps } from './kingRewards.ts';
 import { KING_CALLS, KING_LESSON, KING_LINES, KING_PRESS, KING_TITLES } from './kingScript.ts';
 import type { BossWords } from '../../boss/words.ts';
 import type { Mood } from '../../audio/score.ts';
@@ -180,8 +180,8 @@ function wireKing(k: WireKit<KingParts>): Wired {
     })),
     (r, secs) => qte.show('attack', KING_PRESS[r as 'rope' | 'ride'], secs, input.lastDevice),
   );
-  const rKit: RewardKit = { fx, kick: s => moment.kick(s), king };
-  const rewardRun = new RewardRun(rKit);
+  const rKit: KingRewardKit = { fx, kick: s => moment.kick(s), king, end: () => { king.ropeCut = false; king.dip = 0; } };
+  const rewardRun = new RewardRun<KingRewardProps>(rKit, { ride: new RideGeo(), rope: new RopeGeo() });
   Object.assign(kSpecs, { ride: rideSpec(king.sim, m, rKit, rewardRun), rope: ropeSpec(king.sim, m, rKit, rewardRun) });
   const kit = { f: fight, pv, k1: king, k2: beneath, fx, hud };
   const turn = new Turn(kit, kDis);
@@ -337,7 +337,7 @@ function wireKing(k: WireKit<KingParts>): Wired {
       // a reward scene: the hero's clip runs on the scene's clock, and its beats (the blows) fire on the frame they land
       if (king.sim.rite) {
         if (rewardRun.kind !== king.sim.rite) {
-          beginReward(king.sim.rite, m);
+          beginReward(kingClip(king.sim.rite), m);
           rewardRun.begin(king.sim.rite);
         }
         syncReward(m, king.sim.stage);

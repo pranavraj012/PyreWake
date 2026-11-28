@@ -7,7 +7,9 @@ import type { Motor } from '../../player/motor.ts';
 import { RIDE, RIP, ROPE, type King } from './king.ts';
 import type { KingView } from './kingView.ts';
 import { RewardChain } from '../../game/rewardChain.ts';
-import { E, V, type RewardKit, type RewardRun } from '../../game/rewardShots.ts';
+import { E, V, compose, retime, warp, type RewardKit, type RewardRun } from '../../game/rewardShots.ts';
+import { KHANDA } from '../../weapons/khanda.ts';
+import type { Clip } from '../../anim/pose.ts';
 
 /** The ride's numbers: the hero crouches, bounds over the King's flank onto his back (the game's own gravity), strikes three times, is thrown clear and lands braced. */
 const GO = { launch: 0.57, off: 2.45, brace: 0.55, g: 24, side: 2.0, away: 3.2, back: -0.25, up: -0.02 };
@@ -37,8 +39,8 @@ export class RideGeo {
   }
 }
 
-export function rideSpec(sim: King, m: Motor, kit: RewardKit, run: RewardRun): MomentSpec {
-  const geo = run.ride, P = V(), C = V(), F = V(), chestAt = () => { if (kit.king) kit.king.hurt(C); else C.set(sim.x, 1.4, sim.z); return C; };
+export function rideSpec(sim: King, m: Motor, kit: KingRewardKit, run: RewardRun<KingRewardProps>): MomentSpec {
+  const geo = run.props.ride, P = V(), C = V(), F = V(), chestAt = () => { if (kit.king) kit.king.hurt(C); else C.set(sim.x, 1.4, sim.z); return C; };
   const ready = () => { if (!geo.ready) geo.init(sim, m, chestAt()); };
   return {
     frame: (t, eye, at) => {
@@ -56,8 +58,8 @@ export function rideSpec(sim: King, m: Motor, kit: RewardKit, run: RewardRun): M
   };
 }
 /** The ride's beats: the leap, the three blows (each: sparks, shake, a heavy sound, the King's dip), the throw-off, the landing. */
-export function rideBeats(sim: King, m: Motor, kit: RewardKit, run: RewardRun, t: number, time: number) {
-  const geo = run.ride, c = V(); if (kit.king) kit.king.hurt(c); else c.set(sim.x, 1.4, sim.z); if (!geo.ready) geo.init(sim, m, c);
+export function rideBeats(sim: King, m: Motor, kit: KingRewardKit, run: RewardRun<KingRewardProps>, t: number, time: number) {
+  const geo = run.props.ride, c = V(); if (kit.king) kit.king.hurt(c); else c.set(sim.x, 1.4, sim.z); if (!geo.ready) geo.init(sim, m, c);
   const px = m.x + run.last.x, pz = m.z + run.last.z, face = t < GO.off ? Math.atan2(geo.fx, geo.fz) : Math.atan2(sim.x - px, sim.z - pz); let d = face - m.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); m.yaw += d * 0.35;
   const hit = RIDE.hits.reduce((s, h) => s + (t >= h ? [0.22, 0.28, 0.55][RIDE.hits.indexOf(h)] * Math.exp(-(t - h) * 6) : 0), 0);
   if (kit.king) kit.king.dip = hit;
@@ -92,8 +94,8 @@ export class RopeGeo {
     return -0.3 * Math.sin(Math.PI * Math.min(1, (t - ROPE_LAND) / ROPE_GO.brace));
   }
 }
-export function ropeSpec(sim: King, m: Motor, kit: RewardKit, run: RewardRun): MomentSpec {
-  const geo = run.rope, F = V(), A = V(); void kit;
+export function ropeSpec(sim: King, m: Motor, kit: KingRewardKit, run: RewardRun<KingRewardProps>): MomentSpec {
+  const geo = run.props.rope, F = V(), A = V(); void kit;
   const ready = () => { if (!geo.ready) geo.init(sim, m); };
   return {
     frame: (t, eye, at) => {
@@ -116,8 +118,8 @@ function ropeMesh(king: KingView, scene: THREE.Object3D): RewardChain {
   return new RewardChain(new THREE.InstancedMesh(g, king.rope.material as THREE.Material, 1), scene);
 }
 /** The rope's beats: the leap, the fire thrown up the line, the cut (the rope's two ends whip, he falls), the landing. */
-export function ropeBeats(sim: King, m: Motor, kit: RewardKit, run: RewardRun, t: number, time: number) {
-  const geo = run.rope; if (!geo.ready) geo.init(sim, m); if (!run.ropeBroken) geo.ends(sim);
+export function ropeBeats(sim: King, m: Motor, kit: KingRewardKit, run: RewardRun<KingRewardProps>, t: number, time: number) {
+  const geo = run.props.rope; if (!geo.ready) geo.init(sim, m); if (!run.ropeBroken) geo.ends(sim);
   const dt = run.tick(time), face = Math.atan2(sim.x - m.x, sim.z - m.z); let d = face - m.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); m.yaw += d * 0.35;
   const king = kit.king, scene = king?.group.parent;
   if (king && scene) {
@@ -139,4 +141,20 @@ export function ropeBeats(sim: King, m: Motor, kit: RewardKit, run: RewardRun, t
   });
   run.once('crash', t, RIP.cut + 0.45, () => { const L = V(sim.x, 0, sim.z); sound.play('slam', { gain: 1, x: L.x, z: L.z }); sound.play('thud', { gain: 1, x: L.x, z: L.z }); kit.fx.puffs.emit(L, 22, 3, 1.5, time); kit.fx.bursts.add('ground', V(L.x, 0.06, L.z), 10, 0.9, time, 0, 0.7, 0.3, 0.1); kit.kick(0.9); });
   run.once('land', t, ROPE_LAND, () => { sound.play('thud', { gain: 0.5, wet: 0.3 }); kit.fx.puffs.emit(V(m.x, 0, m.z), 6, 1.5, 0.8, time); });
+}
+
+/** The King's reward kit: the scene reads his view (the rope's hanging King, the ride's back). */
+export interface KingRewardKit extends RewardKit { king?: KingView }
+/** The King's props for the run: the ride's geometry and the rope's. */
+export type KingRewardProps = { ride: RideGeo; rope: RopeGeo };
+
+const CLIPS: Record<string, Clip> = {};
+/** The reward's clip for the King, built once from the khanda's strikes: the rope's rising cut, or the ride's three blows. */
+export function kingClip(kind: string): Clip {
+  if (CLIPS[kind]) return CLIPS[kind];
+  const c = KHANDA.clips;
+  const made = kind === 'rope'
+    ? retime('rewardRope', c.risingCut, RIP.len, warp([[0, 0.4], [0.2, 0.85], [0.28, 1.0], [0.5, 1.3], [1.05, 1.9]]))
+    : compose('rewardRide', RIDE.len, RIDE.hits.map((h, i) => i < RIDE.hits.length - 1 ? { src: c.light3, hit: 0.255, at: h, k: 1.1 } : { src: c.light5, hit: 0.53, at: h, k: 0.8 }));
+  CLIPS[kind] = made; return made;
 }

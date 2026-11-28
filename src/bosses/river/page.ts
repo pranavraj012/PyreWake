@@ -17,8 +17,8 @@ import { RiverBrain } from './brain.ts';
 import { RiverView } from './riverView.ts';
 import { RiverDirector } from './riverDirector.ts';
 import { RiverIntro, RiverEnding, RiverTurn, riverMoments } from './riverScenes.ts';
-import { RewardRun, beginReward, syncReward, type RewardKit } from '../../game/rewardShots.ts';
-import { chainBeats, lanternBeats, riverRewards } from './rewards.ts';
+import { RewardRun, beginReward, syncReward } from '../../game/rewardShots.ts';
+import { ChainGeo, LanternGeo, chainBeats, lanternBeats, riverClip, riverRewards, type RiverRewardKit, type RiverRewardProps } from './rewards.ts';
 import {
   fightPage, type BuildKit, type FightPageSpec, type Parts, type Pre, type Vec2, type Wired, type WireKit,
 } from '../../game/fightPage.ts';
@@ -85,8 +85,8 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
   app.appendChild(under);
   const kOffer = new Offer(moment, offerSpec(m, () => ({ x: sim.x, y: 2.2, z: sim.z })), (r, secs) => qte.show('attack', RIVER_PRESS[r as 'chain' | 'lantern'], secs, input.lastDevice));
   const rd = new RiverDirector(dir, fight, ghats, v1, v2, post, hud);
-  const rKit: RewardKit = { fx, kick: s => moment.kick(s), get river() { return sim.form === 2 ? v2 : v1; } };
-  const rewardRun = new RewardRun(rKit);
+  const rKit: RiverRewardKit = { fx, kick: s => moment.kick(s), get river() { return sim.form === 2 ? v2 : v1; }, end: () => { const v = sim.form === 2 ? v2 : v1; v.poleAim = null; v.lampHidden = false; } };
+  const rewardRun = new RewardRun<RiverRewardProps>(rKit, { lantern: new LanternGeo(), chainGeo: new ChainGeo() });
   Object.assign(rSpecs, riverRewards(sim, m, rKit, rewardRun));
   const kit = { f: fight, pv, k1: v1, k2: v2, fx, hud, ghats, rd, prompt: qte };
   const intro = new RiverIntro(kit);
@@ -113,7 +113,7 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
     },
     after(sd: number, dt: number, t: number) {
       // a reward scene: the hero's clip runs on the scene's clock, and its beats (the shatter, the snap) fire on the frame they land
-      if (sim.rite) { if (rewardRun.kind !== sim.rite) { beginReward(sim.rite, m); rewardRun.begin(sim.rite); } syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, m, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end(m);
+      if (sim.rite) { if (rewardRun.kind !== sim.rite) { beginReward(riverClip(sim.rite), m); rewardRun.begin(sim.rite); } syncReward(m, sim.stage); if (sim.rite === 'lantern') lanternBeats(sim, m, rKit, rewardRun, sim.stage, t); else chainBeats(sim, m, rKit, rewardRun, sim.stage, t); } else if (rewardRun.kind) rewardRun.end(m);
       { const want = sim.staging; if (want !== staged) { staged = want; dragK = 0; if (want) { qte.hide(); moment.start(want === 'drag' ? dSpec : rSpecs[want]); } else moment.stop(); } }
       // the drag's beats, on the boss's clock: a groan as he is pulled under, the bite, and a slam as he is heaved onto the steps
       // under the water: a green wash over the view, and bubbles rising from him while he is held down

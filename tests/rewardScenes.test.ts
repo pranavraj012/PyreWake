@@ -15,7 +15,7 @@ describe('the lantern scene', () => {
   it('ends with the hero on the floor, inside the arena, clear of the boss, whatever his start', () => {
     for (const [bx, , hx, hz] of spots) {
       sim.x = bx; sim.z = -4; const m = new Motor(); m.x = hx; m.z = hz - 4; if (Math.hypot(m.x, m.z) > m.arena - 1) continue;
-      const geo = new LanternGeo(), run = new RewardRun(kit); geo.init(sim, m); geo.lamp(sim, kit, 0);
+      const geo = new LanternGeo(), run = new RewardRun(kit, {}); geo.init(sim, m); geo.lamp(sim, kit, 0);
       const p = geo.hero(LANTERN.len, new THREE.Vector3()); run.last.set(p.x - m.x, p.y, p.z - m.z); run.end(m);
       expect(p.y).toBeCloseTo(0, 5); expect(Math.hypot(m.x, m.z)).toBeLessThanOrEqual(m.arena - 0.5); expect(Math.hypot(m.x - sim.x, m.z - sim.z)).toBeGreaterThan(1.8);
     }
@@ -34,7 +34,7 @@ describe('the chain scene', () => {
     for (const len of [2.5, 4, 7]) for (let a = 0; a < 6.28; a += 0.8) for (const r of [2, 5, 11]) for (const ex of [0, 15]) {
       const boss = new THREE.Vector3(ex, 1, -3), anchor = { x: boss.x + len * Math.sin(a), z: boss.z + len * Math.cos(a) }; if (Math.hypot(anchor.x, anchor.z) > 20) continue;
       sim.x = boss.x; sim.z = boss.z; sim.lastAnchor = anchor; const m = new Motor(); m.x = anchor.x + r * Math.cos(a); m.z = anchor.z - r * Math.sin(a); if (Math.hypot(m.x, m.z) > m.arena - 1) continue;
-      const geo = new ChainGeo(), run = new RewardRun(kit); geo.init(sim, m, boss);
+      const geo = new ChainGeo(), run = new RewardRun(kit, {}); geo.init(sim, m, boss);
       const p = geo.hero(CHAIN.len, new THREE.Vector3()); run.last.set(p.x - m.x, p.y, p.z - m.z); run.end(m);
       expect(p.y).toBeCloseTo(0, 5); expect(Math.hypot(m.x, m.z)).toBeLessThanOrEqual(m.arena - 0.5); expect(Math.hypot(m.x - boss.x, m.z - boss.z)).toBeGreaterThan(1.3);
     }
@@ -53,7 +53,7 @@ describe('the ride scene', () => {
   it('ends with the hero on the floor, inside the arena, clear of the King, whatever his start and the King\'s facing', () => {
     for (const yaw of [0, 1.3, 2.9, -2]) for (const kx of [0, 14, -14]) for (const [dx, dz] of [[3, 3], [-4, 2], [0, -5], [5, -5], [-2, 7]]) {
       const sim = new King(); sim.x = kx; sim.z = -3; sim.yaw = yaw; const m = new Motor(); m.x = kx + dx; m.z = -3 + dz; if (Math.hypot(m.x, m.z) > m.arena - 1) continue;
-      const geo = new RideGeo(), run = new RewardRun(kit), chest = new THREE.Vector3(kx, 1.7, -3); geo.init(sim, m, chest);
+      const geo = new RideGeo(), run = new RewardRun(kit, {}), chest = new THREE.Vector3(kx, 1.7, -3); geo.init(sim, m, chest);
       const p = geo.hero(sim, chest, RIDE.len, new THREE.Vector3()); run.last.set(p.x - m.x, p.y, p.z - m.z); run.end(m);
       expect(p.y).toBeCloseTo(0, 5); expect(Math.hypot(m.x, m.z)).toBeLessThanOrEqual(m.arena - 0.5); expect(Math.hypot(m.x - sim.x, m.z - sim.z)).toBeGreaterThan(1.8);
     }

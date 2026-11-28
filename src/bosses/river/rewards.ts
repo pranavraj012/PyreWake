@@ -5,7 +5,10 @@ import type { MomentSpec } from '../../game/moment.ts';
 import type { Motor } from '../../player/motor.ts';
 import { RewardChain } from '../../game/rewardChain.ts';
 import { CHAIN, LANTERN, type River } from './river.ts';
-import { E, V, type RewardKind, type RewardKit, type RewardRun } from '../../game/rewardShots.ts';
+import { E, V, retime, warp, type RewardKit, type RewardRun } from '../../game/rewardShots.ts';
+import { KHANDA } from '../../weapons/khanda.ts';
+import type { Clip } from '../../anim/pose.ts';
+import type { RiverView } from './riverView.ts';
 
 // ---------------------------------------------------------------- the Ferryman's lantern
 /** The scene's numbers. He kneels and swings his pole out so the lamp hangs ahead of him at a height a leap can reach; the hero leaps, cuts it down, springs back and lands braced. */
@@ -27,7 +30,7 @@ export class LanternGeo {
     const c = Math.cos(LEAP.bear), s = Math.sin(LEAP.bear); this.bx = this.ux * c - this.uz * s; this.bz = this.ux * s + this.uz * c; this.arena = m.arena; this.start.set(m.x, 0, m.z); this.side = (-this.bz * this.ux + this.bx * this.uz) >= 0 ? 1 : -1; this.ready = true;
   }
   /** The lamp's own place (read from the view), and the line from the Ferryman to it. */
-  lamp(sim: River, kit: RewardKit, t = 0) {
+  lamp(sim: River, kit: RiverRewardKit, t = 0) {
     if (t >= LANTERN.hit) this.frozen = true; else this.frozen = false;
     if (this.frozen) { /* keep L as it was at the cut */ } else if (kit.river) kit.river.lantern.getWorldPosition(this.L); else this.L.set(sim.x + this.bx * 5.6, LEAP.lampY, sim.z + this.bz * 5.6);
     const dx = this.L.x - sim.x, dz = this.L.z - sim.z, d = Math.hypot(dx, dz) || 1; this.A.x = dx / d; this.A.z = dz / d; return this.L;
@@ -40,8 +43,8 @@ export class LanternGeo {
     return out.set(this.start.x + (cx - this.start.x) * k + (lx - cx) * r, leapY(t), this.start.z + (cz - this.start.z) * k + (lz - cz) * r);
   }
 }
-export function lanternSpec(sim: River, m: Motor, kit: RewardKit, run: RewardRun): MomentSpec {
-  const H = LANTERN.hit, geo = run.lantern, P = V(), F = V(), B = V();
+export function lanternSpec(sim: River, m: Motor, kit: RiverRewardKit, run: RewardRun<RiverRewardProps>): MomentSpec {
+  const H = LANTERN.hit, geo = run.props.lantern, P = V(), F = V(), B = V();
   return {
     frame: (t, eye, at) => {
       if (!geo.ready) geo.init(sim, m); const lp = geo.lamp(sim, kit, t), hp = geo.hero(t, P), k = E(0.2, H, t), r = E(H, 2.2, t);
@@ -62,8 +65,8 @@ export function lanternSpec(sim: River, m: Motor, kit: RewardKit, run: RewardRun
   };
 }
 /** The lantern's own beats on the scene's clock: the pole swung out, the leap's whoosh, the shatter (glass, burning oil, a flare that dies), the landing. Called each frame while the scene runs. */
-export function lanternBeats(sim: River, m: Motor, kit: RewardKit, run: RewardRun, t: number, time: number) {
-  const { fx } = kit, geo = run.lantern; if (!geo.ready) geo.init(sim, m);
+export function lanternBeats(sim: River, m: Motor, kit: RiverRewardKit, run: RewardRun<RiverRewardProps>, t: number, time: number) {
+  const { fx } = kit, geo = run.props.lantern; if (!geo.ready) geo.init(sim, m);
   if (kit.river) kit.river.poleAim = { x: geo.bx, z: geo.bz, y: LEAP.lampY, k: E(0, LEAP.swing, t) * (1 - E(1.35, 2.1, t)) };
   // he faces the lamp through the leap, then the Ferryman as he lands
   { const lp = geo.lamp(sim, kit, t), px = m.x + run.last.x, pz = m.z + run.last.z, want = t < LANTERN.hit + 0.1 ? Math.atan2(lp.x - px, lp.z - pz) : Math.atan2(sim.x - px, sim.z - pz); let d = want - m.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); m.yaw += d * Math.min(1, 0.25 + (t > LANTERN.hit ? 0.1 : 0)); }
@@ -102,8 +105,8 @@ export class ChainGeo {
     return out.set(this.start.x + (cx - this.start.x) * k, y, this.start.z + (cz - this.start.z) * k);
   }
 }
-export function chainSpec(sim: River, m: Motor, kit: RewardKit, run: RewardRun): MomentSpec {
-  const H = CHAIN.hit, geo = run.chainGeo, P = V(), F = V(), Hh = V();
+export function chainSpec(sim: River, m: Motor, kit: RiverRewardKit, run: RewardRun<RiverRewardProps>): MomentSpec {
+  const H = CHAIN.hit, geo = run.props.chainGeo, P = V(), F = V(), Hh = V();
   const handAt = () => { if (kit.river) kit.river.mark('handL', Hh); else Hh.set(sim.x, 1.0, sim.z); return Hh; };
   const ready = () => { if (!geo.ready) geo.init(sim, m, handAt()); };
   return {
@@ -121,8 +124,8 @@ export function chainSpec(sim: River, m: Motor, kit: RewardKit, run: RewardRun):
     cues: [{ t: LINK.launch, name: 'leap' }, { t: H, name: 'snap' }],
   };
 }
-export function chainBeats(sim: River, m: Motor, kit: RewardKit, run: RewardRun, t: number, time: number) {
-  const geo = run.chainGeo, hand = V(); if (kit.river) kit.river.mark('handL', hand); else hand.set(sim.x, 1.0, sim.z);
+export function chainBeats(sim: River, m: Motor, kit: RiverRewardKit, run: RewardRun<RiverRewardProps>, t: number, time: number) {
+  const geo = run.props.chainGeo, hand = V(); if (kit.river) kit.river.mark('handL', hand); else hand.set(sim.x, 1.0, sim.z);
   if (!geo.ready) geo.init(sim, m, hand);
   const dt = run.tick(time);
   if (kit.river) {
@@ -142,6 +145,23 @@ export function chainBeats(sim: River, m: Motor, kit: RewardKit, run: RewardRun,
 }
 
 /** The Ferryman's two rewards, built on the river's clock, and the run that times them. */
-export function riverRewards(sim: River, m: Motor, kit: RewardKit, run: RewardRun): Pick<Record<RewardKind, MomentSpec>, 'lantern' | 'chain'> {
+export function riverRewards(sim: River, m: Motor, kit: RiverRewardKit, run: RewardRun<RiverRewardProps>): { lantern: MomentSpec; chain: MomentSpec } {
   return { lantern: lanternSpec(sim, m, kit, run), chain: chainSpec(sim, m, kit, run) };
+}
+
+/** The Ferryman's reward kit: the scene reads his views (the lantern, the hand, the chain's links). */
+export interface RiverRewardKit extends RewardKit { river?: RiverView }
+/** The Ferryman's props for the run: the lantern's geometry and the chain's. */
+export type RiverRewardProps = { lantern: LanternGeo; chainGeo: ChainGeo };
+
+const LANTERN_LEN = LANTERN.len, CHAIN_LEN = CHAIN.len;
+const CLIPS: Record<string, Clip> = {};
+/** The reward's clip for the Ferryman, built once from the khanda's vertical two-handed cut (light3): the lantern or the chain. */
+export function riverClip(kind: string): Clip {
+  if (CLIPS[kind]) return CLIPS[kind];
+  const c = KHANDA.clips;
+  const made = kind === 'lantern'
+    ? retime('rewardLantern', c.light3, LANTERN_LEN, warp([[0, 0.55], [0.2, 1.0], [0.255, LANTERN.hit], [0.33, LANTERN.hit + 0.3], [0.74, 2.7], [0.74, LANTERN_LEN]]))
+    : retime('rewardChain', c.light3, CHAIN_LEN, warp([[0, 0.4], [0.2, 1.05], [0.285, CHAIN.hit], [0.36, CHAIN.hit + 0.3], [0.74, 2.9], [0.74, CHAIN_LEN]]));
+  CLIPS[kind] = made; return made;
 }
