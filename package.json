@@ -10,6 +10,7 @@
     "forge": "node forge/index.ts",
     "check": "tsc --noEmit",
     "test": "vitest run",
+    "verify": "node tools/verify.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "shots": "node tools/shots.mjs",
