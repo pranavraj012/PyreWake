@@ -205,6 +205,38 @@ export async function player(): Promise<Mesh> {
     return p + 0.0012 * noise(x * 40, y * 40, z * 40);
   }, 0.009);
 
+  // ---- the keeper's kit: iron vambraces, a caged ember lantern on a chain, an ember-bead strand
+  const kit = F(0.004, 0.0032, 4, 5200);
+  for (const [S, s] of SIDES) {
+    const e = mir(at('foreArm.L'), s), w = mir(at('hand.L'), s), d = mir(D, s);
+    const wl = Math.hypot(...sub(w, e)); kit.bone = b['foreArm.' + S];
+    // two riveted bands and a plate between them, standing proud of the leather cuffs
+    for (const q of [0.28, 0.46, 0.64]) {
+      const r = 0.04 - 0.016 * Math.min(1, q / wl) + 0.0145;
+      kit.put(cone(add(e, mul(d, q)), add(e, mul(d, q + 0.034)), r, r - 0.002), { k: 0.003 });
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, c = add(e, mul(d, q + 0.017)); kit.put(ball([c[0] + Math.sin(a) * (r + 0.001), c[1] + Math.cos(a) * (r + 0.001), c[2] + 0], 0.0042), { k: 0.002 }); }
+    }
+  }
+  // lantern: cage ribs and caps in iron, the ember core in living fire; hangs from the belt by a short chain
+  const lampAt: V3 = [-0.205, 0.84, 0.03];
+  kit.bone = b.hips;
+  const chain = curve([[-0.17, 0.99, 0.02], [-0.19, 0.94, 0.028], [-0.2, 0.89, 0.03]], 8);
+  chain.slice(1).forEach((p, i) => kit.put(cone(chain[i], p, 0.006, 0.006), { k: 0.002 }));
+  kit.put(cone([lampAt[0], lampAt[1] + 0.045, lampAt[2]], [lampAt[0], lampAt[1] + 0.065, lampAt[2]], 0.026, 0.01), { k: 0.006 });
+  kit.put(cone([lampAt[0], lampAt[1] - 0.052, lampAt[2]], [lampAt[0], lampAt[1] - 0.07, lampAt[2]], 0.026, 0.012), { k: 0.006 });
+  for (let i = 0; i < 6; i++) {
+    const a = i / 6 * Math.PI * 2, x = lampAt[0] + Math.sin(a) * 0.028, z = lampAt[2] + Math.cos(a) * 0.028;
+    kit.put(cone([x, lampAt[1] - 0.05, z], [x, lampAt[1] + 0.047, z], 0.0046, 0.0046), { k: 0.002 });
+  }
+  const core = F(0.01, 0.0026, 22, 900); core.bone = b.hips;
+  core.put(ell(lampAt, [0.021, 0.034, 0.021]));
+  const beads = F(0.006, 0.0026, 22, 1400); beads.bone = b.chest;
+  const bp0 = curve([[0.1, 1.455, 0.09], [0.07, 1.4, 0.128], [0.03, 1.35, 0.15], [-0.03, 1.33, 0.152], [-0.08, 1.37, 0.14]], 16);
+  for (let i = 1; i < bp0.length - 1; i += 2) beads.put(ball(bp0[i], 0.0085), { k: 0.002 });
+  const stringB = F(0.004, 0.0028, 3, 1200); stringB.bone = b.chest;
+  bp0.slice(1).forEach((p, i) => stringB.put(cone(bp0[i], p, 0.0032, 0.0032), { k: 0.002 }));
+  kit.displace((x, y, z) => 0.0012 * fbm(x * 55, y * 55, z * 55, 2), 0.002);
+
   // ---- braid
   const hair = F(0.004, 0.0034, 7, 2600);
   const bp = curve([[0, 1.63, -0.1], [0.012, 1.56, -0.155], [0.02, 1.46, -0.168], [0.02, 1.32, -0.165], [0.014, 1.18, -0.152], [0.008, 1.06, -0.145]], 40);
