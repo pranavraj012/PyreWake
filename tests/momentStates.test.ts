@@ -9,18 +9,23 @@ import { D } from '../src/combat/difficulty.ts';
 import { King, OFFER, REWARD_SHARE } from '../src/bosses/king/king.ts';
 import { River, RIVER_REWARD_SHARE } from '../src/bosses/river/river.ts';
 import { RiverBrain } from '../src/bosses/river/brain.ts';
+import { Sister } from '../src/bosses/hours/sister.ts';
+import { HoursBrain } from '../src/bosses/hours/brain.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60;
-type Boss = 'king' | 'river';
-type Moment = 'noose' | 'rope' | 'ride' | 'drag' | 'chain' | 'lantern';
+type Boss = 'king' | 'river' | 'hours';
+type Any = King | River | Sister;
+/** The reward on offer, for the bosses that have them (the Sister's grab has none). */
+const rw = (k: Any) => ('reward' in k ? k.reward : null);
+type Moment = 'noose' | 'rope' | 'ride' | 'drag' | 'chain' | 'lantern' | 'gather';
 type State = 'light' | 'heavy' | 'charge' | 'dodge' | 'jump' | 'guard' | 'spell' | 'flask' | 'stagger' | 'walk';
 
-const MOMENTS: Record<Boss, Moment[]> = { king: ['noose', 'rope', 'ride'], river: ['drag', 'chain', 'lantern'] };
+const MOMENTS: Record<Boss, Moment[]> = { king: ['noose', 'rope', 'ride'], river: ['drag', 'chain', 'lantern'], hours: ['gather'] };
 const STATES: State[] = ['light', 'heavy', 'charge', 'dodge', 'jump', 'guard', 'spell', 'flask', 'stagger', 'walk'];
 const IDLE = /flick|clench|down|hurt|block|parry|die|land|rekindle/;
 /** A moment is on: a grab holds him, or a reward is on offer or being played. */
-const busyOf = (k: King | River) => !!(k.staging || k.reward);
+const busyOf = (k: Any) => !!(k.staging || rw(k));
 
 /** How each state is entered (`press` at the start, `release` seconds later if it is let go before the moment), and the test that says the hero is in it. */
 const SCRIPT: Record<State, { press: Press[]; release?: number; ready: (m: Motor) => boolean; minAge: number }> = {
@@ -38,8 +43,8 @@ const SCRIPT: Record<State, { press: Press[]; release?: number; ready: (m: Motor
 
 /** Hero two metres in front of the boss, facing it; a fresh fight with the boss passive (no moves of its own). */
 function setup(boss: Boss, moment: Moment) {
-  const f = boss === 'king' ? new Fight(new Motor(), new King(), new Brain()) : new Fight(new Motor(), new River(), new RiverBrain());
-  if (moment === 'lantern') f.beginRound2();
+  const f = boss === 'king' ? new Fight(new Motor(), new King(), new Brain()) : boss === 'river' ? new Fight(new Motor(), new River(), new RiverBrain()) : new Fight(new Motor(), new Sister(), new HoursBrain());
+  if (moment === 'lantern' || moment === 'gather') f.beginRound2();
   f.passive = true; f.invuln = 0; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; f.boss.x = 0; f.boss.z = -4; f.boss.yaw = 0; f.fire = 100; f.hp = D.hp * 0.5;
   if (boss === 'river') f.brain.seen.add('dragDeep');
   return f;
@@ -49,13 +54,14 @@ function setup(boss: Boss, moment: Moment) {
 function trigger(f: Fight, moment: Moment) {
   if (moment === 'noose') (f.boss as King).set('grab', 8);
   else if (moment === 'drag') (f.boss as River).set('dragDeep', 8);
+  else if (moment === 'gather') { f.brain.seen.add('gather'); (f.boss as Sister).set('gather', 8); }
   else if (moment === 'rope' || moment === 'ride') { const k = f.boss as King; k.reward = moment; k.rewardLeft = OFFER; }
   else (f.boss as River).offer(moment);
 }
 
 function run(boss: Boss, moment: Moment, state: State) {
-  const f = setup(boss, moment), k = f.boss as King | River, m = f.m, sc = SCRIPT[state];
-  const isGrab = moment === 'noose' || moment === 'drag';
+  const f = setup(boss, moment), k = f.boss as Any, m = f.m, sc = SCRIPT[state];
+  const isGrab = moment === 'noose' || moment === 'drag' || moment === 'gather';
   if (state === 'stagger') f.strikePlayer(8, true, Math.PI, 'stagger');
   const r = { triggered: false, onset: -1, end: -1, hpOnset: 0, hpEnd: 0, takenOnset: 0, takenEnd: 0, swings: 0, reeled: false, expect: 0, accepted: false, pool: 0, state: '' };
   let trig = -1, released = false, base = { hp: 0, taken: 0 };
@@ -68,21 +74,21 @@ function run(boss: Boss, moment: Moment, state: State) {
     if (trig >= 0 && !released && (state === 'charge' || state === 'guard') && t - trig >= 0.6) { presses.push({ a: state === 'guard' ? 'guard' : 'attack', up: true }); released = true; }
     // the page's rule: an offer is taken by the first press while its chance lasts, and that press is then the hero's reward, not an attack
     let pressesNow = presses;
-    if (trig >= 0 && k.reward && !r.accepted && t - trig >= 1.0) { r.accepted = true; r.expect = Math.round(r.pool || (f.round === 2 ? D.boss.hp2 : D.boss.hp1) * (boss === 'king' ? REWARD_SHARE : RIVER_REWARD_SHARE)); k.takeReward(); pressesNow = presses.filter(p => p.up); }
-    const busyBefore = !!(k.staging || k.reward);
+    if (trig >= 0 && rw(k) && !r.accepted && t - trig >= 1.0) { r.accepted = true; r.expect = Math.round(r.pool || (f.round === 2 ? D.boss.hp2 : D.boss.hp1) * (boss === 'king' ? REWARD_SHARE : RIVER_REWARD_SHARE)); (k as King | River).takeReward(); pressesNow = presses.filter(p => p.up); }
+    const busyBefore = !!(k.staging || rw(k));
     if (busyBefore && r.onset < 0) { r.onset = t; r.hpOnset = f.bossHp; r.takenOnset = f.taken; }
     // the page stops the hero's walk while a moment is on
     const mz = state === 'walk' && trig < 0 ? -1 : 0;
     f.step(DT, 0, busyBefore ? 0 : mz, pressesNow);
     if (r.onset >= 0 && busyBefore) { if (m.events.some(e => e === 'swing' || (e.startsWith('clip:') && !IDLE.test(e)))) r.swings++; if (m.state === 'clip' && !IDLE.test(m.clip?.name ?? '')) r.swings++; if (k.mode === k.reelMode) r.reeled = true; }
-    if (r.onset >= 0 && !(k.staging || k.reward)) { r.end = t; r.hpEnd = f.bossHp; r.takenEnd = f.taken; break; }
+    if (r.onset >= 0 && !(k.staging || rw(k))) { r.end = t; r.hpEnd = f.bossHp; r.takenEnd = f.taken; break; }
   }
   void base;
   return { f, m, k, r, isGrab };
 }
 
 describe('every boss moment, triggered in every hero state', () => {
-  for (const boss of ['king', 'river'] as Boss[]) {
+  for (const boss of ['king', 'river', 'hours'] as Boss[]) {
     for (const moment of MOMENTS[boss]) {
       for (const state of STATES) {
         it(`${boss} ${moment} during ${state}: starts, runs to its end, leaves the hero sane, pays once`, () => {
