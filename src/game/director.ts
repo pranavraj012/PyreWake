@@ -117,7 +117,7 @@ export class Director {
       case 'finish': sound.score?.set('finish'); this.say('breath', 'breath', 1.3); break;
       case 'won': { sound.score?.set('won'); this.say('death', 'death2'); sound.play('finalCut', { gain: 1.05, wet: 0.7 }); sound.play('boom', { ...pos, gain: 0.7, delay: 0.5 }); cam.trauma = 1; this.slowK = 1; this.ritesK = 1; this.inkT = 1.1; const q = V(k.hx, 1.5, k.hz); fx.bursts.add('slash', q, 16, 1.6, t, 0.06, 1.8, 1.6, 1.4, 1); fx.bursts.add('slash', q, 8, 0.3, t, 0.06, 2, 0.8, 0.3, 0.5); fx.sparks.emit(q, V(0, 0.3, 0), 140, 8, 1.6, 0.9, t); this.onWon(); break; }
       case 'dead': this.hud.say(this.words.quenched, 2.6, 'dead'); sound.play('die', { gain: 1 }); sound.score?.set('dead'); break;
-      case 'reset': if (f.round === 1 && f.hits === 0) this.auraSeen = 0; pv.reset(); this.p.set(0, 0, 0); this.painT = 0; this.views.forEach(v => { v.settle(); v.wounds.w.value.forEach(w => { w.w = 0; }); }); this.views[0].show(k.form === 1); this.views[1].show(k.form === 2); this.cue.stop(); this.fadeK = 1; cam.yaw = 0.12; pv.auraStep = 0; sound.score?.set(f.round === 2 ? 'r2' : 'spar'); this.hud.callout(''); break;
+      case 'reset': if (f.round === 1 && f.hits === 0) this.auraSeen = 0; pv.reset(); this.p.set(0, 0, 0); this.painT = 0; this.views.forEach(v => { v.settle(); v.wounds.w.value.forEach(w => { w.w = 0; }); }); this.views[0].show(k.form === 1); this.views[1].show(k.form === 2); this.cue.stop(); this.fadeK = 1; cam.yaw = 0.12; pv.auraStep = 0; this.hud.callout(''); break;
     }
     if (dt > 0) {
       for (const e of m.events) {
