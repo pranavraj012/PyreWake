@@ -5,7 +5,7 @@ Stack: three.js 0.187, TypeScript, vite 8, vitest 5, playwright-core for the hea
 
 ## Layout
 
-The boss files are final (refactor P2): each boss lives in its own folder under src/bosses/. The boss registry is src/bosses/index.ts (P3). Still to come on branch `refactor` (see docs/game/refactor-plan.md, gitignored): a shared fight page at src/game/fightPage.ts (P4). Re-check paths with `git ls-files` if in doubt.
+The boss files are final (refactor P2): each boss lives in its own folder under src/bosses/. The boss registry is src/bosses/index.ts (P3). The shared fight page is src/game/fightPage.ts (P4a; see "The shared fight page" below). The King still has his own page in main.ts (P4b). Re-check paths with `git ls-files` if in doubt.
 
 - `src/main.ts`: King page (boss 1, the default) and the shared boot: renderer, lights, camera, input, menu, and the page switch (`?boss=N` loads that boss's page from the registry).
 - `src/bosses/index.ts`: BOSSES, the registry of every boss (id, ?boss= number, menu name, moments, lazy page loader), plus bossHref and fightList. Plain data: it imports no boss module statically.
@@ -15,7 +15,7 @@ The boss files are final (refactor P2): each boss lives in its own folder under 
 - `src/bosses/king/`: the Hanged King. king.ts (sim), kingView.ts, brain.ts, clips.ts, moves.ts, moves2.ts, scenes.ts (way in/out), cinema.ts (his turn), kingScript.ts, kingRewards.ts (rope and ride), lessons.ts (training), court.ts (arena).
 - `src/bosses/river/`: the Ferryman. river.ts (sim), riverView.ts, brain.ts, clips.ts, moves.ts, riverDirector.ts, riverFx.ts, dragShot.ts, riverScenes.ts, riverScript.ts, rewards.ts (lantern and chain shots), ghats.ts (arena), page.ts (his page).
 - `src/bosses/hours/`: the Sister of Hours. sister.ts (sim), sisterView.ts, pallView.ts, brain.ts, clips.ts, moves.ts, frame.ts, hoursDirector.ts, hoursFx.ts, glow.ts, hoursScenes.ts, hoursScript.ts, house.ts (arena), page.ts (her page).
-- `src/game/`: director.ts (fight events to look/sound/feel), moment.ts (staged moments: Moment/Offer/Prompt), camera.ts (follow cam), sceneKit.ts (Lens and Cues, shared by the scenes), script.ts (how a scene speaks), rewardShots.ts (generic reward runner and helpers; RewardKind, RewardRun), rewardChain.ts (the chain, shared by the King and the Ferryman), progress.ts + save.ts (progress, localStorage save).
+- `src/game/`: fightPage.ts (the shared fight page: hero, menu, pause, reset, step, draw, loop; a boss page is a FightPageSpec), director.ts (fight events to look/sound/feel), moment.ts (staged moments: Moment/Offer/Prompt), camera.ts (follow cam), sceneKit.ts (Lens and Cues, shared by the scenes), script.ts (how a scene speaks), rewardShots.ts (generic reward runner and helpers; RewardKind, RewardRun), rewardChain.ts (the chain, shared by the King and the Ferryman), progress.ts + save.ts (progress, localStorage save).
 - `src/arena/`: ruin.ts + props.ts (breakable court, shared). Each boss's own arena is in its folder (court.ts, ghats.ts, house.ts).
 - `src/dev/theatre.ts`: moment theatre (`?moment=`, dev panel with `?dev`).
 - `src/player/`: motor.ts (hero state machine, headless), view.ts, clips.ts, reactions.ts, stride.ts.
@@ -35,9 +35,17 @@ The boss files are final (refactor P2): each boss lives in its own folder under 
 
 ## Adding a boss
 
-1. Make `src/bosses/<id>/` with the sim, view, brain, and a `page.ts` exporting `boot<Name>(c: Ctx)` (copy `src/bosses/river/page.ts`).
+1. Make `src/bosses/<id>/` with the sim, view, brain, and a `page.ts`: a `FightPageSpec` (copy `src/bosses/river/page.ts`: `build` and `wire`) and `export async function boot<Name>(c: Ctx)` that calls `fightPage(c, spec)`.
 2. Add one entry to `BOSSES` in `src/bosses/index.ts`: id, the next ?boss= number, menu name, moments, and `load: () => import('./<id>/page.ts').then(r => r.boot<Name>)`. The menu fight list, the page switch and the moment theatre all read from it.
 3. Add the boss's page to the per-boss list below.
+
+## The shared fight page (src/game/fightPage.ts)
+
+fightPage(c, spec) builds the hero (skins, fx, PlayerView, Motor, Fight, Prompts, Hud, FollowCam, Director), then the menu, the pause triggers, the one reset, begin and toMenu, the step and draw skeletons, the warm-up, the theatre mount and the loop. A boss page provides (FightPageSpec):
+- plain data: `bossId`, `status` (loading line), `heroAsh`, `names` (HUD r1, r2, won), `score` (sound moods for the rounds), `beaten` (the settings bit), `shots` (the ?shot= cameras).
+- `build(kit)`: its geometry, its arena (group, ruin, update), its sim and brain, its two views (round 1, round 2), and any extra it needs later (for example a light). Returns the Parts.
+- `wire(kit)`: its scenes (intro, turn, ending), its director, its staged moments, and the Wired hooks. Each hook says where the shell calls it, because the two pages order those steps differently: `before` (menu and intro movement, scene presses, the reward or climb press, the moment hold, before the referee), `after` (after the referee: reward scene, staging, held beats, hero pose), `tick` (turn and ending clocks, the director step), `blocker` (arena push), `clock` (the moment's stage), `reset` / `begin` / `toMenu` / `turnEnd` / `round2` / `theatreReset` / `tap`, the draw hooks `decay`, `camera` (the scene and moment camera, in its own order), `followTarget`, `frame`, and `debug` (extra window globals).
+The shell owns everything else; do not copy shell code into a boss page. The King (main.ts) is not on the shell yet (P4b).
 
 ## Per-boss: files to read before changing it
 
