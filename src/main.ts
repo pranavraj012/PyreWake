@@ -40,6 +40,7 @@ import { BENEATH_MODES, KING_MODES } from './bosses/king/king.ts';
 import { KingView } from './bosses/king/kingView.ts';
 import { FollowCam, menuCam } from './game/camera.ts';
 import { mountTheatre } from './dev/theatre.ts';
+import type { Ctx } from './core/boot.ts';
 import './ui/style.css';
 
 const Q = new URLSearchParams(location.search), SHOT = Q.get('shot'), BENCH = Q.get('bench');
@@ -76,7 +77,8 @@ if (matchMedia('(pointer: coarse)').matches || Q.has('touch')) { document.body.c
 else if (!SHOT && !BENCH) canvas.addEventListener('click', () => { if (!document.pointerLockElement) Promise.resolve(canvas.requestPointerLock()).catch(() => { }); });
 
 const status = (s: string) => { document.querySelector('#load span')!.textContent = s; };
-async function boot() {
+async function kingBoot(c: Ctx) {
+  const { Q, SHOT, BENCH, tier, renderer, scene, cam, moon, hemi, kick, sky, post, dyn, resize, input, app, focus, status } = c;
   status('Lighting the pyres'); if (!SHOT && !BENCH) sound.load();
   const tex = await loadTextures(tier, Math.min(8, renderer.capabilities.getMaxAnisotropy()));
   const [court, gPlayer, gPlayerLo, gKing, gKhanda, gCleaver, gRoot, sPlayer, sKing, gBen, sBen] = await Promise.all([buildCourt(tex, tier), loadGeo('player'), loadGeo('player', '.xs'), loadGeo('king'), loadGeo(KHANDA.geo), loadGeo('cleaver'), loadGeo('roots0'), loadGeo('player', tier.name === 'high' ? '.lo' : '.xs'), loadGeo('king', tier.name === 'high' ? '.lo' : '.xs'), loadGeo('beneath'), loadGeo('beneath', tier.name === 'high' ? '.lo' : '.xs')]);
@@ -212,10 +214,10 @@ async function boot() {
     else if (turn.active) turn.camera(cam, t);
     else if (ending.active) ending.camera(cam, t);
     else if (story.active) story.camera(cam, t);
-    else if (intro.active) intro.camera(cam, t, baseFov);
+    else if (intro.active) intro.camera(cam, t, c.baseFov());
     else if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), king.sim.stage, t)) { /* a staged moment's shot */ }
-    else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, baseFov)) { /* composed shot */ follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
-    else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: king.sim.hx, z: king.sim.hz, solid: !king.sim.hanging && king.sim.y < 0.5, h: king.sim.y * 0.6 + (king.sim.hanging ? 1.7 : king.sim.crawling ? 1.2 : /kneel|fall|crash/.test(king.sim.mode) ? 1.5 : king.sim.form === 2 ? 1.9 : 2.2) }, input.takeLook(), t, baseFov);
+    else if (!fight.m.dead && actionCam(cam, fight, dir.heroT, c.baseFov())) { /* composed shot */ follow.trauma = Math.max(0, follow.trauma - ms / 1000 * 1.6); }
+    else follow.update(cam, Math.min(ms / 1000, 0.05), m, { x: king.sim.hx, z: king.sim.hz, solid: !king.sim.hanging && king.sim.y < 0.5, h: king.sim.y * 0.6 + (king.sim.hanging ? 1.7 : king.sim.crawling ? 1.2 : /kneel|fall|crash/.test(king.sim.mode) ? 1.5 : king.sim.form === 2 ? 1.9 : 2.2) }, input.takeLook(), t, c.baseFov());
     moment.settle(cam, Math.min(ms / 1000, 0.05));
     if (!SHOT && !BENCH && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
     { const fz = cam.userData.focus as THREE.Vector3 | undefined, film = menu.open || turn.active || ending.active || story.active || intro.active, on = film || cam.userData.frame === true, want = on && fz ? (menu.open ? 0.4 : film ? 0.8 : 0.6) : 0; cam.userData.frame = false; post.dof.amt += (want - post.dof.amt) * (want && post.dof.amt < 0.02 ? 1 : Math.min(1, ms / 90)); if (fz) post.dof.focus = Math.max(0.5, fz.distanceTo(cam.position)); }
@@ -232,5 +234,7 @@ async function boot() {
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }
 /** Each fight past the first has its own page, loaded only when asked for. */
+/** The one Ctx every page boots from: the shared boot's objects (renderer, scene, camera, lights, sky, post, input). */
+const ctx: Ctx = { Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH };
 const page = BOSSES.find(b => b.load && String(b.n) === Q.get('boss'));
-(page ? page.load!().then(b => b({ Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH })) : boot()).catch(e => { console.error(e); status('Could not start: ' + e.message); });
+(page ? page.load!().then(b => b(ctx)) : kingBoot(ctx)).catch(e => { console.error(e); status('Could not start: ' + e.message); });
