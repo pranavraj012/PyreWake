@@ -531,8 +531,12 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     pv.reset();
     fight.passive = true;
     bars(false);
-    menu.show();
+    // ?train (the Ferryman's and the Sister's Training buttons load it) starts the page's training from the load, as its own
+    // Training button does; a page with no training shows its menu as before
+    const training = Q.has('train') && !!wired.train;
+    if (!training) menu.show();
     intro.rest();
+    if (training) wired.train!();
   }
   document.body.classList.toggle('fps', Q.has('fps'));
   document.body.classList.add('ready');
