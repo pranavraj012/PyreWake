@@ -3,7 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { Motor } from '../src/player/motor.ts';
 import { River, LANTERN, CHAIN } from '../src/bosses/river/river.ts';
-import { ChainGeo, LanternGeo, RewardRun, type RewardKit } from '../src/game/rewardShots.ts';
+import { RewardRun, type RewardKit } from '../src/game/rewardShots.ts';
+import { ChainGeo, LanternGeo } from '../src/bosses/river/rewards.ts';
 import * as THREE from 'three';
 
 const kit = { fx: null as never, kick() { } } as RewardKit;

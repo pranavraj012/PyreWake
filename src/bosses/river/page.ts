@@ -33,7 +33,8 @@ import { RiverBrain } from './brain.ts';
 import { RiverView } from './riverView.ts';
 import { RiverDirector } from './riverDirector.ts';
 import { RiverIntro, RiverEnding, RiverTurn, riverMoments } from './riverScenes.ts';
-import { RewardRun, beginReward, chainBeats, lanternBeats, riverRewards, syncReward, type RewardKit } from '../../game/rewardShots.ts';
+import { RewardRun, beginReward, syncReward, type RewardKit } from '../../game/rewardShots.ts';
+import { chainBeats, lanternBeats, riverRewards } from './rewards.ts';
 import { mountTheatre } from '../../dev/theatre.ts';
 
 export type { Ctx };
