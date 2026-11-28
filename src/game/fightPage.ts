@@ -37,7 +37,7 @@ import { Director, type Court } from './director.ts';
 import type { BossWords } from '../boss/words.ts';
 import { FollowCam, menuCam } from './camera.ts';
 import { Moment, Prompt } from './moment.ts';
-import { actionCam } from '../bosses/king/cinema.ts';
+import { actionCam } from './actionCam.ts';
 import type { Boss, BossBrain } from '../boss/boss.ts';
 import type { BossView } from '../boss/view.ts';
 import type { Ruin } from '../arena/ruin.ts';
