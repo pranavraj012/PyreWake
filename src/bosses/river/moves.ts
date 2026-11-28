@@ -2,9 +2,9 @@
 import type { Strike, Zone } from '../../boss/strike.ts';
 
 const circle = (r: number, delay: number, at: Zone['at'] = 'mark'): Zone => ({ shape: 'circle', at, r, delay });
-export type RiverMode = 'idle' | 'stalk' | 'strafe' | 'lowWater' | 'sounding' | 'pushOff' | 'turnBoat' | 'cast' | 'haul' | 'haulIn' | 'wheelIron' | 'dragDeep' | 'gather' | 'wrongShore' | 'coldHands'
+export type RiverMode = 'idle' | 'stalk' | 'strafe' | 'lowWater' | 'sounding' | 'pushOff' | 'turnBoat' | 'cast' | 'haul' | 'haulIn' | 'wheelIron' | 'dragDeep' | 'dragHeld' | 'gather' | 'wrongShore' | 'coldHands'
   | 'thrust' | 'flurry' | 'reap' | 'vault' | 'skim' | 'lamps' | 'reel' | 'reel2' | 'snap' | 'kneel' | 'fall' | 'riseW' | 'die2';
-export const FERRY_MODES: RiverMode[] = ['idle', 'stalk', 'strafe', 'lowWater', 'sounding', 'pushOff', 'turnBoat', 'cast', 'haul', 'haulIn', 'wheelIron', 'dragDeep', 'gather', 'wrongShore', 'coldHands', 'reel', 'snap', 'kneel', 'fall'];
+export const FERRY_MODES: RiverMode[] = ['idle', 'stalk', 'strafe', 'lowWater', 'sounding', 'pushOff', 'turnBoat', 'cast', 'haul', 'haulIn', 'wheelIron', 'dragDeep', 'dragHeld', 'gather', 'wrongShore', 'coldHands', 'reel', 'snap', 'kneel', 'fall'];
 export const BARE_MODES: RiverMode[] = ['idle', 'stalk', 'strafe', 'thrust', 'flurry', 'reap', 'vault', 'skim', 'lamps', 'reel2', 'kneel', 'riseW', 'die2'];
 
 export const RIVER_ATTACKS: Record<string, Strike[]> = {

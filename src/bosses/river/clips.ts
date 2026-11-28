@@ -36,6 +36,11 @@ C.wheelIron = clip('wheelIron', { dur: 4.6, blend: 0.3, move: [[0, 0], [0.8, 0.3
 C.dragDeep = clip('dragDeep', { dur: 3.2, blend: 0.3, move: [[0, 0], [3.2, 0]], fx: [{ t: 0.35, kind: 'creak' }, { t: 1.58, kind: 'slam' }], keys: [at(0),
   { t: 0.5, hy: -0.84, hp: 36, hw: -18, sp: 40, sw: -22, np: -64, ra: -30, re: -50, rl: 0.9, ba: -20, be: -40, la: 30, le: -50, ll: 0.9, flz: 0.5, frz: -0.5, flp: 10 }, { t: 1.4, hy: -0.9, hp: 40, ra: -20, re: -54 },
   { t: 1.62, hy: -0.14, hp: -6, sp: -10, np: -20, ra: -20, re: 80, rl: 1, la: 20, le: 80, flz: -0.2, frz: 0.3 }, { t: 2.2, hy: -0.1, ra: -18, re: 84 }, at(3.2)] });
+/** The drag, held (the staged moment's own clock): his hand closes on the throat, he walks back hauling, bears down and holds the hero under, then heaves him out and lets him fall. */
+C.dragHeld = clip('dragHeld', { dur: 5.6, blend: 0.2, keys: [at(0),
+  { t: 0.3, hy: -0.22, hp: 14, hw: -10, sp: 20, sw: -12, np: -34, ra: -26, re: -30, rl: 1, ba: -20, be: -40, la: 30, le: -50, ll: 0.9, flz: 0.4, frz: -0.4 }, { t: 0.5, hy: -0.28, hp: 18, sp: 24, np: -40, ra: -22, re: -46, rl: 1, la: 24, le: -54, flz: 0.5, frz: -0.5 }, { t: 1.7, hy: -0.34, hp: 20, sp: 26, ra: -24, re: -48, flz: 0.3, frz: -0.3 },
+  { t: 2.1, hy: -0.9, hp: 42, sp: 46, np: -64, ra: -10, re: -64, rl: 1, la: 12, le: -66, flz: 0.5, frz: -0.5, flp: 10 }, { t: 3.7, hy: -0.92, hp: 44, sp: 48, ra: -12, re: -66, la: 14, le: -66 },
+  { t: 3.95, hy: -0.14, hp: -6, sp: -10, np: -20, ra: -20, re: 80, rl: 1, la: 20, le: 80, flz: -0.2, frz: 0.3 }, { t: 4.6, hy: -0.1, ra: -18, re: 84 }, at(5.6)] });
 // --- the Lantern
 C.gather = clip('gather', { dur: 2.2, blend: 0.3, fx: [{ t: 1.0, kind: 'hush' }], keys: [at(0), { t: 0.6, hy: -0.28, hp: 12, ra: -20, re: 80, rl: 0.85, ba: 0, be: 100, lg: 1, la: 20, le: 80 }, { t: 1.0, ra: -14, re: 84, la: 16, le: 76, ll: 0.7, lg: 0 }, { t: 1.5, hy: -0.4, hp: 22, sp: 36 }, at(2.2)] });
 C.wrongShore = clip('wrongShore', { dur: 6.5, blend: 0.3, fx: [{ t: 1.2, kind: 'hush' }], keys: [at(0), { t: 0.9, hy: -0.26, hp: 8, sp: 20, ra: -20, re: 90, rl: 0.95, ba: 0, be: 110, lg: 1 }, { t: 1.3, ra: -10, re: 96 }, { t: 4.4, ra: -12, re: 94 }, { t: 5.3, hy: -0.54, hp: 30, sp: 40, ra: -6, re: 0, be: -50 }, at(6.5)] });
