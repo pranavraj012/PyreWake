@@ -13,6 +13,7 @@ import { Dust, Puffs, Sparks } from './render/fx.ts';
 import { Bursts } from './render/impact.ts';
 import { skinnedShadow } from './render/shadowProxy.ts';
 import { buildCourt } from './bosses/king/court.ts';
+import { BOSSES, fightList } from './bosses/index.ts';
 import { Motor } from './player/motor.ts';
 import { BODY_CLIPS } from './player/clips.ts';
 import { KHANDA } from './weapons/khanda.ts';
@@ -121,7 +122,7 @@ async function boot() {
   const direct = !!(SHOT || BENCH || Q.has('nointro') || Q.has('turn') || Q.has('round2')); let t = 0, frames = 0; m.z = direct ? 5.2 : 15.5;
   const direct0 = !!(SHOT || BENCH);
   const bars = (on: boolean) => document.body.classList.toggle('cine', on); 
-  const menu = new Menu(app, () => hud.controls()), still = fight.passive; menu.fights([['The Hanged King', null], ['The Ferryman', () => { location.search = '?boss=2'; }], ['The Sister of Hours', () => { location.search = '?boss=3'; }]]);
+  const menu = new Menu(app, () => hud.controls()), still = fight.passive; menu.fights(fightList('king'));
   /** Back to the very start: the court at night, the hero at the gate. */
   const toMenu = () => { hud.setPaused(false); moment.stop(); staged = null; qte.hide(); king.sim.clearMoments(); if (lessons.active) { lessons.active = false; lessons.frozen = null; } hud.lesson(null); hud.verse(''); ending.stop(); dawn(0); turnWait = -1; bDis.value = kDis.value = 0; fight.reset(true); fight.passive = true; prompts.reset(); omen(0); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.kneel(); king.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen;
@@ -231,6 +232,5 @@ async function boot() {
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }
 /** Each fight past the first has its own page, loaded only when asked for. */
-const PAGES: Record<string, () => Promise<(c: import('./core/boot.ts').Ctx) => Promise<void>>> = { '2': () => import('./bosses/river/page.ts').then(r => r.bootRiver), '3': () => import('./bosses/hours/page.ts').then(r => r.bootHours) };
-const page = PAGES[Q.get('boss') ?? ''];
-(page ? page().then(b => b({ Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH })) : boot()).catch(e => { console.error(e); status('Could not start: ' + e.message); });
+const page = BOSSES.find(b => b.load && String(b.n) === Q.get('boss'));
+(page ? page.load!().then(b => b({ Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH })) : boot()).catch(e => { console.error(e); status('Could not start: ' + e.message); });
