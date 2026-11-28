@@ -3,17 +3,19 @@
 A souls-like in three.js + TypeScript (vite, vitest): one hero, the Pyrekeeper, fights three bosses in a burnt river-city. The hero is a sword-and-fire fighter; the bosses (the Hanged King, the Ferryman, the Sister of Hours) each have two rounds, staged cutscene "moments", and a reward or a price.
 Stack: three.js 0.187, TypeScript, vite 8, vitest 5, playwright-core for the headless tools. Node >= 22.
 
-## Layout (will change: see refactor in progress)
+## Layout
 
-A refactor is in progress on branch `refactor` (see docs/game/refactor-plan.md, gitignored). Later phases move files (boss folders under src/bosses/, a shared fight page, a boss registry), so re-check paths with `git ls-files` before trusting this map.
+The boss files are final (refactor P2): each boss lives in its own folder under src/bosses/. Still to come on branch `refactor` (see docs/game/refactor-plan.md, gitignored): a boss registry at src/bosses/index.ts (P3) and a shared fight page at src/game/fightPage.ts (P4). Re-check paths with `git ls-files` if in doubt.
 
-- `src/main.ts`: King page (boss 1, the default) and the shared boot: renderer, lights, camera, input, menu, PAGES registry (`?boss=2` loads river.ts, `?boss=3` loads hours.ts).
+- `src/main.ts`: King page (boss 1, the default) and the shared boot: renderer, lights, camera, input, menu, PAGES registry (`?boss=2` loads src/bosses/river/page.ts, `?boss=3` loads src/bosses/hours/page.ts).
 - `src/core/`: boot.ts (what main hands a page), loop.ts (60 Hz fixed step), quality.ts (render scale), settings.ts, viewport.ts, fullscreen.ts.
 - `src/combat/`: fight.ts (the referee for one boss: health, hits, guard, phases), encounter.ts (crowds), difficulty.ts (every tuning number), spells.ts + spellScript.ts (the six fire arts).
-- `src/boss/`: boss.ts (the interface the referee needs), view.ts (what the director needs of a picture), brain.ts, clips.ts, moves.ts, moves2.ts, king.ts, kingView.ts (the King). `river/` (Ferryman) and `hours/` (Sister) hold their own brain/clips/moves/sim/view/director/fx.
-- `src/game/`: director.ts (fight events to look/sound/feel), moment.ts (staged moments: Moment/Offer/Prompt), camera.ts (follow cam), cinema.ts (the King's turn), scenes.ts (way in/out), scripts (kingScript, riverScript, hoursScript, script.ts plumbing), rewards (kingRewards, rewardShots, rewardChain), lessons.ts (training), progress.ts + save.ts (progress, localStorage save).
-- `src/arena/`: court.ts (King), ghats.ts (river), house.ts (Hours), ruin.ts + props.ts (breakable court, shared).
-- `src/river.ts`, `src/hours.ts`: the Ferryman and Sister pages (same shape as main.ts, each with its own boot).
+- `src/boss/`: generic only. boss.ts (the interface the referee needs), view.ts (what the director needs of a picture).
+- `src/bosses/king/`: the Hanged King. king.ts (sim), kingView.ts, brain.ts, clips.ts, moves.ts, moves2.ts, scenes.ts (way in/out), cinema.ts (his turn), kingScript.ts, kingRewards.ts (rope and ride), lessons.ts (training), court.ts (arena).
+- `src/bosses/river/`: the Ferryman. river.ts (sim), riverView.ts, brain.ts, clips.ts, moves.ts, riverDirector.ts, riverFx.ts, dragShot.ts, riverScenes.ts, riverScript.ts, rewards.ts (lantern and chain shots), ghats.ts (arena), page.ts (his page).
+- `src/bosses/hours/`: the Sister of Hours. sister.ts (sim), sisterView.ts, pallView.ts, brain.ts, clips.ts, moves.ts, frame.ts, hoursDirector.ts, hoursFx.ts, glow.ts, hoursScenes.ts, hoursScript.ts, house.ts (arena), page.ts (her page).
+- `src/game/`: director.ts (fight events to look/sound/feel), moment.ts (staged moments: Moment/Offer/Prompt), camera.ts (follow cam), sceneKit.ts (Lens and Cues, shared by the scenes), script.ts (how a scene speaks), rewardShots.ts (generic reward runner and helpers; RewardKind, RewardRun), rewardChain.ts (the chain, shared by the King and the Ferryman), progress.ts + save.ts (progress, localStorage save).
+- `src/arena/`: ruin.ts + props.ts (breakable court, shared). Each boss's own arena is in its folder (court.ts, ghats.ts, house.ts).
 - `src/dev/theatre.ts`: moment theatre (`?moment=`, dev panel with `?dev`).
 - `src/player/`: motor.ts (hero state machine, headless), view.ts, clips.ts, reactions.ts, stride.ts.
 - `src/weapons/`: khanda*.ts (the sword), weapon.ts (interface). Nothing outside knows which is held.
@@ -34,11 +36,11 @@ A refactor is in progress on branch `refactor` (see docs/game/refactor-plan.md, 
 
 Read only the list for the boss you change, plus the shared engine files below.
 
-**King (boss 1, the Hanged King; default page).** `src/main.ts`, `src/boss/{king,kingView,brain,clips,moves,moves2}.ts`, `src/game/{scenes,cinema,kingRewards,kingScript,lessons}.ts`, `src/arena/court.ts`. Models: `forge/models/king.ts`, `forge/models/beneath.ts` (round 2). Tests: `tests/kingMoments.test.ts`, `tests/oneGrab.test.ts`, `tests/firstGrab.test.ts`.
+**King (boss 1, the Hanged King; default page).** `src/main.ts`, `src/bosses/king/*` (king.ts, kingView, brain, clips, moves, moves2, scenes, cinema, kingRewards, kingScript, lessons, court), `src/game/{sceneKit,rewardShots,rewardChain}.ts` (shared scene and reward helpers). Models: `forge/models/king.ts`, `forge/models/beneath.ts` (round 2). Tests: `tests/kingMoments.test.ts`, `tests/oneGrab.test.ts`, `tests/firstGrab.test.ts`.
 
-**Ferryman (boss 2).** `src/river.ts`, `src/boss/river/*` (river.ts sim, riverView.ts, brain, clips, moves, riverDirector, riverFx, dragShot), `src/game/{riverScenes,riverScript,rewardShots}.ts` (rewardShots holds the lantern and chain reward shots; rewardChain.ts is the chain), `src/arena/ghats.ts`. Model: `forge/models/river.ts`. Tests: `tests/river*.test.ts`, `tests/riverMoments.test.ts`.
+**Ferryman (boss 2).** `src/bosses/river/*` (page.ts, river.ts sim, riverView.ts, brain, clips, moves, riverDirector, riverFx, dragShot, riverScenes, riverScript, rewards.ts for the lantern and chain shots, ghats.ts arena), plus `src/game/{rewardShots,rewardChain,sceneKit}.ts` (shared helpers). Model: `forge/models/river.ts`. Tests: `tests/river*.test.ts`, `tests/riverMoments.test.ts`.
 
-**Sister of Hours (boss 3).** `src/hours.ts`, `src/boss/hours/*` (sister.ts sim, sisterView.ts, pallView.ts, brain, clips, moves, frame.ts, hoursDirector, hoursFx, glow.ts), `src/game/{hoursScenes,hoursScript}.ts`, `src/arena/house.ts`. Models: `forge/models/hours.ts`, `forge/models/house.ts`. Tests: `tests/hours*.test.ts`.
+**Sister of Hours (boss 3).** `src/bosses/hours/*` (page.ts, sister.ts sim, sisterView.ts, pallView.ts, brain, clips, moves, frame.ts, hoursDirector, hoursFx, glow.ts, hoursScenes, hoursScript, house.ts arena). Models: `forge/models/hours.ts`, `forge/models/house.ts`. Tests: `tests/hours*.test.ts`. Shared with the King and the Ferryman: `src/game/sceneKit.ts`.
 
 **Shared engine (touch with care; every boss runs through them):** `src/combat/fight.ts` (referee), `src/boss/boss.ts` (the Boss interface), `src/game/director.ts`, `src/game/moment.ts`, `src/ui/hud.ts`, `src/dev/theatre.ts`. Known coupling: fight.ts defaults to the King, director.ts and hud.ts name King callouts.
 
@@ -65,7 +67,7 @@ Read only the list for the boss you change, plus the shared engine files below.
 ## Gotchas
 
 - Do not use MeshStandardMaterial directly: it renders white in this setup. Use `surface()` from src/render/surface.ts (and the mats.ts ids).
-- Every arena must set `FOG.uGlowP` (the six glow slots, see court.ts, house.ts, hours.ts), or the glows of the previous arena stay in the fog.
+- Every arena must set `FOG.uGlowP` (the six glow slots, see src/bosses/king/court.ts, src/bosses/hours/house.ts, src/bosses/hours/page.ts), or the glows of the previous arena stay in the fog.
 - Third-party assets must be CC0 (or equivalent) and listed in LICENSES.md with source and licence.
 - `docs/game/` and `docs/BOSS*.md` are gitignored: design notes and plans live there, never committed. Do not commit them.
 - Bash commands over 8 KB fail on Windows: put long scripts in a file (scratchpad) and run that.
