@@ -53,11 +53,13 @@ const SNAP = () => {
   S.body = [...document.body.classList].filter(c => c !== 'ready' && c !== 'bare').sort().join(' ');
   S.menuOpen = __menu.open; S.hudPaused = __hud.paused;
   S.modes = { intro: window.__intro?.active, story: window.__story?.active, turn: window.__turn?.active, ending: window.__ending?.active, lessons: window.__lessons?.active };
-  S.dir = prim(__dir, new Set(['views', 'cue', 'marks', 'crescents', 'court', 'kv', 'heroT', 'lens', 'c', 'hd', 'fx', 'post', 'cam', 'hud', 'input', 'camera', 'f', 'pv', 'ring']));
+  S.dir = prim(__dir, new Set(['views', 'cue', 'p', 'marks', 'crescents', 'court', 'kv', 'heroT', 'lens', 'c', 'hd', 'fx', 'post', 'cam', 'hud', 'input', 'camera', 'f', 'pv', 'ring']));
+  // the telegraph: whether it is on, and its kind only while on (CueMark.start sets it; stop keeps the last one). dir.p is a scratch point (kv.mark writes it before each read), so it is not compared
+  S.cue = { active: __dir.cue.active, kind: __dir.cue.active ? __dir.cue.kind : null, shown: __dir.cue.mesh.visible };
   S.cam = prim(__cam, new Set(['blockers', 'pos', 'look']));
   S.fog = window.__FOG ? { col: __FOG.uFogCol.value.toArray().map(R).join(','), moon: __FOG.uFogMoon.value.toArray().map(R).join(','), p: __FOG.uFogP.value.toArray().slice(0, 3).map(R).join(","), glow: __FOG.uGlowP.value.map(g => R(g.x) + '/' + R(g.w)).join(' ') } : null;
   S.light = window.__moon ? { moon: R(__moon.intensity), moonC: __moon.color.getHexString(), hemi: R(__hemi.intensity), kick: R(__kick.intensity), exposure: R(__post.exposure.value), heat: R(__post.heat.value), fade: R(__post.fade.value), pulse: R(__post.pulse.value.w), shaft: __post.shaft.value.toArray().map(R).join(',') } : null;
-  S.visible = [...document.querySelectorAll('#app > *:not(canvas), body > *:not(#app)')].filter(e => e.id !== "fps" && e.tagName !== "CANVAS" && e.tagName !== 'SCRIPT' && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden' && +getComputedStyle(e).opacity > 0.02).map(e => (e.id || e.tagName) + '.' + [...e.classList].join('.') + ':' + e.textContent.trim().replace(/\s+/g, ' ').slice(0, 40)).sort();
+  S.visible = [...document.querySelectorAll('#app > *:not(canvas), body > *:not(#app)')].filter(e => e.id !== "fps" && e.tagName !== "CANVAS" && e.tagName !== 'SCRIPT' && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden' && +getComputedStyle(e).opacity > 0.02).map(e => (e.id || e.tagName) + '.' + [...e.classList].sort().join('.') + ':' + [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim().replace(/\s+/g, ' ').slice(0, 40)).sort();
   S.sound = __sound.score?.mood ?? null;
   S.listeners = window.__lc;
   S.storage = Object.fromEntries(Object.keys(localStorage).sort().map(k => [k, localStorage.getItem(k).slice(0, 160)]));
@@ -96,15 +98,46 @@ async function startFromMenu(p) {
   await wait(p, 300);
 }
 
-/** Each path: what it drives after opening the fight (`mode`: the URL extras). `start` paths are compared with a fresh start from the menu. */
+/** The Sister's grab is her Gathering: in round 2 the first one of a fight always catches (sister.ts tick). She has no seize() hook. */
+const GRAB = async (p, boss) => {
+  if (boss === '3') {
+    await p.evaluate(() => __king.set('gather'));
+    await p.waitForFunction(() => __king.mode === 'grip', null, { timeout: 15000 });
+    return;
+  }
+  if (!(await p.evaluate(() => typeof __king.seize === 'function'))) throw new Error('boss has no grab');
+  await p.evaluate(() => __king.seize('noose', __f));
+};
+/** A reward offer for the death to land in: the King's chain and the Ferryman's rewards; the Sister's climb (she on her knees, the window open). */
+const OFFER = async (p, boss) => {
+  if (boss === '3') {
+    await p.evaluate(() => {
+      __king.set('sag');
+      __king.open = 4;
+    });
+    return;
+  }
+  await p.evaluate(() => {
+    if (typeof __king.offer === 'function') __king.offer('chain');
+    else {
+      __king.reward = 'ride';
+      __king.rewardLeft = 6;
+    }
+  });
+};
+/** The grab paths run in round 2 for the Sister (her Gathering catches only there), in round 1 for the others. */
+const grabMode = boss => (boss === '3' ? '&round2' : '');
+const refGrab = boss => (boss === '3' ? 'round2' : 'start');
+/** Each path: what it drives after opening the fight (`mode`: the URL extras, a function of the boss; `ref`: the fresh load it is
+ *  compared with, a function of the boss too). `start` paths are compared with a fresh start from the menu. */
 const PATHS = {
   a1: { mode: '', run: async p => { await p.evaluate(MESS); await wait(p, 300); await p.evaluate(KILL); await p.evaluate(AUTO_RESET); } },
   a2: { mode: '', run: async p => { await p.evaluate(MESS); await wait(p, 300); await p.evaluate(KILL); await wait(p, 300); await p.evaluate(() => __hud.onRestart()); } },
   b1: { mode: '&round2', ref: 'round2', run: async p => { await p.evaluate(MESS); await wait(p, 300); await p.evaluate(KILL); await p.evaluate(AUTO_RESET); } },
   b2: { mode: '&round2', ref: 'round2', run: async p => { await p.evaluate(MESS); await wait(p, 300); await p.evaluate(KILL); await wait(p, 300); await p.evaluate(() => __hud.onRestart()); } },
-  c1: { mode: '', run: async p => { await p.evaluate(MESS); if (!(await p.evaluate(() => typeof __king.seize === 'function'))) throw new Error('boss has no grab'); await p.evaluate(() => __king.seize('noose', __f)); await wait(p, 900); await p.evaluate(KILL); await p.evaluate(AUTO_RESET); } },
-  c2: { mode: '', run: async p => { await p.evaluate(MESS); await p.evaluate(() => { if (typeof __king.offer === 'function') __king.offer('chain'); else { __king.reward = 'ride'; __king.rewardLeft = 6; } }); await wait(p, 1500); await p.evaluate(KILL); await p.evaluate(AUTO_RESET); } },
-  c3: { mode: '', run: async p => { await p.evaluate(MESS); if (!(await p.evaluate(() => typeof __king.seize === 'function'))) throw new Error('boss has no grab'); await p.evaluate(() => __king.seize('noose', __f)); await wait(p, 900); await p.evaluate(KILL); await wait(p, 200); await p.evaluate(() => __hud.onRestart()); } },
+  c1: { mode: grabMode, ref: refGrab, run: async (p, boss) => { await p.evaluate(MESS); await GRAB(p, boss); await wait(p, 900); await p.evaluate(KILL); await p.evaluate(AUTO_RESET); } },
+  c2: { mode: grabMode, ref: refGrab, run: async (p, boss) => { await p.evaluate(MESS); await OFFER(p, boss); await wait(p, 1500); await p.evaluate(KILL); await p.evaluate(AUTO_RESET); } },
+  c3: { mode: grabMode, ref: refGrab, run: async (p, boss) => { await p.evaluate(MESS); await GRAB(p, boss); await wait(p, 900); await p.evaluate(KILL); await wait(p, 200); await p.evaluate(() => __hud.onRestart()); } },
   d: { mode: '', start: true, run: async p => { await p.evaluate(MESS); await wait(p, 300); await p.evaluate(KILL); await wait(p, 300); await p.evaluate(() => __hud.onMenu()); await wait(p, 500); await startFromMenu(p); } },
   e: { mode: '&round2', run: async p => { await p.evaluate(() => { __f.passive = true; __m.revive(0, -1.5, Math.PI); __f.bossHp = 5; }); await wait(p, 100); await p.evaluate(() => __m.begin('light1')); await p.waitForFunction(() => __f.phase === 'finish', null, { timeout: 30000 }); await wait(p, 1500); await p.evaluate(() => { __m.revive(__king.x, __king.z + 1.8, Math.PI); __m.begin('finale'); }); await p.waitForFunction(() => __f.phase === 'won', null, { timeout: 30000 }); await wait(p, 400); await p.evaluate(ENDING_WAIT).catch(() => { }); await p.evaluate(() => __hud.onRestart()); } },
   f: { mode: '', run: async p => { for (let i = 0; i < 3; i++) { await p.evaluate(MESS); await wait(p, 200); await p.evaluate(KILL); await p.evaluate(AUTO_RESET); await wait(p, 300); } } },
@@ -115,19 +148,28 @@ const PATHS = {
 async function baseline(boss) {
   const out = {};
   { const { ctx, p } = await open(boss, '&nointro&still&round2'); out.round2 = await snap(p); await ctx.close(); }
-  { const { ctx, p } = await open(boss, ''); await startFromMenu(p); await wait(p, 300); out.start = await snap(p); await ctx.close(); }
+  // passive, like every path (MESS sets it): the Sister's and the King's random openings would otherwise differ by timing
+  { const { ctx, p } = await open(boss, '&still'); await startFromMenu(p); await wait(p, 300); out.start = await snap(p); await ctx.close(); }
   return out;
 }
 
 const flatten = (o, pre = '', out = {}) => { if (o === null || typeof o !== 'object') { out[pre] = o; return out; } for (const k of Object.keys(o)) flatten(o[k], pre ? pre + '.' + k : k, out); return out; };
+/** Fields compared with a tolerance: a spring that decays every frame (cam.punch: `punch *= exp(-6 dt)`, src/game/camera.ts), so its
+ *  residue after a second is a few thousandths and depends on the frame the sample lands on. */
+const TOLERANCE = { 'cam.punch': 0.01 };
+// Intended memory, not stale state: brain.seen (the attacks the hero has seen) carries across deaths on purpose; the teaching
+// and the damage reduction for seen attacks depend on it (D.teach). docs/game/restart-audit.md.
+const KEPT = /^brain\.seen$/;
 /** Clocks that keep moving on purpose (animation, the boss's own timers in a passive fight, run counters). */
 const NOISE = /(^|.)(time|t|mt|prev|ht|th|frames|cued|fill|pace|age|lastDt|deaths|taken|best|fresh|noGrab|wait|calmT|rate|serial|manual|at|dir|flourish|reckoning|cloak|trauma|trail|stopped|s|sp|x|z|y|yaw|pz|px|vx|vz|vy|speed|lastMove|moveYaw|idleT|hx|hz|landAt|didFlick)$/;
 // Countdowns and time-since clocks: only whether they run matters, not how far they have got.
 const CLOCK = /(T|Age|Gap|Cd|Ago|Clock)$|stopped$/;
 
-function diff(a, b) {
+/** `roundTwo`: the reference is a direct round 2 load, which skips the turn scene's mood cue (the Sister's 'pall', the King's and the Ferryman's own), so the music is not compared.
+ *  Path e (the win): the storage is not compared, because the win saves progress on purpose (settings.beaten, learned; docs/game/restart-audit.md). */
+function diff(a, b, { path = '', roundTwo = false } = {}) {
   const fa = flatten(a), fb = flatten(b), out = [];
-  for (const k of [...new Set([...Object.keys(fa), ...Object.keys(fb)])].sort()) { if (NOISE.test(k) || /^listeners.AUDIO/.test(k)) continue; const x = fa[k], y = fb[k]; if (k === "sound" && (x === null || y === null)) continue; if (typeof x === "number" && typeof y === "number" && CLOCK.test(k.split(".").pop()) && (x > 0) === (y > 0)) continue; if (JSON.stringify(x) !== JSON.stringify(y)) out.push(`${k}: fresh=${JSON.stringify(x)} now=${JSON.stringify(y)}`); }
+  for (const k of [...new Set([...Object.keys(fa), ...Object.keys(fb)])].sort()) { if (NOISE.test(k) || /^listeners.AUDIO/.test(k) || KEPT.test(k)) continue; if (roundTwo && k === 'sound') continue; if (path === 'e' && k.startsWith('storage')) continue; const x = fa[k], y = fb[k]; if (typeof x === 'number' && typeof y === 'number' && TOLERANCE[k] !== undefined && Math.abs(x - y) <= TOLERANCE[k]) continue; if (k === "sound" && (x === null || y === null)) continue; if (typeof x === "number" && typeof y === "number" && CLOCK.test(k.split(".").pop()) && (x > 0) === (y > 0)) continue; if (JSON.stringify(x) !== JSON.stringify(y)) out.push(`${k}: fresh=${JSON.stringify(x)} now=${JSON.stringify(y)}`); }
   return out;
 }
 
@@ -138,17 +180,19 @@ for (const boss of BOSSES) {
     if (ONLY && !ONLY.includes(name)) continue;
     let d = [], errs = [];
     try {
-      const { ctx, p, errs: e } = await open(boss, '&nointro&still' + path.mode); errs = e;
+      const mode = typeof path.mode === 'function' ? path.mode(boss) : path.mode;
+      const { ctx, p, errs: e } = await open(boss, '&nointro&still' + mode); errs = e;
       await wait(p, 200);
       if (path.other) {
-        await path.run(p); const other = boss === '1' ? '2' : boss === '2' ? '3' : '1';
+        await path.run(p, boss); const other = boss === '1' ? '2' : boss === '2' ? '3' : '1';
         await p.goto(url(other, '&nointro&still')); await p.waitForFunction(READY, null, { timeout: 120000 });
         const fo = await open(other, '&nointro&still'); const ob = { start: await snap(fo.p) }; await fo.ctx.close();
         d = diff(ob.start, await snap(p)); // replaced below await ctx.close(); report.push(`boss ${boss} ${name} (now boss ${other})`);
       } else {
-        await path.run(p);
+        await path.run(p, boss);
         const now = await snap(p); await ctx.close();
-        d = diff(path.ref === "round2" ? base.round2 : base.start, now);
+        const ref = typeof path.ref === 'function' ? path.ref(boss) : path.ref;
+        d = diff(ref === 'round2' ? base.round2 : base.start, now, { path: name, roundTwo: ref === 'round2' });
       }
     } catch (err) { d = ['FAILED: ' + err.message.slice(0, 200)]; }
     if (errs.length) d.push('errors: ' + errs.join(' | '));
