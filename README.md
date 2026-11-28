@@ -92,11 +92,12 @@ forge/        build-time sculpting, meshing, baking
 src/combat/   rules, hits, difficulty   (no rendering)
 src/weapons/  one module per weapon
 src/player/   movement and state
-src/boss/     simulation, moves, brain, drawing
+src/bosses/   one folder per boss: simulation, moves, brain, drawing, scenes, script
+src/boss/     the generic boss interface and view
 src/anim/     rig, IK, clips, cloth, gaits
 src/render/   shaders, post, effects
 src/game/     camera, effects director, cutscenes, each fight's script
-src/bosses/river/page.ts, src/hours.ts   the second and third fights' pages (`?boss=2`, `?boss=3`)
+src/bosses/river/page.ts, src/bosses/hours/page.ts   the second and third fights' pages (`?boss=2`, `?boss=3`)
 src/audio/    synthesis, score
 src/ui/ src/input/ src/arena/ src/core/
 ```

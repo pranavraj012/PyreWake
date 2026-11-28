@@ -2,12 +2,12 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { boneIndex } from '../src/anim/skeletons.ts';
-import { ARMS, PALL_BONES, SISTER, SKIRT, STRIPS, armWeights, skirtWeights, stripWeights } from '../src/boss/hours/frame.ts';
-import { HOURS_CLIPS } from '../src/boss/hours/clips.ts';
-import { isMove } from '../src/boss/hours/sister.ts';
-import { HOURS_ENDING, HOURS_INTRO, HOURS_TURN } from '../src/game/hoursScript.ts';
+import { ARMS, PALL_BONES, SISTER, SKIRT, STRIPS, armWeights, skirtWeights, stripWeights } from '../src/bosses/hours/frame.ts';
+import { HOURS_CLIPS } from '../src/bosses/hours/clips.ts';
+import { isMove } from '../src/bosses/hours/sister.ts';
+import { HOURS_ENDING, HOURS_INTRO, HOURS_TURN } from '../src/bosses/hours/hoursScript.ts';
 import { makeHouseProps } from '../src/arena/props.ts';
-import { DIAL } from '../src/boss/hours/sister.ts';
+import { DIAL } from '../src/bosses/hours/sister.ts';
 
 const sum = (w: [number, number][]) => w.reduce((a, [, x]) => a + x, 0);
 describe('the Waiting House on screen', () => {
@@ -31,7 +31,7 @@ describe('the Waiting House on screen', () => {
   });
   it('every sound the fight and its scenes call is in the pack, and none rings like a bell', () => {
     const b = fs.readFileSync('public/sfx/sfx.pak'), n = b.readUInt32LE(0), head = JSON.parse(b.subarray(4, 4 + n).toString()) as [string, number, number][], have = new Set(head.map(([k]) => k.replace(/\d+$/, '')));
-    const src = ['src/boss/hours/hoursDirector.ts', 'src/game/hoursScenes.ts', 'src/audio/score.ts'].map(f => fs.readFileSync(f, 'utf8')).join('\n');
+    const src = ['src/bosses/hours/hoursDirector.ts', 'src/bosses/hours/hoursScenes.ts', 'src/audio/score.ts'].map(f => fs.readFileSync(f, 'utf8')).join('\n');
     const called = new Set([...src.matchAll(/(?:sound\.play|this\.note|sound\.bed)\('([A-Za-z]+)'/g)].map(m => m[1]));
     const theirs = ['sBreath', 'sCall', 'sCount', 'sPain', 'pRoar', 'pDeath', 'emberOut', 'countBegin', 'miscount', 'lostCount', 'whorl', 'smokeIn', 'smokeOut', 'sheetFall', 'clothB', 'cotBurst', 'cotHit', 'inhale', 'embersUp', 'sunSink', 'hourFalls', 'breathIn', 'breathOut', 'hum', 'clothBed'];
     for (const s of theirs) { expect(called.has(s) || s === 'clothBed' || s === 'cotHit', s).toBe(true); expect(have.has(s), s).toBe(true); }

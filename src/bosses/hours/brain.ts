@@ -1,6 +1,6 @@
 // Decides what the Sister and the Pall do: a range-aware picker that plays in strings and always leaves an opening, with the counts on their own clock.
 import { D } from '../../combat/difficulty.ts';
-import type { Boss, BossBrain } from '../boss.ts';
+import type { Boss, BossBrain } from '../../boss/boss.ts';
 import { isMove, type Sister } from './sister.ts';
 
 interface Option { seq: string[]; w: number; near: number; far: number; below?: number; after?: number }

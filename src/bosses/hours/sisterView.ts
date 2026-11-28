@@ -5,7 +5,7 @@ import { Chains, type ChainSpec } from '../../anim/chains.ts';
 import { IX, Inertial, N, sampleClip, type Pose } from '../../anim/pose.ts';
 import { Rig } from '../../anim/rig.ts';
 import type { Fx } from '../../render/impact.ts';
-import type { BossView } from '../view.ts';
+import type { BossView } from '../../boss/view.ts';
 import { HOURS_CLIPS as K, SSTAND } from './clips.ts';
 import { SISTER, SISTER_SCALE, SKIRT, STRIPS, STRIP_LEN, STRIP_ROWS, skirtAt, stripRoot } from './frame.ts';
 import type { Sister } from './sister.ts';

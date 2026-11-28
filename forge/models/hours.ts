@@ -1,6 +1,6 @@
 // The third boss: the Sister of Hours (on the human frame, scaled in play to 2.6 m), her scythe, and the Pall.
 import { boneIndex, ARM_DIR } from '../../src/anim/skeletons.ts';
-import { ARMS, ARM_LEN, PALL_BONES, SISTER, SKIRT, STRIPS, STRIP_LEN, armWeights, robeAt, skirtAt, skirtWeights, stripRoot, stripWeights } from '../../src/boss/hours/frame.ts';
+import { ARMS, ARM_LEN, PALL_BONES, SISTER, SKIRT, STRIPS, STRIP_LEN, armWeights, robeAt, skirtAt, skirtWeights, stripRoot, stripWeights } from '../../src/bosses/hours/frame.ts';
 import { Field, add, any, ball, belly, box, cone, cross, curve, ell, fbm, lerp3, mix, mul, noise, norm, ridged, rng, sstep, sub, tube, type V3 } from '../sdf.ts';
 import { bakeAO, decimate, merge, meshField, type Baked, type Mesh } from '../mesher.ts';
 import { sheet } from '../sheet.ts';

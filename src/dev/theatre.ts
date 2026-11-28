@@ -23,7 +23,7 @@ import type { Fight } from '../combat/fight.ts';
 import type { Motor } from '../player/motor.ts';
 import { OFFER, type King } from '../bosses/king/king.ts';
 import type { River } from '../bosses/river/river.ts';
-import type { Sister } from '../boss/hours/sister.ts';
+import type { Sister } from '../bosses/hours/sister.ts';
 
 export type Boss = 'king' | 'river' | 'hours';
 /** The moment names each fight page takes (the ?moment= value). */

@@ -1,12 +1,12 @@
 // The Sister of Hours and the Pall: every move shows itself, lands on a hero who stands still, and can be escaped; the count, the linen and the hand teach themselves.
 import { describe, expect, it } from 'vitest';
 import { Fight, type FightEvent } from '../src/combat/fight.ts';
-import { Sister } from '../src/boss/hours/sister.ts';
-import { HoursBrain } from '../src/boss/hours/brain.ts';
-import { HOURS_ATTACKS as A } from '../src/boss/hours/moves.ts';
-import { HOURS_CLIPS as C } from '../src/boss/hours/clips.ts';
+import { Sister } from '../src/bosses/hours/sister.ts';
+import { HoursBrain } from '../src/bosses/hours/brain.ts';
+import { HOURS_ATTACKS as A } from '../src/bosses/hours/moves.ts';
+import { HOURS_CLIPS as C } from '../src/bosses/hours/clips.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
-import { PALL_HEM } from '../src/boss/hours/frame.ts';
+import { PALL_HEM } from '../src/bosses/hours/frame.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }];
 const mk = (gap = 3, form: 1 | 2 = 1, ang = 0) => { const f = new Fight(new Motor(), new Sister(), new HoursBrain()); f.passive = true; const k = f.king as Sister; if (form === 2) f.beginRound2(); k.x = 0; k.z = -4; k.yaw = 0; f.m.x = Math.sin(ang) * gap; f.m.z = -4 + Math.cos(ang) * gap; f.m.yaw = Math.PI; f.invuln = 0; return { f, k }; };

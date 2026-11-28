@@ -8,7 +8,7 @@ import { IX, Inertial, N, sampleClip, type Pose } from '../../anim/pose.ts';
 import { Rig } from '../../anim/rig.ts';
 import { FOG } from '../../render/surface.ts';
 import type { Fx } from '../../render/impact.ts';
-import type { BossView } from '../view.ts';
+import type { BossView } from '../../boss/view.ts';
 import { HOURS_CLIPS as K, PSTAND } from './clips.ts';
 import { ARMS, ARM_LEN, ARM_ROWS, PALL_BONES, PALL_HOVER, PALL_SCALE, SKIRT, armRest, robeAt } from './frame.ts';
 import { GRIP, gripLift, type Sister } from './sister.ts';

@@ -15,7 +15,7 @@ export interface Progress {
 
 export const WEAPON_KINDS: readonly WeaponKind[] = ['khanda', 'spear', 'chakram', 'whip'];
 
-/** Boss ids, as the codebase names them (the folders under src/boss/ and the fight modules). `burned` holds these. */
+/** Boss ids, as the codebase names them (the folders under src/bosses/ and the fight modules). `burned` holds these. */
 export const BOSS = { king: 'king', ferryman: 'river', sister: 'hours' } as const;
 
 /** Tunable numbers, kept in one place for module M (balance). */

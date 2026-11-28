@@ -1,14 +1,14 @@
 // The third fight: the Waiting House on the hill. A paved court of red sandstone with brass hour lines, ringed by a cusped cloister whose wards
 // hold the cots of the dead; the great dial at the north; a ceiling of smoke seven metres up, lit orange from inside. Round 2 has no ceiling: a low red sun.
 import * as THREE from 'three';
-import { loadGeo, loadJson, type TexSet } from '../render/assets.ts';
-import { DEPTH, FOG, surface } from '../render/surface.ts';
-import { Ruin } from './ruin.ts';
-import { makeHouseProps } from './props.ts';
-import { slabs } from '../bosses/king/court.ts';
-import { makeAsh } from '../render/ambient.ts';
-import { shadowOnly } from '../render/shadowProxy.ts';
-import type { Tier } from '../core/quality.ts';
+import { loadGeo, loadJson, type TexSet } from '../../render/assets.ts';
+import { DEPTH, FOG, surface } from '../../render/surface.ts';
+import { Ruin } from '../../arena/ruin.ts';
+import { makeHouseProps } from '../../arena/props.ts';
+import { slabs } from '../king/court.ts';
+import { makeAsh } from '../../render/ambient.ts';
+import { shadowOnly } from '../../render/shadowProxy.ts';
+import type { Tier } from '../../core/quality.ts';
 
 const seeded = (s: number) => () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 /** Where the dial's gnomon meets the court floor; the hour lines run out from here. */

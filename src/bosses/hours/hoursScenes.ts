@@ -1,20 +1,20 @@
 // The Sister's scenes: the way in (up the hill into the smoke, the ward, the dial, and her at the last cot), the turn (she breathes the smoke in and the sun comes),
 // and the way out (the hours go up into the light; you wait while she breathes seven times). All skippable.
 import * as THREE from 'three';
-import { sound } from '../audio/sound.ts';
-import type { SisterView } from '../boss/hours/sisterView.ts';
-import type { PallView } from '../boss/hours/pallView.ts';
-import type { Sister } from '../boss/hours/sister.ts';
-import type { HoursDirector } from '../boss/hours/hoursDirector.ts';
-import type { House } from '../arena/house.ts';
-import { DIAL_FOOT } from '../arena/house.ts';
-import type { Fight } from '../combat/fight.ts';
-import type { PlayerView } from '../player/view.ts';
-import type { Fx } from '../render/impact.ts';
-import type { Hud } from '../ui/hud.ts';
-import { Cues, Lens } from './sceneKit.ts';
+import { sound } from '../../audio/sound.ts';
+import type { SisterView } from './sisterView.ts';
+import type { PallView } from './pallView.ts';
+import type { Sister } from './sister.ts';
+import type { HoursDirector } from './hoursDirector.ts';
+import type { House } from './house.ts';
+import { DIAL_FOOT } from './house.ts';
+import type { Fight } from '../../combat/fight.ts';
+import type { PlayerView } from '../../player/view.ts';
+import type { Fx } from '../../render/impact.ts';
+import type { Hud } from '../../ui/hud.ts';
+import { Cues, Lens } from '../../game/sceneKit.ts';
 import { HOURS_ENDING, HOURS_INTRO, HOURS_TURN, speak } from './hoursScript.ts';
-import { SISTER_SCALE } from '../boss/hours/frame.ts';
+import { SISTER_SCALE } from './frame.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 export interface HoursKit { f: Fight; pv: PlayerView; k1: SisterView; k2: PallView; fx: Fx; hud: Hud; house: House; hd: HoursDirector }

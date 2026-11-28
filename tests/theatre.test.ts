@@ -4,8 +4,8 @@ import { Fight } from '../src/combat/fight.ts';
 import { King } from '../src/bosses/king/king.ts';
 import { River } from '../src/bosses/river/river.ts';
 import { RiverBrain } from '../src/bosses/river/brain.ts';
-import { Sister } from '../src/boss/hours/sister.ts';
-import { HoursBrain } from '../src/boss/hours/brain.ts';
+import { Sister } from '../src/bosses/hours/sister.ts';
+import { HoursBrain } from '../src/bosses/hours/brain.ts';
 import { Motor } from '../src/player/motor.ts';
 import { momentFromQuery, playMoment, type Boss } from '../src/dev/theatre.ts';
 
