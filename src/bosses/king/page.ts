@@ -32,6 +32,7 @@ import { Ending, Intro, Prologue, kingMoments } from './scenes.ts';
 import { RideGeo, RopeGeo, kingClip, rideBeats, rideSpec, ropeBeats, ropeSpec, type KingRewardKit, type KingRewardProps } from './kingRewards.ts';
 import { KING_CALLS, KING_LESSON, KING_LINES, KING_PRESS, KING_TITLES } from './kingScript.ts';
 import type { BossWords } from '../../boss/words.ts';
+import { kingTheatre } from './theatre.ts';
 import type { Mood } from '../../audio/score.ts';
 import { Lessons } from './lessons.ts';
 
@@ -516,6 +517,7 @@ export const kingSpec: FightPageSpec<KingParts> = {
   heroAsh: { skin: 0.12, held: 0.12 },
   names: { r1: 'The Hanged King', r2: 'The One Beneath', won: 'Morning, at Last' },
   words: KING_WORDS,
+  moment: kingTheatre,
   score: { r1: 'spar', r2: 'r2' },
   beaten: 1,
   shots: SHOTS,

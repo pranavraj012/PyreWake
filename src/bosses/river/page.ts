@@ -18,6 +18,7 @@ import { RiverView } from './riverView.ts';
 import { RiverDirector } from './riverDirector.ts';
 import { RiverIntro, RiverEnding, RiverTurn, riverMoments } from './riverScenes.ts';
 import { RewardRun, beginReward, syncReward } from '../../game/rewardShots.ts';
+import { riverTheatre } from './theatre.ts';
 import { ChainGeo, LanternGeo, chainBeats, lanternBeats, riverClip, riverRewards, type RiverRewardKit, type RiverRewardProps } from './rewards.ts';
 import {
   fightPage, type BuildKit, type FightPageSpec, type Parts, type Pre, type Vec2, type Wired, type WireKit,
@@ -174,6 +175,7 @@ export const riverSpec: FightPageSpec<RiverParts> = {
   heroAsh: { skin: 0.04, held: 0.04 },
   names: RIVER_NAMES,
   words: RIVER_WORDS,
+  moment: riverTheatre,
   score: { r1: 'row', r2: 'weight' },
   beaten: 3,
   shots: {

@@ -9,6 +9,9 @@ import { Sister } from '../src/bosses/hours/sister.ts';
 import { HoursBrain } from '../src/bosses/hours/brain.ts';
 import { Motor } from '../src/player/motor.ts';
 import { momentFromQuery, playMoment, type Boss } from '../src/dev/theatre.ts';
+import { kingTheatre } from '../src/bosses/king/theatre.ts';
+import { riverTheatre } from '../src/bosses/river/theatre.ts';
+import { hoursTheatre } from '../src/bosses/hours/theatre.ts';
 
 const DT = 1 / 60;
 const SECOND = 60;
@@ -24,7 +27,8 @@ function page(boss: Boss) {
 /** Plays the name on a fresh page, and runs the fight for a second of its clock. */
 function start(boss: Boss, name: string) {
   const p = page(boss); let round2 = 0, halfway = 0;
-  const ok = playMoment(boss, name, { fight: p.f, m: p.m, sim: p.sim, round2: () => { round2++; p.f.beginRound2(); }, halfway: () => { halfway++; } });
+  const plan = { king: kingTheatre, river: riverTheatre, hours: hoursTheatre }[boss];
+  const ok = playMoment(boss, name, { fight: p.f, m: p.m, sim: p.sim, round2: () => { round2++; p.f.beginRound2(); }, halfway: () => { halfway++; } }, plan);
   const after = () => { for (let i = 0; i < SECOND; i++) p.f.step(DT, 0, 0, []); };
   return { ...p, ok, round2: () => round2, halfway: () => halfway, after };
 }

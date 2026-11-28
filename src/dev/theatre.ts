@@ -1,15 +1,9 @@
 // MOMENT THEATRE: replay any boss cutscene moment at once, without fighting the boss for it.
 //
 // USAGE
-//   Query flags on the fight pages (the same boot as a real fight: intro and training skipped, boss and hero placed, the moment started):
-//     King        ?boss=1&moment=noose     first-person scripted grab (the first throw of a fight)
-//                 ?boss=1&moment=rope      reward offer: the hanging King, the rope cut (press the attack button to take it)
-//                 ?boss=1&moment=ride      reward offer: round 2, the sideways lunge dodged, the ride on his back
-//     Ferryman    ?boss=2&moment=drag      scripted first grab: the undertow drag
-//                 ?boss=2&moment=chain     reward offer: the chain cut, press to haul
-//                 ?boss=2&moment=lantern   reward offer: round 2, the lamps gone out, press for the lantern
-//     Sister      ?boss=3&moment=gather    the Pall's grapple (round 2): the arm goes out and catches you
-//                 ?boss=3&moment=turn      the half-way turn (the same as ?turn)
+//   ?boss=N&moment=NAME on a fight page (N and the names come from the boss registry, src/bosses/index.ts): the same boot as a real fight
+//   (intro and training skipped, boss and hero placed, the moment started). Each boss plans its own moments in its theatre.ts
+//   (src/bosses/<id>/theatre.ts), and the page passes that plan in (FightPageSpec.moment).
 //   Add &dev to any of these (npm run dev only) for the MOMENT THEATRE panel: a small list at the right edge of the screen.
 //   Tap or click a button and that moment replays at once (boss and hero are put back first). On a gamepad, pause, then
 //   "Moment theatre" in the pause menu opens the same list; the pad moves through it and A plays, B closes it.
@@ -17,54 +11,36 @@
 //   A moment, once over, hands the fight back: the fight simply continues.
 //   The panel and its R key are compiled out of production builds (import.meta.env.DEV). The ?moment flag itself is harmless and stays.
 //
-// The plans below set the simulation's own state and call the simulation's own entry points (King.seize, Ferryman.offer,
-// King.dodged, ...), so a moment played here runs the code a real fight runs. Only the boss's position and the hero's are staged.
+// A plan sets the simulation's own state and calls the simulation's own entry points, so a moment played here runs the code a real fight
+// runs. Only the boss's position and the hero's are staged.
 import type { Fight } from '../combat/fight.ts';
 import type { Motor } from '../player/motor.ts';
-import { OFFER, type King } from '../bosses/king/king.ts';
-import type { River } from '../bosses/river/river.ts';
-import type { Sister } from '../bosses/hours/sister.ts';
 import { BOSSES, type BossId } from '../bosses/index.ts';
 
 export type Boss = BossId;
 /** The moment names each fight page takes (the ?moment= value), from the boss registry. */
 export const MOMENTS = Object.fromEntries(BOSSES.map(b => [b.id, b.moments])) as Record<Boss, string[]>;
-/** What each moment is, for the panel. */
-const WHAT: Record<string, string> = { noose: 'first grab', rope: 'rope reward', ride: 'ride reward', drag: 'first grab', chain: 'chain reward', lantern: 'lantern reward', gather: 'the Pall grapple', turn: 'half-way turn' };
 
 /** What a plan may touch: the fight, the hero, the boss, and the page's own round changes (views, the director). */
 export interface PlanCtx {
-  fight: Fight; m: Motor; sim: King | River | Sister;
+  fight: Fight; m: Motor; /** The boss's simulation: its plan casts it to the boss's own type. */ sim: unknown;
   /** Enters round 2 the way ?round2 does. */ round2(): void;
   /** The round ends the way the director's half does (the turn). */ halfway?(): void;
 }
+/** A boss's moments: what each one plays, and the words the panel shows for it. */
+export interface MomentPlan { what: Record<string, string>; play(name: string, c: PlanCtx): void }
 
 /** Places the boss (at x, z, facing yaw) and the hero (at hx, hz, facing the boss). */
-function place(c: PlanCtx, bx: number, bz: number, yaw: number, hx: number, hz: number) {
+export function place(c: PlanCtx, bx: number, bz: number, yaw: number, hx: number, hz: number) {
   const b = c.sim as unknown as { x: number; z: number; y: number; yaw: number }, m = c.m;
   b.x = bx; b.z = bz; b.y = 0; b.yaw = yaw; m.x = hx; m.z = hz; m.yaw = Math.atan2(bx - hx, bz - hz);
 }
 
-/** Plays a moment on a page's fight: the state it needs, then the simulation's own entry point. False for a name the boss does not have. */
-export function playMoment(boss: Boss, name: string, c: PlanCtx): boolean {
+/** Plays a moment on a page's fight: the boss's own plan, then the fight's start is safe for a second. False for a name the boss does not have. */
+export function playMoment(boss: Boss, name: string, c: PlanCtx, plan: MomentPlan): boolean {
   if (!MOMENTS[boss].includes(name)) return false;
-  const f = c.fight;
-  if (boss === 'king') {
-    const k = c.sim as King;
-    if (name === 'noose') { place(c, 0, -4, 0, 0, -2.4); k.seize('noose', f); } // the first grab: the same call the throw's own hit makes
-    if (name === 'rope') { place(c, 0, -4, 0, 0, -2.2); k.set('hang'); k.ht = 1; k.reward = 'rope'; k.rewardLeft = OFFER; } // the hanging King, the rope on offer
-    if (name === 'ride') { c.round2(); place(c, 0, -4, 0, -1.4, -2.6); k.set('cross'); k.dodged(f); } // a perfect dodge of the lunge: the ride on offer
-  } else if (boss === 'river') {
-    const s = c.sim as River;
-    if (name === 'drag') { place(c, 0, -4, 0, 0, -2.4); s.seize('drag', f); } // the undertow's grab
-    if (name === 'chain') { place(c, 0, -4, 0, 0, -1.6); s.offer('chain'); } // the chain cut: the reward on offer
-    if (name === 'lantern') { c.round2(); place(c, 0, -4, 0, 0, -1.6); s.offer('lantern'); } // round 2: the lamps gone out
-  } else {
-    const s = c.sim as Sister;
-    if (name === 'gather') { c.round2(); place(c, 0, -4, 0, 0, -1.0); f.brain.seen.add('gather'); s.set('gather'); } // the Pall's arm goes out; the hero is in its line (seen: no teaching slow-down on a replay)
-    if (name === 'turn') { f.bossHp = 1; f.hits = 5; f.passive = false; c.halfway?.(); }
-  }
-  f.invuln = 0; // a round's start is safe for a second; the moment is not
+  plan.play(name, c);
+  c.fight.invuln = 0; // a round's start is safe for a second; the moment is not
   return true;
 }
 
@@ -74,14 +50,14 @@ export function momentFromQuery(Q: URLSearchParams, boss: Boss): string | null {
 }
 
 /** What a page gives the theatre: its query, its boss, its plan context, and a reset to the fight's start (its own restart, then the round's views). */
-export interface TheatreHost { Q: URLSearchParams; boss: Boss; ctx(): PlanCtx; reset(): void }
+export interface TheatreHost { Q: URLSearchParams; boss: Boss; /** The boss's own plan for its moments. */ plan: MomentPlan; ctx(): PlanCtx; reset(): void }
 
 /** Boot: plays the URL's moment and, in dev with ?dev, mounts the panel. Returns the replay used by the panel and R. */
 export function mountTheatre(h: TheatreHost): { boot(): void; replay(name: string): void } {
   let last: string | null = null;
   const replay = (name: string) => {
     if (!MOMENTS[h.boss].includes(name)) return;
-    h.reset(); if (playMoment(h.boss, name, h.ctx())) last = name;
+    h.reset(); if (playMoment(h.boss, name, h.ctx(), h.plan)) last = name;
   };
   return {
     replay,
@@ -102,7 +78,7 @@ function devPanel(h: TheatreHost, replay: (name: string) => void, last: () => st
   const box = document.createElement('div'); box.className = 'theatre-panel'; box.setAttribute('aria-label', 'Moment theatre');
   box.innerHTML = '<b>MOMENT THEATRE</b>';
   for (const name of MOMENTS[h.boss]) {
-    const b = document.createElement('button'); b.type = 'button'; b.dataset.m = name; b.innerHTML = `${name} <small>${WHAT[name] ?? ''}</small>`;
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.m = name; b.innerHTML = `${name} <small>${h.plan.what[name] ?? ''}</small>`;
     b.onclick = () => { replay(name); };
     box.appendChild(b);
   }

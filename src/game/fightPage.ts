@@ -41,7 +41,7 @@ import { actionCam } from '../bosses/king/cinema.ts';
 import type { Boss, BossBrain } from '../boss/boss.ts';
 import type { BossView } from '../boss/view.ts';
 import type { Ruin } from '../arena/ruin.ts';
-import { mountTheatre, type PlanCtx } from '../dev/theatre.ts';
+import { mountTheatre, type MomentPlan } from '../dev/theatre.ts';
 import { fightList, type BossId } from '../bosses/index.ts';
 
 type Tex = Awaited<ReturnType<typeof loadTextures>>;
@@ -213,6 +213,8 @@ export interface FightPageSpec<P extends Parts> {
   names: { r1: string; r2: string; won: string };
   /** What the boss says: its voice, the breath, the titles and the callouts (the director reads it). */
   words: BossWords;
+  /** The boss's moment plan for the moment theatre (?moment=, src/dev/theatre.ts). */
+  moment: MomentPlan;
   /** The sound mood for round 1 and round 2. */
   score: { r1: Mood; r2: Mood };
   /** The bit this boss sets in settings.beaten when won. */
@@ -601,7 +603,8 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   mountTheatre({
     Q,
     boss: spec.bossId,
-    ctx: () => ({ fight, m, sim: sim as PlanCtx['sim'], round2, halfway: () => dir.onHalf() }),
+    plan: spec.moment,
+    ctx: () => ({ fight, m, sim, round2, halfway: () => dir.onHalf() }),
     reset: () => {
       hud.onRestart();
       fight.reset(true);
