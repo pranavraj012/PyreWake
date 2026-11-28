@@ -76,4 +76,5 @@ Read only the list for the boss you change, plus the shared engine files below.
 ## Refactor gates (during the refactor in progress)
 
 - Gates after every phase: `npm run verify` and screenshots of all bosses compared to shots_out/baseline (`node tools/baseline.mjs`, then compare).
-- Shot noise (two unchanged runs): TBD, measured in P1.
+- Shot noise, measured in P1 on unchanged code (two runs of `node tools/baseline.mjs`, compared with `compare`): mean pixel diff average 1.41, worst 4.58 (b1_r2_boss, King round 2, flickering fire). A step is behaviour-preserving if its diff stays near these numbers; a jump on one boss is a real change.
+- restartCheck at the P1 base (09feeab) reports 31 differing paths on unchanged code (stale-state audit, pre-existing). Compare the count against the base, not zero, until the restart fixes land.
