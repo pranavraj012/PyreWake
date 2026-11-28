@@ -1,6 +1,6 @@
 // node tools/sfx.mjs [name,name] : renders the sound bank, prints levels, and draws spectrograms into shots_out/spec_*.png
 import sharp from 'sharp'; import fs from 'node:fs';
-import { DEFS, SR, render } from '../src/audio/bank.ts';
+import { DEFS, SR, render } from '../src/audio/bank/index.ts';
 const want = process.argv[2]?.split(','), t0 = Date.now(), rows = []; fs.mkdirSync('shots_out', { recursive: true });
 const N = 1024, win = Float32Array.from({ length: N }, (_, i) => 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N));
 function fft(re, im) { const n = re.length; for (let i = 1, j = 0; i < n; i++) { let b = n >> 1; for (; j & b; b >>= 1) j ^= b; j ^= b; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; } } for (let len = 2; len <= n; len <<= 1) { const a = -2 * Math.PI / len; for (let i = 0; i < n; i += len) for (let k = 0; k < len / 2; k++) { const c = Math.cos(a * k), s = Math.sin(a * k), x = re[i + k + len / 2] * c - im[i + k + len / 2] * s, y = re[i + k + len / 2] * s + im[i + k + len / 2] * c; re[i + k + len / 2] = re[i + k] - x; im[i + k + len / 2] = im[i + k] - y; re[i + k] += x; im[i + k] += y; } } }
