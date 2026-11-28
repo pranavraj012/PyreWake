@@ -9,6 +9,7 @@
 //   Then you give her the fire she gave them, after.
 export { speak, type Line } from '../../game/script.ts';
 import type { Line } from '../../game/script.ts';
+import type { BossWords } from '../../boss/words.ts';
 
 export const HOURS_NAMES = { r1: 'The Sister of Hours', r2: 'The Pall', won: 'The Hour Moves' } as const;
 
@@ -45,3 +46,9 @@ export const HOURS_ENDING = {
 /** In the fight: the count, spoken as breath. */
 export const HOURS_COUNT = ['Seven...', 'six...', 'five...', 'four...', 'three...', 'two...', 'one...'];
 export const HOURS_CALLS = { lost: 'She lost count', burn: 'The linen burns', tear: 'Rent', stake: 'The scythe stands', stakeBreak: 'Sundered', sunk: 'The sun sinks', held: 'The Weight of Hours', cut: 'Linen rent', sever: 'She kneels', pierce: 'Cleft across the face', cutHint: 'Cut the linen on the floor', goal: 'Strike her. Cut the linen she lays down.', goalSub: 'Two arms cut and she falls to her knees: climb her.', risen: 'The sun climbs' };
+
+/** The Sister's words for the director: her voice (the cue names to her sounds), the breath, the titles and the callouts. */
+export const HOURS_WORDS: BossWords = {
+  voice: { pain: 'sPain', pain2: 'pPain', screech: 'sCall', roar: 'pRoar', breath: 'sBreath', death: 'sDeath', death2: 'pDeath' },
+  idleBreath: 'kBreath', flame: 'Second Flame', quenched: 'Quenched', broken: 'Broken', crushed: 'Crushed', lastRites: 'Last Rites ready',
+};

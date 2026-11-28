@@ -30,7 +30,9 @@ import { Brain } from './brain.ts';
 import { Turn } from './cinema.ts';
 import { Ending, Intro, Prologue, kingMoments } from './scenes.ts';
 import { rideBeats, rideSpec, ropeBeats, ropeSpec } from './kingRewards.ts';
-import { KING_LESSON, KING_LINES, KING_PRESS } from './kingScript.ts';
+import { KING_CALLS, KING_LESSON, KING_LINES, KING_PRESS, KING_TITLES } from './kingScript.ts';
+import type { BossWords } from '../../boss/words.ts';
+import type { Mood } from '../../audio/score.ts';
 import { Lessons } from './lessons.ts';
 
 type Court = Awaited<ReturnType<typeof buildCourt>>;
@@ -125,6 +127,7 @@ async function buildKing(k: BuildKit): Promise<KingParts> {
 /** The Prologue, the training, his staged moments (the noose, the rope and the ride), the dawn and the eclipse. */
 function wireKing(k: WireKit<KingParts>): Wired {
   const { c, parts, m, fight, pv, fx, hud, prompts, follow, dir, moment, qte, menuOpen, begin, arm, bars } = k;
+  dir.moods = KING_MOODS;
   const [king, beneath] = parts.views;
   const { input, post, moon, hemi, kick } = c;
   const { arena: court, dust, kDis, bDis } = parts;
@@ -499,11 +502,20 @@ function wireKing(k: WireKit<KingParts>): Wired {
   };
 }
 
+/** The Hanged King's voice: the director's cue names to his sounds, and his breath between attacks. */
+const KING_WORDS: BossWords = {
+  voice: { pain: 'kPain', pain2: 'bPain', screech: 'kScreech', roar: 'bRoar', breath: 'kBreath', death: 'kDeath', death2: 'bDeath' },
+  idleBreath: 'kBreath', flame: KING_TITLES.flame, quenched: KING_TITLES.quenched, broken: KING_CALLS.broken, crushed: KING_CALLS.crushed, lastRites: KING_CALLS.lastRites,
+};
+/** The score's mood for each of his brain's styles. */
+const KING_MOODS: Record<string, Mood> = { executioner: 'r1', crawler: 'crawl', hanged: 'hang', blades: 'r2', eclipse: 'eclipse' };
+
 export const kingSpec: FightPageSpec<KingParts> = {
   bossId: 'king',
   status: 'Lighting the pyres',
   heroAsh: { skin: 0.12, held: 0.12 },
   names: { r1: 'The Hanged King', r2: 'The One Beneath', won: 'Morning, at Last' },
+  words: KING_WORDS,
   score: { r1: 'spar', r2: 'r2' },
   beaten: 1,
   shots: SHOTS,

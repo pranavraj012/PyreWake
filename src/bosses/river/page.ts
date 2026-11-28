@@ -9,7 +9,7 @@ import { loadGeo } from '../../render/assets.ts';
 import { skinnedShadow } from '../../render/shadowProxy.ts';
 import { sound } from '../../audio/sound.ts';
 import { Offer, offerSpec, type MomentSpec } from '../../game/moment.ts';
-import { RIVER_NAMES, RIVER_PRESS } from './riverScript.ts';
+import { RIVER_NAMES, RIVER_PRESS, RIVER_WORDS } from './riverScript.ts';
 import { buildGhats } from './ghats.ts';
 import { DRAG, River } from './river.ts';
 import { dragSpec, dragUnder } from './dragShot.ts';
@@ -173,6 +173,7 @@ export const riverSpec: FightPageSpec<RiverParts> = {
   status: 'Lighting the river',
   heroAsh: { skin: 0.04, held: 0.04 },
   names: RIVER_NAMES,
+  words: RIVER_WORDS,
   score: { r1: 'row', r2: 'weight' },
   beaten: 3,
   shots: {

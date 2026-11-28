@@ -10,7 +10,7 @@ import { loadGeo } from '../../render/assets.ts';
 import { buildHouse, type House } from './house.ts';
 import { Offer, offerSpec, type MomentSpec } from '../../game/moment.ts';
 import { HoursDirector } from './hoursDirector.ts';
-import { HOURS_NAMES } from './hoursScript.ts';
+import { HOURS_NAMES, HOURS_WORDS } from './hoursScript.ts';
 import { GRIP, PIERCE, gripLift, gripTumble, Sister } from './sister.ts';
 import { HoursBrain } from './brain.ts';
 import { SisterView } from './sisterView.ts';
@@ -202,6 +202,7 @@ export const hoursSpec: FightPageSpec<HoursParts> = {
   status: 'Climbing the hill',
   heroAsh: { skin: 0.08, held: 0.06 },
   names: HOURS_NAMES,
+  words: HOURS_WORDS,
   score: { r1: 'hours', r2: 'pall' },
   beaten: 4,
   shots: {

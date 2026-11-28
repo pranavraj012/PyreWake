@@ -10,6 +10,7 @@
 //   it called across the water. He holds out his lamp, and you light the boat; this is the one blow in the game you do not swing.
 
 import type { Line } from '../../game/script.ts';
+import type { BossWords } from '../../boss/words.ts';
 export { speak, type Line } from '../../game/script.ts';
 
 export const RIVER_NAMES = { r1: 'The Ferryman', r2: 'The Unburdened', won: 'The Far Bank' } as const;
@@ -56,3 +57,9 @@ export const RIVER_PRESS = { chain: 'Run the chain', lantern: 'Strike the lanter
 
 // The call-outs in the river fight. Cues ("Cut them free", "Cut him", "Up the pole") are instructions and stay plain.
 export const RIVER_CALLS = { paid: 'Every one of them has paid', leapt: 'Leapt', souls: 'Cut them free', snapped: 'Chain riven', hauled: 'Hauled', cut: 'Cut him', pole: 'Up the pole', real: 'The true one' } as const;
+
+/** The Ferryman's words for the director: his voice (the cue names to his sounds), the breath, the titles and the callouts. */
+export const RIVER_WORDS: BossWords = {
+  voice: { pain: 'fPain', pain2: 'wPain', screech: 'fCall', roar: 'wRoar', breath: 'fBreath', death: 'fDeath', death2: 'wDeath' },
+  idleBreath: 'kBreath', flame: 'Second Flame', quenched: 'Quenched', broken: 'Broken', crushed: 'Crushed', lastRites: 'Last Rites ready',
+};

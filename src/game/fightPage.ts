@@ -34,6 +34,7 @@ import { padNav } from '../ui/padnav.ts';
 import { sound } from '../audio/sound.ts';
 import type { Mood } from '../audio/score.ts';
 import { Director, type Court } from './director.ts';
+import type { BossWords } from '../boss/words.ts';
 import { FollowCam, menuCam } from './camera.ts';
 import { Moment, Prompt } from './moment.ts';
 import { actionCam } from '../bosses/king/cinema.ts';
@@ -210,6 +211,8 @@ export interface FightPageSpec<P extends Parts> {
   heroAsh: { skin: number; held: number };
   /** The HUD names: the two rounds and the win line. */
   names: { r1: string; r2: string; won: string };
+  /** What the boss says: its voice, the breath, the titles and the callouts (the director reads it). */
+  words: BossWords;
   /** The sound mood for round 1 and round 2. */
   score: { r1: Mood; r2: Mood };
   /** The bit this boss sets in settings.beaten when won. */
@@ -288,7 +291,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   const moment = new Moment();
   const qte = new Prompt(app);
   const dir = new Director({
-    f: fight, pv, views: parts.views, fx, cam: follow, post, hud, input, camera: cam, court: arena,
+    f: fight, pv, views: parts.views, fx, cam: follow, post, hud, input, camera: cam, court: arena, words: spec.words,
   });
   scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   hud.names = [spec.names.r1, spec.names.r2];

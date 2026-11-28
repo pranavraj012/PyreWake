@@ -16,8 +16,6 @@ import { DEPTH } from '../../render/surface.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 type Ev = Extract<FightEvent, { k: 'b' }>;
-/** Her voices, in the names of the King's so the director's own calls find them. */
-const VOICE: Record<string, string> = { kGrunt: 'sGrunt', bBark: 'pGrunt', kPain: 'sPain', bPain: 'pPain', kScreech: 'sCall', bRoar: 'pRoar', kBreath: 'sBreath', kDeath: 'sDeath', bDeath: 'pDeath' };
 /** Where the sun stands as she completes counts in round 2: each lower and redder. */
 const SUNS = [new THREE.Vector3(-0.85, 0.13, -0.3), new THREE.Vector3(-0.86, 0.085, -0.3), new THREE.Vector3(-0.87, 0.045, -0.3)].map(v => v.normalize());
 
@@ -27,7 +25,7 @@ export class HoursDirector {
   /** A scene holds the light (0 under the smoke, 1 the sun) and the smoke; null hands it back to the fight. */ cine: { day: number } | null = null;
   constructor(dir: Director, f: Fight, house: House, v1: SisterView, v2: PallView, post: Post, hud: Hud, light: (day: number) => void, g: { cot: THREE.BufferGeometry; scythe: THREE.BufferGeometry; cloth: THREE.Material; scene: THREE.Scene }) {
     this.dir = dir; this.f = f; this.house = house; this.v1 = v1; this.v2 = v2; this.post = post; this.hud = hud; this.light = light; this.fx = new HoursFx(g.scene, g.cloth, g.scythe, g.cot, dir.fx, DEPTH.still);
-    dir.vm = VOICE; dir.moods = { scythe: 'hours', pall: 'pall' }; dir.extra = (e, t) => this.on(e, t); dir.ambient = fi => this.ambient(fi); dir.propFx = (e, t) => this.prop(e, t); dir.zoneFx = (z, t) => this.zone(z, t);
+    dir.moods = { scythe: 'hours', pall: 'pall' }; dir.extra = (e, t) => this.on(e, t); dir.ambient = fi => this.ambient(fi); dir.propFx = (e, t) => this.prop(e, t); dir.zoneFx = (z, t) => this.zone(z, t);
   }
   get sim() { return this.f.king as Sister; }
   private ambient(f: Fight) { const r2 = f.round === 2; sound.bed('fireBed', r2 ? 0.0 : 0.22); sound.bed('windLow', r2 ? 0.55 : 0.22); sound.bed('wind', r2 ? 0.35 : 0); sound.bed('clothBed', r2 && f.phase !== 'won' ? 0.4 : 0); }
