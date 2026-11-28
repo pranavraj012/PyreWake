@@ -105,6 +105,8 @@ export interface BenchRun {
 
 export interface IntroRun {
   active: boolean;
+  /** Seconds into the intro (read by the tools; a page that wraps its intro passes it on). */
+  readonly t?: number;
   start(): void;
   stop(): void;
   rest(): void;

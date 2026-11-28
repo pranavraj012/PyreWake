@@ -254,6 +254,9 @@ function wireKing(k: WireKit<KingParts>): Wired {
     get active() {
       return intro.active;
     },
+    get t() {
+      return intro.t;
+    },
     start: () => intro.start(),
     stop: () => {},
     rest: () => {
