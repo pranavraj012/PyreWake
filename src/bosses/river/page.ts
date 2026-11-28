@@ -129,6 +129,7 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
       turn.step(dt, t);
       ending.step(dt, t, input.lastDevice);
       rd.step(sd, dt, t);
+      if (!intro.active) dir.mono = Math.max(turn.mono, 0);
     },
     blocker: () => ({ x: sim.x, z: sim.z, r: sim.y > 0.6 ? -9 : 0.8 }),
     clock: () => sim.stage,

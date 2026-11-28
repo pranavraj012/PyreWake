@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { regainFullscreen } from '../core/fullscreen.ts';
 import { onSettings, saveSettings, settings } from '../core/settings.ts';
-import { SPELLS } from '../combat/spells.ts';
+import { SPELLS, type SpellId } from '../combat/spells.ts';
 import type { Ctx } from '../core/boot.ts';
 import type { Tier } from '../core/quality.ts';
 import { startLoop } from '../core/loop.ts';
@@ -69,12 +69,14 @@ export interface BuildKit {
   tex: Tex;
   lod: string;
   fx: Fx;
+  dust: Dust;
   held: Mat;
   skin: Skin;
   surf: Surf;
 }
 
-/** What wire() is given: the built parts and the shell's objects. `menuOpen` reads the menu, which is made after wire. */
+/** What wire() is given: the built parts and the shell's objects. `menuOpen` reads the menu, which is made after wire.
+ *  `begin`, `arm` and `bars` are the shell's own (a fresh start, the spell pair, the letterbox), for a page that calls them. */
 export interface WireKit<P extends Parts> {
   c: Ctx;
   parts: P;
@@ -90,6 +92,15 @@ export interface WireKit<P extends Parts> {
   qte: Prompt;
   surf: Surf;
   menuOpen: () => boolean;
+  begin: () => void;
+  arm: () => void;
+  bars: (on: boolean) => void;
+}
+
+/** What bench() gets back: the workbench's camera and its clock (the tools/bench.ts mount). */
+export interface BenchRun {
+  camera(): void;
+  tick(dt: number): void;
 }
 
 export interface IntroRun {
@@ -123,6 +134,8 @@ export interface Pre {
   ev: Press[];
   mx: number;
   mz: number;
+  /** The referee is held this frame (no step, the presses dropped): the King's training, while the world waits for a press. */
+  hold?: boolean;
 }
 
 /** What wire() returns: the scenes and the hooks. Each comment says where the shell calls the hook, and why it is there. */
@@ -166,6 +179,25 @@ export interface Wired {
   frame(cam: THREE.PerspectiveCamera, ms: number): void;
   /** Extra window debug globals for the tools. */
   debug(): Record<string, unknown>;
+  // The hooks below are optional: a page that has no such thing leaves them out (the Ferryman and the Sister do).
+  /** The menu's Play starts the boss's own scene (the King's prologue). Default: the intro. */
+  play?(): void;
+  /** A scene that holds the world and the pause (the King's prologue). Pause, the busy checks and the film are off while it plays. */
+  sceneBusy?(): boolean;
+  /** Prompts are hidden while this holds (the King's prologue and training). */
+  noPrompts?(): boolean;
+  /** The spell pair the hero is armed with, when it is not the player's (the King's training uses the starter pair). */
+  spells?(): [SpellId, SpellId];
+  /** The menu's Training button, for a page that has one in place (default: the ?train page). */
+  train?(): void;
+  /** The HUD's callbacks, after the shell's own defaults: the page's next fight, its restart and its skip. */
+  hudOverride?(hud: Hud): void;
+  /** The shell's warm-up render, bracketed: on before the draw, off after it (the King's eclipse state is drawn once). */
+  warm?(on: boolean): void;
+  /** After the director step, last in the frame: the page's own visibility or highlight that must follow it. */
+  end?(sd: number, dt: number, t: number): void;
+  /** The workbench (?bench=): mounted after the round setup; its camera replaces the page's, and its tick replaces the step. */
+  bench?(run: { step(dt: number): void; setTime(v: number): void }): Promise<BenchRun | null>;
 }
 
 /** The data and the two builders a boss page is. */
@@ -184,6 +216,8 @@ export interface FightPageSpec<P extends Parts> {
   beaten: number;
   /** The fixed cameras for ?shot=. */
   shots: Record<string, Shot>;
+  /** Whether the page starts with no menu (the hero already in the fight). Default: the shot, the skip, the turn, round 2, a moment. */
+  direct?(c: Ctx): boolean;
   build(k: BuildKit): Promise<P>;
   wire(k: WireKit<P>): Wired;
 }
@@ -198,9 +232,11 @@ function makeFx(tier: Tier): Fx {
 }
 
 export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>): Promise<void> {
-  const { Q, tier, renderer, scene, cam, moon, moonDir, post, dyn, resize, input, app, focus, status, SHOT } = c;
+  const { Q, tier, renderer, scene, cam, moon, moonDir, post, dyn, resize, input, app, focus, status, SHOT, BENCH } = c;
+  // a still frame (a shot, the workbench) draws with no HUD, no sound, no quality drift and no page-hide pause
+  const quiet = !!(SHOT || BENCH);
   status(spec.status);
-  if (!SHOT) sound.load();
+  if (!quiet) sound.load();
   const tex = await loadTextures(tier, Math.min(8, renderer.capabilities.getMaxAnisotropy()));
   const lod = tier.name === 'high' ? '.lo' : '.xs';
   const surf: Surf = o => surface(tex, tier, o);
@@ -231,14 +267,15 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     scene.add(pv.glow);
   }
   const m = new Motor(KHANDA);
-  const parts = await spec.build({ c, tex, lod, fx, held, skin, surf });
+  const parts = await spec.build({ c, tex, lod, fx, dust, held, skin, surf });
   const { arena, sim, brain } = parts;
   const [v1, v2] = parts.views;
   const fight = new Fight(m, sim, brain);
   const prompts = new Prompts();
   const hud = new Hud(app, input);
   fight.furnish(arena.ruin.props);
-  fight.passive = !!(SHOT || Q.has('still'));
+  fight.passive = !!(quiet || Q.has('still'));
+  const still = fight.passive;
   arena.ruin.fx = fx;
   arena.ruin.dust = dust;
   pv.shadow = skinnedShadow(pv.mesh, sPlayer, DEPTH.skin);
@@ -256,18 +293,25 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
   hud.names = [spec.names.r1, spec.names.r2];
   hud.winTitle = spec.names.won;
-  onSettings(() => {
-    brain.temper = settings.temper;
-    const sp = settings.spells;
+  /** The spell pair the hero is armed with: the page's own while it has one (the King's training), else the player's. */
+  const arm = () => {
+    const sp = wired.spells?.() ?? settings.spells;
     m.spells = [...sp];
     hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]);
     prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]);
+  };
+  onSettings(() => {
+    brain.temper = settings.temper;
+    arm();
   });
 
   let menu: Menu;
-  const wired = spec.wire({
+  const wired: Wired = spec.wire({
     c, parts, m, fight, pv, fx, hud, prompts, follow, dir, moment, qte, surf,
     menuOpen: () => menu.open,
+    begin: () => begin(),
+    arm,
+    bars: on => bars(on),
   });
   const { intro, turn, ending } = wired;
   let turnWait = -1;
@@ -285,7 +329,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     follow.snap(m, sim);
     wired.turnEnd();
   };
-  const direct = !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2') || Q.has('moment'));
+  const direct = spec.direct ? spec.direct(c) : !!(SHOT || Q.has('nointro') || Q.has('turn') || Q.has('round2') || Q.has('moment'));
   m.z = direct ? 5.2 : 15.5;
   /** The one reset: every death, the retry, the menu and a fresh start run it (Fight resets the fight, this clears the page). */
   fight.onReset = () => {
@@ -340,10 +384,11 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   hud.onResume = regainFullscreen;
   hud.next = '';
   hud.onSkip = () => {};
+  wired.hudOverride?.(hud);
   // the pause triggers: the menu, a scene and the win are never paused by focus loss
-  const busy = () => menu.open || intro.active || turn.active || ending.active || fight.phase === 'won';
+  const busy = () => menu.open || intro.active || turn.active || ending.active || fight.phase === 'won' || (wired.sceneBusy?.() ?? false);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && !busy() && !SHOT) hud.setPaused(true);
+    if (document.hidden && !busy() && !quiet) hud.setPaused(true);
   });
   addEventListener('gamepaddisconnected', () => {
     if (input.lastDevice === 'pad' && !busy()) hud.setPaused(true);
@@ -360,7 +405,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   const begin = () => {
     bars(false);
     fight.reset(true);
-    fight.passive = !!Q.has('still');
+    fight.passive = still;
     wired.begin();
     follow.snap(m, sim);
     hud.refill();
@@ -368,13 +413,19 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   };
   menu.onPlay = () => {
     regainFullscreen();
-    intro.start();
+    if (wired.play) wired.play();
+    else intro.start();
     bars(true);
     fight.time = 0;
     grab();
   };
   menu.onTrain = () => {
-    location.search = '?train';
+    if (wired.train) {
+      wired.train();
+      grab();
+    } else {
+      location.search = '?train';
+    }
   };
   intro.onEnd = () => {
     begin();
@@ -400,7 +451,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     input.poll();
     let ev = input.drain();
     if (padNav(input)) ev = ev.filter(e => e.a === 'pause' && !menu.open);
-    if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && !intro.active && fight.phase !== 'won') {
+    if (ev.some(e => e.a === 'pause' && !e.up) && !turn.active && !intro.active && !(wired.sceneBusy?.() ?? false) && fight.phase !== 'won') {
       hud.setPaused(!hud.paused);
     }
     if (hud.paused) return;
@@ -409,7 +460,9 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     FOG.uFogP.value.w = SHARED.uTime.value = t;
     const s = Math.sin(follow.yaw), cc = Math.cos(follow.yaw), mv = input.move;
     const pre = wired.before(dt, t, ev, { x: mv.x * cc - mv.y * s, z: -mv.x * s - mv.y * cc });
-    const sd = fight.step(dt * pace, pre.mx, pre.mz, pre.ev), kv = dir.kv;
+    // a held frame: the referee does not step and the presses it was given are dropped (the King's training)
+    const sd = pre.hold ? 0 : fight.step(dt * pace, pre.mx, pre.mz, pre.ev), kv = dir.kv;
+    if (pre.hold) fight.ev.length = 0;
     wired.after(sd, dt, t);
     if (sd > 0) {
       kv.update(sd, m.x, m.z, t);
@@ -419,8 +472,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     }
     if (turnWait > 0 && (turnWait -= dt) <= 0) turn.start();
     wired.tick(sd, dt, t);
-    if (!intro.active) dir.mono = Math.max(turn.mono, 0);
-    if (!menu.open && !intro.active && !moment.active && !qte.on) prompts.step(sd, fight);
+    if (!menu.open && !intro.active && !moment.active && !qte.on && !(wired.noPrompts?.() ?? false)) prompts.step(sd, fight);
     else if (moment.active || qte.on) prompts.current = null;
     arena.ruin.step(sd, t, [
       { x: m.x, z: m.z, r: m.y > 0.6 ? -9 : 0.35, push: 1 + m.speed * 0.25 },
@@ -428,6 +480,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     ]);
     follow.blockers = m.blockers;
     dir.step(sd, dt, t);
+    wired.end?.(sd, dt, t);
   };
 
   renderer.compile(scene, cam);
@@ -440,7 +493,9 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   dir.crescents.group.children.forEach(x => {
     x.visible = true;
   });
+  wired.warm?.(true);
   post.render(scene, cam, moon, 0);
+  wired.warm?.(false);
   arena.ruin.warm(false);
   pv.ghosts.warm(false);
   dir.cue.mesh.visible = false;
@@ -462,6 +517,8 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     fight.hits = 5;
     fight.passive = true;
   }
+  // the workbench (?bench=) mounts here, after the round setup and before the warm-up
+  const bench = wired.bench ? await wired.bench({ step, setTime: v => { t = FOG.uFogP.value.w = SHARED.uTime.value = v; } }) : null;
   hud.warm(true);
   for (let i = 0; i < 4; i++) await new Promise(r => setTimeout(r, 40));
   hud.warm(false);
@@ -475,7 +532,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   }
   document.body.classList.toggle('fps', Q.has('fps'));
   document.body.classList.add('ready');
-  if (SHOT) document.body.classList.add('bare');
+  if (quiet) document.body.classList.add('bare');
   const fps = document.getElementById('fps')!;
   let acc = 0;
   let n = 0;
@@ -489,6 +546,8 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
       cam.lookAt(ll[0], ll[1], ll[2]);
       cam.fov = ff * (cam.aspect > 1.9 ? 0.92 : 1);
       cam.updateProjectionMatrix();
+    } else if (bench) {
+      bench.camera();
     } else if (menu.open) {
       menuCam(cam, t, m.x, m.z);
     } else if (wired.camera(cam, ms, t)) {
@@ -499,10 +558,10 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
       follow.update(cam, Math.min(ms / 1000, 0.05), m, wired.followTarget(), input.takeLook(), t, c.baseFov());
     }
     wired.frame(cam, ms);
-    if (!SHOT && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
+    if (!quiet && !menu.open) hud.update(Math.min(ms / 1000, 0.05), fight, prompts);
     {
       const fz = cam.userData.focus as THREE.Vector3 | undefined;
-      const film = menu.open || turn.active || ending.active || intro.active;
+      const film = menu.open || turn.active || ending.active || intro.active || (wired.sceneBusy?.() ?? false);
       const on = film || cam.userData.frame === true;
       const want = on && fz ? (menu.open ? 0.4 : film ? 0.8 : 0.6) : 0;
       cam.userData.frame = false;
@@ -528,7 +587,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
       acc = 0;
       n = 0;
     }
-    if (!SHOT && frames > 60 && dyn.update(ms)) resize();
+    if (!quiet && frames > 60 && dyn.update(ms)) resize();
     Object.assign(window, {
       __frames: frames, __pos: [m.x, 0, m.z], __info: renderer.info.render, __cpu: cpu, __m: m, __court: arena,
       __king: sim, __pv: pv, __f: fight, __p: prompts, __cam: follow, __turn: turn, __intro: intro, __hud: hud,
@@ -550,5 +609,8 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
       v2.show(false);
     },
   }).boot();
-  startLoop(dt => step(dt), draw);
+  startLoop(dt => {
+    if (bench) bench.tick(dt);
+    else step(dt);
+  }, draw);
 }

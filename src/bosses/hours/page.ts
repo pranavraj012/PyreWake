@@ -156,6 +156,7 @@ function wireHours(k: WireKit<HoursParts>): Wired {
       turn.step(dt, t);
       ending.step(dt, t);
       hd.step(sd, dt, t);
+      if (!intro.active) dir.mono = Math.max(turn.mono, 0);
     },
     blocker: () => ({ x: sim.x, z: sim.z, r: sim.y > 0.6 ? -9 : sim.r }),
     clock: () => sim.mt,
