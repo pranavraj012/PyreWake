@@ -1,4 +1,5 @@
 import { SPELL_IDS, type SpellId } from '../combat/spells.ts';
+import type { BossId } from '../bosses/index.ts';
 // Module B: the player's progress and the rules that change it.
 // Exported names and shapes are the published interface (modules E, G, I code against them); add, never rename.
 
@@ -16,7 +17,7 @@ export interface Progress {
 export const WEAPON_KINDS: readonly WeaponKind[] = ['khanda', 'spear', 'chakram', 'whip'];
 
 /** Boss ids, as the codebase names them (the folders under src/bosses/ and the fight modules). `burned` holds these. */
-export const BOSS = { king: 'king', ferryman: 'river', sister: 'hours' } as const;
+export const BOSS = { king: 'king', ferryman: 'river', sister: 'hours' } as const satisfies Record<string, BossId>;
 
 /** Tunable numbers, kept in one place for module M (balance). */
 export const RULES = {
