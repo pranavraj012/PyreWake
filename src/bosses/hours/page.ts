@@ -34,6 +34,7 @@ import { GRIP, PIERCE, gripLift, gripTumble } from './sister.ts';
 import { HoursIntro, HoursTurn, HoursEnding } from './hoursScenes.ts';
 import type { Ctx } from '../../core/boot.ts';
 import { mountTheatre } from '../../dev/theatre.ts';
+import { fightList } from '../index.ts';
 
 export async function bootHours(c: Ctx) {
   const { Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, post, dyn, resize, input, app, focus, status, SHOT } = c;
@@ -101,7 +102,7 @@ export async function bootHours(c: Ctx) {
   hud.onRestart = () => { fight.reset(fight.phase === 'won'); };
   for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { sound.unlock(); sound.startScore(); });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
-  menu.fights([['The Hanged King', () => { location.search = ''; }], ['The Ferryman', () => { location.search = '?boss=2'; }], ['The Sister of Hours', null]]);
+  menu.fights(fightList('hours'));
   const toMenu = () => { moment.stop(); staged = null; qte.hide(); hud.setPaused(false); hud.verse(''); ending.stop(); turn.stop(); hd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); intro.rest(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen; hud.next = ''; hud.onSkip = () => { };
   const busy = () => menu.open || intro.active || turn.active || ending.active || fight.phase === 'won';

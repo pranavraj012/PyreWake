@@ -36,6 +36,7 @@ import { RiverIntro, RiverEnding, RiverTurn, riverMoments } from './riverScenes.
 import { RewardRun, beginReward, syncReward, type RewardKit } from '../../game/rewardShots.ts';
 import { chainBeats, lanternBeats, riverRewards } from './rewards.ts';
 import { mountTheatre } from '../../dev/theatre.ts';
+import { fightList } from '../index.ts';
 
 export type { Ctx };
 
@@ -78,7 +79,7 @@ export async function bootRiver(c: Ctx) {
   // a phone has no buttons in the scenes: a tap anywhere lights the boat when the scene is waiting for it
   addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { if (ending.waiting) ending.tap(t); if (intro.waiting) intro.tap(t); } });
   const bars = (on: boolean) => document.body.classList.toggle('cine', on), menu = new Menu(app, () => hud.controls());
-  menu.fights([['The Hanged King', () => { location.search = ''; }], ['The Ferryman', null], ['The Sister of Hours', () => { location.search = '?boss=3'; }]]);
+  menu.fights(fightList('river'));
   const toMenu = () => { hud.setPaused(false); moment.stop(); staged = null; qte.hide(); hud.verse(''); ending.stop(); turn.stop(); rd.reset(); turnWait = -1; fight.reset(true); fight.passive = true; prompts.reset(); m.revive(0, 12.2, Math.PI); pv.reset(); bars(false); intro.stop(); v1.settle(); follow.yaw = 0.12; sound.score?.set('still'); menu.show(); };
   hud.onMenu = toMenu; hud.onResume = regainFullscreen; hud.next = ''; hud.onSkip = () => { };
   document.addEventListener('visibilitychange', () => { if (document.hidden && !menu.open && !intro.active && !turn.active && !ending.active && fight.phase !== 'won' && !SHOT) hud.setPaused(true); });
