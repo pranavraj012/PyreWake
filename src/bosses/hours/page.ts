@@ -208,6 +208,7 @@ function wireHours(k: WireKit<HoursParts>): Wired {
     reset() {
       offer.reset();
       staged = null;
+      if (dimOn) dir.dark = 0;
       dimOn = false;
       hd.reset();
     },

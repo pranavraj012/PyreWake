@@ -147,6 +147,7 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
     clock: () => sim.stage,
     reset() {
       staged = null;
+      if (dimOn) dir.dark = 0;
       dimOn = false; uset.show(false);
       ghats.landing.visible = true;
       kOffer.reset();
