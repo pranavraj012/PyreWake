@@ -300,11 +300,6 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     hud.spells(SPELLS[sp[0]], SPELLS[sp[1]]);
     prompts.spells(SPELLS[sp[0]], SPELLS[sp[1]]);
   };
-  onSettings(() => {
-    brain.temper = settings.temper;
-    arm();
-  });
-
   let menu: Menu;
   const wired: Wired = spec.wire({
     c, parts, m, fight, pv, fx, hud, prompts, follow, dir, moment, qte, surf,
@@ -312,6 +307,11 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     begin: () => begin(),
     arm,
     bars: on => bars(on),
+  });
+  // after wire: onSettings runs its listener at once, and the spell pair reads the page's hook
+  onSettings(() => {
+    brain.temper = settings.temper;
+    arm();
   });
   const { intro, turn, ending } = wired;
   let turnWait = -1;
