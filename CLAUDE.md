@@ -5,9 +5,10 @@ Stack: three.js 0.187, TypeScript, vite 8, vitest 5, playwright-core for the hea
 
 ## Layout
 
-The boss files are final (refactor P2): each boss lives in its own folder under src/bosses/. Still to come on branch `refactor` (see docs/game/refactor-plan.md, gitignored): a boss registry at src/bosses/index.ts (P3) and a shared fight page at src/game/fightPage.ts (P4). Re-check paths with `git ls-files` if in doubt.
+The boss files are final (refactor P2): each boss lives in its own folder under src/bosses/. The boss registry is src/bosses/index.ts (P3). Still to come on branch `refactor` (see docs/game/refactor-plan.md, gitignored): a shared fight page at src/game/fightPage.ts (P4). Re-check paths with `git ls-files` if in doubt.
 
-- `src/main.ts`: King page (boss 1, the default) and the shared boot: renderer, lights, camera, input, menu, PAGES registry (`?boss=2` loads src/bosses/river/page.ts, `?boss=3` loads src/bosses/hours/page.ts).
+- `src/main.ts`: King page (boss 1, the default) and the shared boot: renderer, lights, camera, input, menu, and the page switch (`?boss=N` loads that boss's page from the registry).
+- `src/bosses/index.ts`: BOSSES, the registry of every boss (id, ?boss= number, menu name, moments, lazy page loader), plus bossHref and fightList. Plain data: it imports no boss module statically.
 - `src/core/`: boot.ts (what main hands a page), loop.ts (60 Hz fixed step), quality.ts (render scale), settings.ts, viewport.ts, fullscreen.ts.
 - `src/combat/`: fight.ts (the referee for one boss: health, hits, guard, phases), encounter.ts (crowds), difficulty.ts (every tuning number), spells.ts + spellScript.ts (the six fire arts).
 - `src/boss/`: generic only. boss.ts (the interface the referee needs), view.ts (what the director needs of a picture).
@@ -31,6 +32,12 @@ The boss files are final (refactor P2): each boss lives in its own folder under 
 - `tools/`: headless drivers that write to `shots_out/` (gitignored). Key ones: restartCheck.mjs, shots.mjs, peek.mjs, baseline.mjs, verify.mjs, fight.mjs, river.mjs, hours.mjs, scenes.mjs, sfx.mjs, lintText.mjs, analyse*.mjs (headless bots).
 - `tests/`: vitest, `*.test.ts` (plus lintText.test.mjs). Fight, boss, moment, progress, restart, theatre, motion, audio.
 - `public/`: baked models, sfx pak, music, media. `LICENSES.md`: third-party sources.
+
+## Adding a boss
+
+1. Make `src/bosses/<id>/` with the sim, view, brain, and a `page.ts` exporting `boot<Name>(c: Ctx)` (copy `src/bosses/river/page.ts`).
+2. Add one entry to `BOSSES` in `src/bosses/index.ts`: id, the next ?boss= number, menu name, moments, and `load: () => import('./<id>/page.ts').then(r => r.boot<Name>)`. The menu fight list, the page switch and the moment theatre all read from it.
+3. Add the boss's page to the per-boss list below.
 
 ## Per-boss: files to read before changing it
 
@@ -58,7 +65,7 @@ Read only the list for the boss you change, plus the shared engine files below.
 
 ## URL flags
 
-- `?boss=2` river page, `?boss=3` Sister page; no param is the King.
+- `?boss=N` (numbers from BOSSES in src/bosses/index.ts): `?boss=2` river page, `?boss=3` Sister page; no param is the King.
 - `?turn`: start at the turn (round 1 won, passive). `?round2`: start in round 2. `?nointro`: skip the intro scene.
 - `?moment=<name>`: start one staged moment (names per boss in src/dev/theatre.ts MOMENTS). `?dev`: dev panel (dev builds only).
 - `?shot=<name>`: fixed camera from the SHOTS table in each page, no HUD, passive fight. `?still`: passive fight.
