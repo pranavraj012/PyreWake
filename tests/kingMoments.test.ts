@@ -8,7 +8,7 @@ import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60;
 /** The King itself (the Fight types it as the generic Boss). */
-const K = (f: Fight) => f.king as King;
+const K = (f: Fight) => f.boss as King;
 /** Hero two metres in front of the King, who faces him. Passive: the brain is not choosing attacks. */
 const mk = (gap = 2) => { const f = new Fight(new Motor(), new King(), new Brain()); f.passive = true; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; K(f).yaw = 0; return f; };
 /** A fixed span of time (the Fight may slow itself after a perfect dodge, so spans are in seconds of the fight's own clock). */

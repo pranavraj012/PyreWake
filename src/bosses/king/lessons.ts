@@ -15,7 +15,7 @@ export class Lessons {
   private f: Fight; private run: Generator<Wait, void, void> | null = null; private wait: Wait = () => true; private now = 0; private mark = 0; private got: FightEvent[] = []; private clips: string[] = [];
   constructor(f: Fight) { this.f = f; }
   start() {
-    const { f } = this, { m, king: k } = f; this.active = true; this.card = null; this.frozen = null; this.now = this.mark = 0; f.passive = true; f.reset(true);
+    const { f } = this, { m, boss: k } = f; this.active = true; this.card = null; this.frozen = null; this.now = this.mark = 0; f.passive = true; f.reset(true);
     k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); m.revive(0, 4.4, Math.PI); this.clear(); this.run = this.script(); this.wait = () => true;
   }
   /** Out at once: from the pause menu. */
@@ -31,7 +31,7 @@ export class Lessons {
   }
   /** After the fight has stepped. `real` is wall time, `sim` what the fight saw of it. */
   step(real: number, sim: number) {
-    if (!this.active) return; const { f } = this, k = f.king; this.now += real; this.mono += ((this.frozen ? 0.55 : 0) - this.mono) * Math.min(1, real * 10);
+    if (!this.active) return; const { f } = this, k = f.boss; this.now += real; this.mono += ((this.frozen ? 0.55 : 0) - this.mono) * Math.min(1, real * 10);
     // a staged moment (a grab that has seized the hero) plays out on its own: the lesson neither moves the King nor judges the press until it ends
     if (this.frozen || (k as Partial<King>).staging) return;
     this.got.push(...f.ev); this.clips.push(...f.m.events); void sim;
@@ -50,7 +50,7 @@ export class Lessons {
   private freeze(a: Action, text?: string): Wait { if (this.card) { if (text) this.card.text = text; this.card.action = a; this.card.held = true; this.card.ok = false; } this.frozen = a; sound.duck(0.35, 0.6); return () => this.frozen === null; }
   /** The King walks up, squares off, and starts `mode`. */
   private *attack(mode: KingMode, gap = 3.0) {
-    const { f } = this, { king: k, m } = f; yield () => !m.dead && m.y === 0 && m.state === 'free' || m.clip?.name === 'flick' || m.clip?.name === 'clench';
+    const { f } = this, { boss: k, m } = f; yield () => !m.dead && m.y === 0 && m.state === 'free' || m.clip?.name === 'flick' || m.clip?.name === 'clench';
     const off = () => { const a = Math.atan2(m.x - k.x, m.z - k.z) - k.yaw; return Math.abs(a - Math.round(a / 6.2832) * 6.2832); };
     yield () => { if (isAttack(k.mode) || k.helpless) return false; if (m.targetDist > gap + 0.5) { if (k.mode !== 'stalk') k.set('stalk'); return false; } if (k.mode !== 'idle') k.set('idle'); if (off() > 0.12) { k.turn(0.07, Math.atan2(m.x - k.x, m.z - k.z)); return false; } return true; };
     f.brain.seen.add(mode); this.clear(); k.set(mode);
@@ -58,13 +58,13 @@ export class Lessons {
   /** Until `lead` seconds before the blow, if it is going to land; otherwise the King tries again. Returns through `this.ready`. */
   private ready = false;
   private *until(lead: number, gap?: number, mode: KingMode = 'slam') {
-    const { king: k, m } = this.f; this.ready = false;
+    const { boss: k, m } = this.f; this.ready = false;
     while (!this.ready) { yield* this.attack(mode, gap); const s = k.strikes[0], id = k.serial; yield () => k.serial !== id || k.mt >= s.t[0] - lead; if (k.serial === id) { if (k.covers(s, m.x, m.z, 0.9)) this.ready = true; else yield () => k.serial !== id; } }
   }
-  private settle(): Wait { const { m, king: k } = this.f; return () => m.state === 'free' && m.y === 0 && !isAttack(k.mode) && !k.helpless || this.now - this.mark > 5; }
+  private settle(): Wait { const { m, boss: k } = this.f; return () => m.state === 'free' && m.y === 0 && !isAttack(k.mode) && !k.helpless || this.now - this.mark > 5; }
 
   private *script(): Generator<Wait, void, void> {
-    const { f } = this, { m, king: k } = f;
+    const { f } = this, { m, boss: k } = f;
     yield this.after(0.5);
     this.say('move', 'Walk', 'Go to the King. It will wait for you.', 'move'); yield () => m.targetDist < 3.2; yield* this.done();
 

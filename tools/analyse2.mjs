@@ -5,7 +5,7 @@ const N = +(process.argv[2] ?? 40), DT = 1 / 60, tap = a => [{ a, up: false }, {
 const KIND = { mash: { dodge: 0 }, dodger: { dodge: .65 }, smart: { dodge: .7, spell: true, jump: true } };
 function bout(kind, seed) {
   let s = seed * 7919 + 13; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-  const f = new Fight(new Motor(), new River(), new RiverBrain(seed)), m = f.m, k = f.king, o = KIND[kind]; m.z = 5; let act = -1, last = 0, wait = 0, prev = f.bossHp, tag = 'free', deaths = 0;
+  const f = new Fight(new Motor(), new River(), new RiverBrain(seed)), m = f.m, k = f.boss, o = KIND[kind]; m.z = 5; let act = -1, last = 0, wait = 0, prev = f.bossHp, tag = 'free', deaths = 0;
   const R = { dmg: {}, hurt: {}, modes: {}, win: false, r1: 0, t: 0, taken: 0 };
   for (let i = 0; i < 60 * 600; i++) {
     if (f.phase === 'scene') { R.r1 = f.time; f.beginRound2(); prev = f.bossHp; }

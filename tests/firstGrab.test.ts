@@ -17,14 +17,14 @@ function firstMoment(f: Fight, held: () => string | null, limit: number) {
 
 describe('the first grab is thrown in round 1', () => {
   it('the King throws his grab by the deadline when the hero stands in reach', () => {
-    const f = new Fight(new Motor(), new King(), new Brain()); f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; const K = f.king as King; K.x = 0; K.z = -4; K.yaw = 0;
+    const f = new Fight(new Motor(), new King(), new Brain()); f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; const K = f.boss as King; K.x = 0; K.z = -4; K.yaw = 0;
     f.passive = false;
     const at = firstMoment(f, () => K.held, FIRST_GRAB_BY + 10);
     expect(at).not.toBeNull(); expect(at!).toBeLessThanOrEqual(FIRST_GRAB_BY + 6);
     expect(K.grabbedOnce).toBe(true);
   });
   it('the Ferryman throws his drag by the deadline when the hero stands in reach', () => {
-    const f = new Fight(new Motor(), new River(), new RiverBrain()); f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; const R = f.king as River; R.x = 0; R.z = -4; R.yaw = 0;
+    const f = new Fight(new Motor(), new River(), new RiverBrain()); f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; const R = f.boss as River; R.x = 0; R.z = -4; R.yaw = 0;
     f.passive = false;
     const at = firstMoment(f, () => R.held, FIRST_GRAB_BY + 10);
     expect(at).not.toBeNull(); expect(at!).toBeLessThanOrEqual(FIRST_GRAB_BY + 6);

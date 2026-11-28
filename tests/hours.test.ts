@@ -9,7 +9,7 @@ import { Motor, type Press } from '../src/player/motor.ts';
 import { PALL_HEM } from '../src/bosses/hours/frame.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }];
-const mk = (gap = 3, form: 1 | 2 = 1, ang = 0) => { const f = new Fight(new Motor(), new Sister(), new HoursBrain()); f.passive = true; const k = f.king as Sister; if (form === 2) f.beginRound2(); k.x = 0; k.z = -4; k.yaw = 0; f.m.x = Math.sin(ang) * gap; f.m.z = -4 + Math.cos(ang) * gap; f.m.yaw = Math.PI; f.invuln = 0; return { f, k }; };
+const mk = (gap = 3, form: 1 | 2 = 1, ang = 0) => { const f = new Fight(new Motor(), new Sister(), new HoursBrain()); f.passive = true; const k = f.boss as Sister; if (form === 2) f.beginRound2(); k.x = 0; k.z = -4; k.yaw = 0; f.m.x = Math.sin(ang) * gap; f.m.z = -4 + Math.cos(ang) * gap; f.m.yaw = Math.PI; f.invuln = 0; return { f, k }; };
 const run = (f: Fight, secs: number, press: (i: number) => Press[] = () => [], move: (i: number) => [number, number] = () => [0, 0]) => { const ev: FightEvent[] = []; for (let i = 0; i < secs * 60; i++) { const [x, z] = move(i); f.step(DT, x, z, press(i)); ev.push(...f.ev); } return ev; };
 const n = (ev: FightEvent[], k: string) => ev.filter(e => e.k === k).length;
 const go = (gap: number, mode: string, form: 1 | 2 = 1, ang = 0) => { const t = mk(gap, form, ang); t.f.brain.seen.add(mode); t.k.set(mode); return t; };
@@ -87,7 +87,7 @@ describe('the Sister of Hours and the Pall', () => {
   it('a hero who answers the cues wins in a sensible time', () => {
     let wins = 0, T = 0; const N = 6;
     for (let seed = 1; seed <= N; seed++) {
-      const f = new Fight(new Motor(), new Sister(), new HoursBrain(seed)), m = f.m, k = f.king as Sister; m.z = 5; let act = -1, last = 0;
+      const f = new Fight(new Motor(), new Sister(), new HoursBrain(seed)), m = f.m, k = f.boss as Sister; m.z = 5; let act = -1, last = 0;
       for (let i = 0; i < 60 * 480; i++) {
         if (f.phase === 'scene') f.beginRound2();
         const d = Math.hypot(k.hx - m.x, k.hz - m.z), a = Math.atan2(k.hx - m.x, k.hz - m.z); let p: Press[] = [];

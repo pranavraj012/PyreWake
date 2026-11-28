@@ -6,7 +6,7 @@ const MUSIC = { executioner: 'king', crawler: 'crawl', hanged: 'hang', blades: '
 const KIND = { mash: { dodge: 0 }, dodger: { dodge: .65 }, spells: { dodge: .65, spell: true }, explorer: { dodge: .7, spell: true, hold: .16, jump: .05, pause: .12 } };
 function bout(kind, seed) {
   let s = seed * 7919 + 13; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-  const f = new Fight(new Motor(), new King(), new Brain(seed)), m = f.m, k = f.king, o = KIND[kind]; m.z = 5; f.furnish(makeProps()); let act = -1, last = 0, up = -1, wait = 0, prev = f.bossHp, src = 'free', tr = 'king', trAt = 0;
+  const f = new Fight(new Motor(), new King(), new Brain(seed)), m = f.m, k = f.boss, o = KIND[kind]; m.z = 5; f.furnish(makeProps()); let act = -1, last = 0, up = -1, wait = 0, prev = f.bossHp, src = 'free', tr = 'king', trAt = 0;
   const R = { clips: {}, dmg: {}, secs: {}, tracks: [], uses: {}, hitsTaken: 0, spellDmg: {}, t: 0, win: false, r1: 0, gap: [], lastSame: 0, run: 0 }; let chains = [], deaths = 0, idle = 0, total = 0, seenAt = {}, music = [];
   for (let i = 0; i < 60 * 600; i++) {
     if (f.phase === 'scene') { R.r1 = f.time; music.push([tr, f.time - trAt]); tr = 'beneath'; trAt = f.time; f.beginRound2(); prev = f.bossHp; }

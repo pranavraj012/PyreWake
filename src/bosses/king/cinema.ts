@@ -19,17 +19,17 @@ export class Turn {
   get active() { return this.t >= 0; }
   /** Ends a turn at once (a restart or a return to the menu). */ stop() { this.t = -1; this.rest(); document.body.classList.remove('cine'); }
   private rest() { this.omen = this.dawn = this.mono = this.flash = this.dark = 0; this.flame = this.dim = this.rate = 1; }
-  start() { this.t = 0; this.off = false; this.done.clear(); this.burst = false; this.rest(); this.ring = 0; this.lens.cut = 0; const { m, king: k } = this.kit.f; this.A.k.set(k.x, 0, k.z); this.A.d.set(m.x - k.x, 0, m.z - k.z).normalize(); if (Math.hypot(m.x - k.x, m.z - k.z) < 3) { m.revive(k.x + this.A.d.x * 3, k.z + this.A.d.z * 3, Math.atan2(-this.A.d.x, -this.A.d.z)); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.play('kDeath', { x: k.x, z: k.z, bus: 'voice', gain: 1 }); sound.play('doom', { gain: 0.8 }); sound.duck(0.15, 2); sound.score?.set('scene'); }
+  start() { this.t = 0; this.off = false; this.done.clear(); this.burst = false; this.rest(); this.ring = 0; this.lens.cut = 0; const { m, boss: k } = this.kit.f; this.A.k.set(k.x, 0, k.z); this.A.d.set(m.x - k.x, 0, m.z - k.z).normalize(); if (Math.hypot(m.x - k.x, m.z - k.z) < 3) { m.revive(k.x + this.A.d.x * 3, k.z + this.A.d.z * 3, Math.atan2(-this.A.d.x, -this.A.d.z)); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.play('kDeath', { x: k.x, z: k.z, bus: 'voice', gain: 1 }); sound.play('doom', { gain: 0.8 }); sound.duck(0.15, 2); sound.score?.set('scene'); }
   private off = false; private at(t: number, id: string, f: () => void) { if (this.t >= t && !this.done.has(id)) { this.done.add(id); if (!this.off) f(); } }
   /** Straight to the end state. */
-  skip() { if (!this.active || this.t < 0.8) return; this.become(); this.kit.hud.verse(''); this.kit.f.king.mt = this.kit.f.king.prev = 4.6; this.off = true; this.t = TURN_LEN; }
+  skip() { if (!this.active || this.t < 0.8) return; this.become(); this.kit.hud.verse(''); this.kit.f.boss.mt = this.kit.f.boss.prev = 4.6; this.off = true; this.t = TURN_LEN; }
   /** What it costs the court. Each call brings down what is left up to this step. */
   private wreck(n: number) { const { f } = this.kit; for (const p of f.props) { if (p.kind === 'lamp' && p.z < -1) { if (n >= 2) f.drop(p, 0, -3); } else if (p.kind === 'pillar' && p.z < -12) { const i = p.x < -3 ? 0 : p.x > 3 ? 1 : 2; if (n >= 3 + i) f.fell(p, Math.atan2(-p.x, -p.z) + (i === 0 ? 0.5 : i === 1 ? -0.5 : 0.25)); } } }
   private become() {
-    if (this.burst) return; this.burst = true; const { f, k1, k2 } = this.kit, { king: k, m } = f; k1.show(false); this.dis.value = 0; k.form = 2; k.armed = false; k.crawling = false; k.set('rise2'); k.x = 0; k.z = -3; k.y = 0; k.yaw = 0; k2.show(true); k2.settle(); this.wreck(2); if (Math.hypot(m.x, m.z - 4.6) > 0.8) { m.revive(0, 4.6, Math.PI); this.kit.pv.reset(); }
+    if (this.burst) return; this.burst = true; const { f, k1, k2 } = this.kit, { boss: k, m } = f; k1.show(false); this.dis.value = 0; k.form = 2; k.armed = false; k.crawling = false; k.set('rise2'); k.x = 0; k.z = -3; k.y = 0; k.yaw = 0; k2.show(true); k2.settle(); this.wreck(2); if (Math.hypot(m.x, m.z - 4.6) > 0.8) { m.revive(0, 4.6, Math.PI); this.kit.pv.reset(); }
   }
   step(dt: number, time: number) {
-    if (!this.active) return; this.t += dt; const { t } = this, { f, fx, pv, k1, hud } = this.kit, { m, king: k } = f, L = this.lens, here = { x: 0, z: -3 }; L.trauma *= Math.exp(-dt * 2.6); this.mono *= Math.exp(-dt * 1.1); this.flash *= Math.exp(-dt * 4.5);
+    if (!this.active) return; this.t += dt; const { t } = this, { f, fx, pv, k1, hud } = this.kit, { m, boss: k } = f, L = this.lens, here = { x: 0, z: -3 }; L.trauma *= Math.exp(-dt * 2.6); this.mono *= Math.exp(-dt * 1.1); this.flash *= Math.exp(-dt * 4.5);
     if (!this.burst && (k.mode === 'fall' || k.mode === 'crash') && k.mt > 2.6) k.mt = k.prev = 2.6;
 
     // --- it looks, and sounds, exactly like the end

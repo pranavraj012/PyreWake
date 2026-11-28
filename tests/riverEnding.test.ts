@@ -11,7 +11,7 @@ const DT = 1 / 60;
 function kit() {
   const shown: [string, string, number, string][] = []; let hides = 0;
   const kit = {
-    f: { m: { x: 0, z: 0 }, sceneMove: { x: 0, z: 0 }, king: { x: 0, z: -9, y: 0 } },
+    f: { m: { x: 0, z: 0 }, sceneMove: { x: 0, z: 0 }, boss: { x: 0, z: -9, y: 0 } },
     k2: { boat() { }, standing() { } },
     fx: { sparks: { emit() { } }, bursts: { add() { } }, puffs: { emit() { } } },
     hud: { verse() { }, say() { }, won() { } },

@@ -40,21 +40,21 @@ const SCRIPT: Record<State, { press: Press[]; release?: number; ready: (m: Motor
 function setup(boss: Boss, moment: Moment) {
   const f = boss === 'king' ? new Fight(new Motor(), new King(), new Brain()) : new Fight(new Motor(), new River(), new RiverBrain());
   if (moment === 'lantern') f.beginRound2();
-  f.passive = true; f.invuln = 0; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; f.king.x = 0; f.king.z = -4; f.king.yaw = 0; f.fire = 100; f.hp = D.hp * 0.5;
+  f.passive = true; f.invuln = 0; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; f.boss.x = 0; f.boss.z = -4; f.boss.yaw = 0; f.fire = 100; f.hp = D.hp * 0.5;
   if (boss === 'river') f.brain.seen.add('dragDeep');
   return f;
 }
 
 /** The boss's own moment: a grab is set off at once (the strike connects a fraction of a second later); a reward is put on offer. */
 function trigger(f: Fight, moment: Moment) {
-  if (moment === 'noose') (f.king as King).set('grab', 8);
-  else if (moment === 'drag') (f.king as River).set('dragDeep', 8);
-  else if (moment === 'rope' || moment === 'ride') { const k = f.king as King; k.reward = moment; k.rewardLeft = OFFER; }
-  else (f.king as River).offer(moment);
+  if (moment === 'noose') (f.boss as King).set('grab', 8);
+  else if (moment === 'drag') (f.boss as River).set('dragDeep', 8);
+  else if (moment === 'rope' || moment === 'ride') { const k = f.boss as King; k.reward = moment; k.rewardLeft = OFFER; }
+  else (f.boss as River).offer(moment);
 }
 
 function run(boss: Boss, moment: Moment, state: State) {
-  const f = setup(boss, moment), k = f.king as King | River, m = f.m, sc = SCRIPT[state];
+  const f = setup(boss, moment), k = f.boss as King | River, m = f.m, sc = SCRIPT[state];
   const isGrab = moment === 'noose' || moment === 'drag';
   if (state === 'stagger') f.strikePlayer(8, true, Math.PI, 'stagger');
   const r = { triggered: false, onset: -1, end: -1, hpOnset: 0, hpEnd: 0, takenOnset: 0, takenEnd: 0, swings: 0, reeled: false, expect: 0, accepted: false, pool: 0, state: '' };
@@ -118,7 +118,7 @@ describe('every boss moment, triggered in every hero state', () => {
 
 describe('a hit that reels the Ferryman before his drag connects', () => {
   it('he is in the drag pose for the whole hold, not the reel', () => {
-    const f = setup('river', 'drag'); const k = f.king as River;
+    const f = setup('river', 'drag'); const k = f.boss as River;
     k.set('dragDeep', 8); let hazard = false;
     for (let i = 0; i < 2 * 60 && !hazard; i++) { f.step(DT, 0, 0, []); hazard = f.hazards.some(h => h.seize === 'drag'); }
     expect(hazard, 'the drag is thrown').toBe(true);

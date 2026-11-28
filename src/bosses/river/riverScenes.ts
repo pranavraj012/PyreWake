@@ -56,17 +56,17 @@ export class RiverIntro {
   /** Whether the lamp is set down on the water. */ get lampVisible() { return this.lamp.visible; }
   private light(_time: number) { this.lit = true; this.waiting = false; this.kit.prompt.hide(); }
   /** At rest: the hero at the top of the steps, the Ferryman far out in the dark. */
-  rest() { const { f, k1 } = this.kit, k = f.king as River; k.form = 1; k.x = 0; k.z = -26; k.y = 0; k.yaw = 0; k.set('idle'); k1.settle(); k1.eyes(1); k1.show(true); }
+  rest() { const { f, k1 } = this.kit, k = f.boss as River; k.form = 1; k.x = 0; k.z = -26; k.y = 0; k.yaw = 0; k.set('idle'); k1.settle(); k1.eyes(1); k1.show(true); }
   start() { const { f, pv } = this.kit, m = f.m; this.t = 0; this.c.clear(); this.resetHold(); this.lens.cut = 0; this.lens.trauma = 0; this.rest(); m.revive(0, 15.5, Math.PI); pv.reset(); this.kit.rd.reset(); this.kit.ghats.lamps(1, true); this.kit.ghats.setOut(0, 0, 0); this.kit.ghats.setFront(0); this.kit.ghats.flames(1); this.lamp.visible = false; this.eyeK = 0; this.dark = 0; this.black = 0; this.kit.k1.show(false); sound.score?.set('vigil'); }
   stop() { this.t = INTRO_LEN; this.kit.hud.verse(''); this.restore(); }
   private resetHold() { this.waiting = false; this.lit = false; this.waitK = 0; this.flameK = 0; this.flame.visible = false; MOONK.value = 1; this.kit.prompt.hide(); }
   skip() { if (!this.active || this.t < 0.6) return; this.c.off = true; this.t = INTRO_LEN; this.finish(); }
   /** However it ended, the river is as the fight needs it. */
-  private restore() { const { ghats, k1, f } = this.kit, k = f.king as River; this.kit.rd.cine = null; this.resetHold(); ghats.setOut(0, 0, 0); ghats.setFront(0); ghats.flames(1); ghats.lamps(1); this.lamp.visible = false; ghats.bowlsLit(true); k1.eyes(1); k1.lampHidden = false; if (k.form === 1) k1.show(true); if (k.form === 1) { k.y = 0; if (k.z < -4.5 || k.z > -3.5) { k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k1.settle(); } } }
+  private restore() { const { ghats, k1, f } = this.kit, k = f.boss as River; this.kit.rd.cine = null; this.resetHold(); ghats.setOut(0, 0, 0); ghats.setFront(0); ghats.flames(1); ghats.lamps(1); this.lamp.visible = false; ghats.bowlsLit(true); k1.eyes(1); k1.lampHidden = false; if (k.form === 1) k1.show(true); if (k.form === 1) { k.y = 0; if (k.z < -4.5 || k.z > -3.5) { k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k1.settle(); } } }
   private finish() { this.kit.hud.verse(''); this.restore(); this.onEnd(); }
   /** Returns the hero's forward walk. */
   step(dt: number, time: number, dev: 'keys' | 'pad' | 'touch' = 'keys'): number {
-    const { f, fx, hud, ghats, k1 } = this.kit, m = f.m, k = f.king as River, c = this.c; this.t += dt;
+    const { f, fx, hud, ghats, k1 } = this.kit, m = f.m, k = f.boss as River, c = this.c; this.t += dt;
     // the lamp: the telling holds here until the hero sets it down
     if (!this.lit && this.t >= B.lamp) { this.t = B.lamp; if (!this.waiting) { this.waiting = true; this.waitK = 0; this.kit.prompt.show('attack', 'Set the light', 1e9, dev); } this.waitK += dt; }
     const t = this.t;
@@ -158,12 +158,12 @@ export class RiverTurn {
   t = -1; mono = 0; rate = 1; onEnd: () => void = () => { }; private c = new Cues(); private lens = new Lens(); private kit: RiverKit; private off = false;
   constructor(kit: RiverKit) { this.kit = kit; }
   get active() { return this.t >= 0; }
-  start() { const { f } = this.kit, m = f.m, k = f.king as River; this.t = 0; this.off = false; this.c.clear(); this.lens.cut = 0; this.mono = 0; if (Math.hypot(m.x - k.x, m.z - k.z) < 3.4) { m.revive(k.x, k.z + 3.6, Math.PI); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.score?.set('scene'); }
+  start() { const { f } = this.kit, m = f.m, k = f.boss as River; this.t = 0; this.off = false; this.c.clear(); this.lens.cut = 0; this.mono = 0; if (Math.hypot(m.x - k.x, m.z - k.z) < 3.4) { m.revive(k.x, k.z + 3.6, Math.PI); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.score?.set('scene'); }
   stop() { this.t = -1; this.mono = 0; this.kit.rd.turnK = 0; this.kit.k1.holding(false); document.body.classList.remove('cine'); }
   skip() { if (!this.active || this.t < 0.8) return; this.become(); this.c.off = true; this.kit.hud.verse(''); this.t = TURN_LEN; }
-  private become() { const { f, k1, k2, ghats } = this.kit, k = f.king as River, m = f.m; if (k.form === 2) return; k1.holding(false); k1.show(false); k.form = 2; k.set('riseW'); k.x = 0; k.z = -5; k.y = 0; k.yaw = 0; k.reset(); k2.show(true); k2.settle(); ghats.lamps(0.28, true); if (Math.hypot(m.x, m.z - 5) > 0.8) { m.revive(0, 5, Math.PI); this.kit.pv.reset(); } }
+  private become() { const { f, k1, k2, ghats } = this.kit, k = f.boss as River, m = f.m; if (k.form === 2) return; k1.holding(false); k1.show(false); k.form = 2; k.set('riseW'); k.x = 0; k.z = -5; k.y = 0; k.yaw = 0; k.reset(); k2.show(true); k2.settle(); ghats.lamps(0.28, true); if (Math.hypot(m.x, m.z - 5) > 0.8) { m.revive(0, 5, Math.PI); this.kit.pv.reset(); } }
   step(dt: number, time: number) {
-    if (!this.active) return; this.t += dt; const t = this.t, { f, fx, hud, ghats, k1 } = this.kit, k = f.king as River, c = this.c, L = this.lens; L.trauma *= Math.exp(-dt * 2.4);
+    if (!this.active) return; this.t += dt; const t = this.t, { f, fx, hud, ghats, k1 } = this.kit, k = f.boss as River, c = this.c, L = this.lens; L.trauma *= Math.exp(-dt * 2.4);
     if (!this.off && k.form === 1 && (k.mode === 'fall') && k.mt > 3.0) k.mt = k.prev = 3.0;
     if (!this.off && k.form === 1 && k.mode === 'cradle' && k.mt > 8.0) k.mt = k.prev = 8.0;
     c.at(t, 0.1, 'hush', () => { sound.duck(0.3, 4); sound.play('fDeath', { gain: 1, wet: 0.6, bus: 'voice' }); this.lens.trauma = 0.5; });
@@ -191,7 +191,7 @@ export class RiverTurn {
     if (t >= TURN_LEN) { this.stop(); hud.verse(''); f.beginRound2(); k.set('riseW'); k.mt = k.prev = 3.2; this.onEnd(); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {
-    const { f, k1 } = this.kit, m = f.m, t = this.t, L = this.lens, k = f.king as River;
+    const { f, k1 } = this.kit, m = f.m, t = this.t, L = this.lens, k = f.boss as River;
     if (t < T.show) { const u = E(0, T.show, t); L.aim(cam, 1, V(m.x + 3.2 - u * 1.2, 0.9 + u * 0.1, m.z - 0.6 - u * 0.6), V(k.x, 1.0 - u * 0.3, k.z), 40 - u * 4, time); }
     else if (t < 11.4) { const h = k1.eyeAt(V()), u = E(T.show, 11.4, t); L.aim(cam, 7, V(h.x + 1.1 - u * 0.3, h.y - 0.7, h.z + 2.6 - u * 0.6), V(h.x, h.y - 1.15, h.z + 0.45), 34 - u * 4, time); }
     else if (t < 16.2) { const u = E(11.4, 16.2, t); L.aim(cam, 8, V(k.x - 4.6 + u * 0.8, 1.0, k.z + 3.2 - u * 0.4), V(k.x, 1.3, k.z + 0.3), 36, time, 0.02); }
@@ -238,7 +238,7 @@ export class RiverEnding {
     fx.bursts.add('fire', p, 2, 0.8, time); fx.bursts.add('flare', p, 4, 0.4, time); fx.sparks.emit(p, V(0, 0.6, -0.4), 60, 3, 2, -0.6, time); sound.play('fire', { gain: 0.8, wet: 0.5 }); sound.play('lampSet', { gain: 0.8, wet: 0.5 }); this.lens.trauma = 0.3;
   }
   step(dt: number, time: number, dev: 'keys' | 'pad' | 'touch' = 'keys') {
-    if (!this.active) return; const { f, fx, hud, ghats, k2 } = this.kit, m = f.m, k = f.king as River, c = this.c; this.t += dt;
+    if (!this.active) return; const { f, fx, hud, ghats, k2 } = this.kit, m = f.m, k = f.boss as River, c = this.c; this.t += dt;
     // the scene holds at the boat until the hero lights it: the world, the flame and the water go on, the words and the story do not
     if (!this.lit && this.t >= N.touch) { this.t = N.touch; if (!this.waiting) { this.waiting = true; this.waitK = 0; this.kit.prompt.show('attack', 'Light the boat', 1e9, dev); } this.waitK += dt; }
     const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.4);
@@ -264,7 +264,7 @@ export class RiverEnding {
     if (t >= END_LEN && !this.over) { this.over = true; this.dawn = 1; document.body.classList.remove('cine'); hud.won(f); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {
-    const { f, k2 } = this.kit, m = f.m, k = f.king as River, t = this.t, L = this.lens;
+    const { f, k2 } = this.kit, m = f.m, k = f.boss as River, t = this.t, L = this.lens;
     if (t < N.people) { const u = E(0, N.people, t); L.aim(cam, 1, V(m.x + 2.8 - u * 0.6, 0.8 + u * 0.2, m.z - 2.6), V(k.x, 1.8 - u * 0.5, k.z), 42, time); }
     else if (t < N.boat) { const u = E(N.people, N.boat, t); L.aim(cam, 2, V(-5.5 + u * 1.5, 0.6, 3.0), V(-1.5, 0.9 + u * 0.6, -10), 36, time); }
     else if (t < 17.4) { const u = E(N.boat, 17.4, t); L.aim(cam, 6, V(3.6 - u * 1.2, 0.9 + u * 0.3, -1.4 - u * 1.2), V(0, 1.0 + u * 0.3, -9.4), 36, time, 0.02); }

@@ -7,7 +7,7 @@ import type { Fight } from '../combat/fight.ts';
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), E = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 
 export function actionCam(cam: THREE.PerspectiveCamera, f: Fight, hero: number, base: number): boolean {
-  const { m, king: k } = f, c = m.clip?.name, dx = k.hx - m.x, dz = k.hz - m.z, d = Math.hypot(dx, dz) || 1, fx = dx / d, fz = dz / d, sx = fz, sz = -fx;
+  const { m, boss: k } = f, c = m.clip?.name, dx = k.hx - m.x, dz = k.hz - m.z, d = Math.hypot(dx, dz) || 1, fx = dx / d, fz = dz / d, sx = fz, sz = -fx;
   let px = 0, py = 0, pz = 0, lx = 0, ly = 0, lz = 0, fov = base;
   if (c === 'rites' && m.t < 4.5) {
     const r = m.ritesFrom, gx = -Math.sin(r.a), gz = -Math.cos(r.a), hx = gz, hz = -gx, far = Math.hypot(r.x - k.hx, r.z - k.hz) > 15; // g: from where he stood, toward it

@@ -37,7 +37,7 @@ const SNAP = () => {
   const prim = (o, skip, d = 0) => { const out = {}; if (!o) return out; for (const k of Object.keys(o)) { if (skip.has(k)) continue; const f = flat(o[k], d); if (f !== undefined) out[k] = f; } return out; };
   const none = new Set();
   const S = {};
-  S.fight = prim(__f, new Set(['m', 'king', 'brain', 'props', 'ev', 'carry', 'blockers', 'target', 'aim', 'spent', 'queue', 'falling', 'blasts', 'shots', 'hazards', 'ids', 'swung', 'chipped', 'boomAt', 'wasReady']));
+  S.fight = prim(__f, new Set(['m', 'boss', 'brain', 'props', 'ev', 'carry', 'blockers', 'target', 'aim', 'spent', 'queue', 'falling', 'blasts', 'shots', 'hazards', 'ids', 'swung', 'chipped', 'boomAt', 'wasReady']));
   Object.assign(S.fight, { props: __f.props.map(p => (p.broken ? 'x' : '.') + R(p.hp)).join(' '), hazards: __f.hazards.length, shots: __f.shots.length, blasts: __f.blasts.length, falling: __f.falling.length, queue: __f.queue.length, momentKey: __f.momentKey, spent: __f.spent.size, wasReady: Object.values(__f.wasReady).map(Boolean).join('') });
   S.brain = prim(__f.brain, new Set(['queue', 'recent']));
   Object.assign(S.brain, { queue: __f.brain.queue?.length, recent: __f.brain.recent?.length });

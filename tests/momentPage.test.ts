@@ -34,7 +34,7 @@ function playPage(f: Fight, spec: (f: Fight) => ReturnType<typeof kingMoments>[k
 
 describe('the King: the first throw plays its scene on the page', () => {
   it('the noose starts its moment, runs its cues in order, with bars, and stays finite to the end', () => {
-    const f = new Fight(new Motor(), new King(), new Brain()); f.passive = true; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; f.king.yaw = 0; const K = f.king as King;
+    const f = new Fight(new Motor(), new King(), new Brain()); f.passive = true; f.m.x = 0; f.m.z = -2; f.m.yaw = Math.PI; f.boss.yaw = 0; const K = f.boss as King;
     K.set('grab'); f.brain.seen.add('grab');
     for (let i = 0; i < 4 * 60 && K.held !== 'noose'; i++) f.step(DT, 0, 0, []);
     expect(K.held).toBe('noose');
@@ -51,7 +51,7 @@ describe('the King: the first throw plays its scene on the page', () => {
 describe('the Ferryman: the first drag plays its scene on the page', () => {
   it('the drag starts its moment, lasts a cinematic length, and stays finite to the end', () => {
     const f = new Fight(new Motor(), new River(), new RiverBrain()); f.passive = true; f.m.x = 0; f.m.z = -1.5; f.m.yaw = Math.PI;
-    const R = f.king as River; R.x = 0; R.z = -4; R.yaw = 0;
+    const R = f.boss as River; R.x = 0; R.z = -4; R.yaw = 0;
     R.set('dragDeep'); f.brain.seen.add('dragDeep');
     for (let i = 0; i < 4 * 60 && R.held !== 'drag'; i++) f.step(DT, 0, 0, []);
     expect(R.held).toBe('drag');

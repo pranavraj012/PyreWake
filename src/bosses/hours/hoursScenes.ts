@@ -27,14 +27,14 @@ export class HoursIntro {
   constructor(kit: HoursKit) { this.kit = kit; }
   get active() { return this.t < INTRO_LEN; }
   /** At rest: she sits by the last cot with the cord in her fingers. */
-  rest() { const { f, k1 } = this.kit, k = f.king as Sister; k.form = 1; k.x = 0; k.z = -4; k.y = 0; k.yaw = 0; k.reset(); k.set('sit'); k1.settle(); k1.show(true); k1.eyeK = 0; }
+  rest() { const { f, k1 } = this.kit, k = f.boss as Sister; k.form = 1; k.x = 0; k.z = -4; k.y = 0; k.yaw = 0; k.reset(); k.set('sit'); k1.settle(); k1.show(true); k1.eyeK = 0; }
   start() { const { f, pv, hd } = this.kit, m = f.m; this.t = 0; this.c.clear(); this.lens.cut = 0; this.lens.trauma = 0; this.rest(); m.revive(0, 15.5, Math.PI); pv.reset(); hd.reset(); sound.score?.set('vigil'); }
   stop() { this.t = INTRO_LEN; this.kit.hud.verse(''); this.restore(); }
   skip() { if (!this.active || this.t < 0.6) return; this.c.off = true; this.t = INTRO_LEN; this.finish(); }
-  private restore() { const { k1, f } = this.kit, k = f.king as Sister; k1.eyeK = 1; k1.emberHold = null; if (k.form === 1 && (k.mode === 'kneel' || k.mode === 'sit')) { k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k1.settle(); } }
+  private restore() { const { k1, f } = this.kit, k = f.boss as Sister; k1.eyeK = 1; k1.emberHold = null; if (k.form === 1 && (k.mode === 'kneel' || k.mode === 'sit')) { k.x = 0; k.z = -4; k.yaw = 0; k.set('idle'); k1.settle(); } }
   private finish() { this.kit.hud.verse(''); this.restore(); this.onEnd(); }
   step(dt: number, _time: number): number {
-    const { f, hud, k1 } = this.kit, k = f.king as Sister, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.6);
+    const { f, hud, k1 } = this.kit, k = f.boss as Sister, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.6);
     speak(HOURS_INTRO.lines, t, (at, id, g) => c.at(t, at, id, g), v => hud.verse(v));
     c.at(t, 0.05, 'hush', () => { sound.duck(0.4, 3); sound.play('sBreath', { gain: 0.8, wet: 0.7 }); });
     c.at(t, 0.3, 'place', () => hud.say(HOURS_INTRO.place, 3.2, 'place'));
@@ -69,12 +69,12 @@ export class HoursTurn {
   t = -1; mono = 0; rate = 1; onEnd: () => void = () => { }; private c = new Cues(); private lens = new Lens(); private kit: HoursKit; private off = false;
   constructor(kit: HoursKit) { this.kit = kit; }
   get active() { return this.t >= 0; }
-  start() { const { f, hd } = this.kit, m = f.m, k = f.king as Sister; this.t = 0; this.off = false; this.c.clear(); this.lens.cut = 0; this.mono = 0; if (Math.hypot(m.x - k.x, m.z - k.z) < 3.6) { m.revive(k.x, k.z + 4.2, Math.PI); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.score?.set('scene'); hd.cine = { day: 0 }; }
+  start() { const { f, hd } = this.kit, m = f.m, k = f.boss as Sister; this.t = 0; this.off = false; this.c.clear(); this.lens.cut = 0; this.mono = 0; if (Math.hypot(m.x - k.x, m.z - k.z) < 3.6) { m.revive(k.x, k.z + 4.2, Math.PI); this.kit.pv.reset(); } document.body.classList.add('cine'); sound.score?.set('scene'); hd.cine = { day: 0 }; }
   stop() { this.t = -1; this.mono = 0; this.kit.hd.cine = null; this.kit.house.inhale(0); this.kit.k1.emberHold = null; document.body.classList.remove('cine'); }
   skip() { if (!this.active || this.t < 0.8) return; this.become(); this.c.off = true; this.kit.hud.verse(''); this.t = TURN_LEN; }
-  private become() { const { f, k1, k2, hd } = this.kit, k = f.king as Sister, m = f.m; if (k.form === 2) return; k1.show(false); k.form = 2; k.x = 0; k.z = -4; k.y = 0; k.yaw = 0; k.reset(); k.set('rise'); k2.show(true); k2.settle(); if (hd.cine) hd.cine.day = 1; if (Math.hypot(m.x, m.z + 4) < 6.5) { m.revive(0, 4.5, Math.PI); this.kit.pv.reset(); } }
+  private become() { const { f, k1, k2, hd } = this.kit, k = f.boss as Sister, m = f.m; if (k.form === 2) return; k1.show(false); k.form = 2; k.x = 0; k.z = -4; k.y = 0; k.yaw = 0; k.reset(); k.set('rise'); k2.show(true); k2.settle(); if (hd.cine) hd.cine.day = 1; if (Math.hypot(m.x, m.z + 4) < 6.5) { m.revive(0, 4.5, Math.PI); this.kit.pv.reset(); } }
   step(dt: number, time: number) {
-    if (!this.active) return; this.t += dt; const t = this.t, { f, fx, hud, house, k1, hd } = this.kit, k = f.king as Sister, c = this.c, L = this.lens; L.trauma *= Math.exp(-dt * 2.4);
+    if (!this.active) return; this.t += dt; const t = this.t, { f, fx, hud, house, k1, hd } = this.kit, k = f.boss as Sister, c = this.c, L = this.lens; L.trauma *= Math.exp(-dt * 2.4);
     if (!this.off && k.form === 1 && k.mode === 'fall' && k.mt > 1.2) k.mt = k.prev = 1.2;
     // her knee on the dial floor; the last embers gutter
     if (k.form === 1) k1.emberHold = Math.max(0, Math.round(3 * (1 - E(0.2, 1.6, t))));
@@ -92,7 +92,7 @@ export class HoursTurn {
     if (t >= TURN_LEN) { this.stop(); hud.verse(''); f.beginRound2(); k.set('rise'); k.mt = k.prev = 2.6; this.onEnd(); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {
-    const { f, k1, k2 } = this.kit, m = f.m, t = this.t, L = this.lens, k = f.king as Sister;
+    const { f, k1, k2 } = this.kit, m = f.m, t = this.t, L = this.lens, k = f.boss as Sister;
     if (t < 1.8) { const u = E(0, 1.8, t); L.aim(cam, 1, V(m.x + 2.6 - u * 0.6, 0.7, m.z - 0.4), V(k.x, 1.4 - u * 0.3, k.z), 40, time); }
     else if (t < 8.6) { const h = k1.mark('head', V()), u = E(1.8, 8.6, t), fs = Math.sin(k.yaw), fc = Math.cos(k.yaw); L.aim(cam, 2, V(h.x + fs * (1.5 - u * 0.4) + fc * 0.35, h.y - 0.35 + u * 0.1, h.z + fc * (1.5 - u * 0.4) - fs * 0.35), V(h.x, h.y - 0.02, h.z), 32 - u * 6, time); }
     else if (t < 11.6) { const h = k1.mark('head', V()), u = E(8.6, 11.6, t); L.aim(cam, 3, V(h.x + 2.0, 0.7, h.z + 3.0), V(h.x, h.y + 1 + u * 4, h.z - u), 52 + u * 10, time, 0.02); }
@@ -113,7 +113,7 @@ export class HoursEnding {
   stop() { const { k1, hd, f } = this.kit; this.t = -1; this.over = false; f.sceneMove = { x: 0, z: 0 }; k1.size(SISTER_SCALE); k1.emberHold = null; k1.dissolve.value = 0; k1.cleaver.visible = true; hd.cine = null; this.kit.hud.verse(''); document.body.classList.remove('cine'); }
   skip() { if (this.active && this.t > 2.2 && this.t < END_LEN) { this.c.off = true; this.t = END_LEN; } }
   step(dt: number, time: number) {
-    if (!this.active) return; const { f, fx, hud, k1, k2 } = this.kit, m = f.m, k = f.king as Sister, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.4);
+    if (!this.active) return; const { f, fx, hud, k1, k2 } = this.kit, m = f.m, k = f.boss as Sister, c = this.c; this.t += dt; const t = this.t; this.lens.trauma *= Math.exp(-dt * 2.4);
     c.at(t, 0.05, 'hush', () => { sound.duck(0.05, 3); sound.play('pDeath', { gain: 1, wet: 0.7, bus: 'voice' }); });
     speak(HOURS_ENDING.lines, t, (at, id, g) => c.at(t, at, id, g), v => hud.verse(v));
     // the hours go up out of the cloth into the sunlight, hundreds, slowly
@@ -132,7 +132,7 @@ export class HoursEnding {
     if (t >= END_LEN && !this.over) { this.over = true; document.body.classList.remove('cine'); hud.won(f); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {
-    const { f, k1 } = this.kit, m = f.m, t = this.t, L = this.lens, k = f.king as Sister;
+    const { f, k1 } = this.kit, m = f.m, t = this.t, L = this.lens, k = f.boss as Sister;
     if (t < 6.6) { const u = E(0, 6.6, t); L.aim(cam, 1, V(m.x + 3 - u, 1 + u * 0.8, m.z + 1.5), V(k.x, 2 + u * 3, k.z), 46, time); }
     else if (t < 9.6) { L.aim(cam, 2, V(2.4, 0.9, -1.2), V(0, 0.8, -4.4), 38, time); }
     else if (t < 23.6) { const h = k1.mark('head', V()), u = E(9.6, 23.6, t); L.aim(cam, 3, V(h.x + 1.0 - u * 0.2, h.y + 0.15, h.z + 2.1 - u * 0.5), V(h.x, h.y - 0.15, h.z), 38 - u * 6, time); }

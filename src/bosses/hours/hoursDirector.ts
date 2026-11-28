@@ -27,7 +27,7 @@ export class HoursDirector {
     this.dir = dir; this.f = f; this.house = house; this.v1 = v1; this.v2 = v2; this.post = post; this.hud = hud; this.light = light; this.fx = new HoursFx(g.scene, g.cloth, g.scythe, g.cot, dir.fx, DEPTH.still);
     dir.moods = { scythe: 'hours', pall: 'pall' }; dir.extra = (e, t) => this.on(e, t); dir.ambient = fi => this.ambient(fi); dir.propFx = (e, t) => this.prop(e, t); dir.zoneFx = (z, t) => this.zone(z, t);
   }
-  get sim() { return this.f.king as Sister; }
+  get sim() { return this.f.boss as Sister; }
   private ambient(f: Fight) { const r2 = f.round === 2; sound.bed('fireBed', r2 ? 0.0 : 0.22); sound.bed('windLow', r2 ? 0.55 : 0.22); sound.bed('wind', r2 ? 0.35 : 0); sound.bed('clothBed', r2 && f.phase !== 'won' ? 0.4 : 0); }
   reset() { this.fx.reset(); this.lastEmber = 7; this.ritesT = 0; this.v2.burnt = 0; this.second = false; SUNDIR.value.copy(SUNS[0]); if (this.f.round === 1) this.light(0); else this.round2(true); }
   round2(first = false) { SUNDIR.value.copy(SUNS[0]); this.light(1); void first; }

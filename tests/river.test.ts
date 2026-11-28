@@ -9,12 +9,12 @@ import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }];
 /** Hero `gap` metres in front of the boss, facing it. */
-const mk = (gap = 3, form: 1 | 2 = 1) => { const f = new Fight(new Motor(), new River(), new RiverBrain()); f.passive = true; const k = f.king as River; if (form === 2) f.beginRound2(); k.x = 0; k.z = -4; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; f.invuln = 0; return { f, k }; };
+const mk = (gap = 3, form: 1 | 2 = 1) => { const f = new Fight(new Motor(), new River(), new RiverBrain()); f.passive = true; const k = f.boss as River; if (form === 2) f.beginRound2(); k.x = 0; k.z = -4; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; f.invuln = 0; return { f, k }; };
 const run = (f: Fight, secs: number, press: (i: number) => Press[] = () => [], move: (i: number) => [number, number] = () => [0, 0]) => { const ev: FightEvent[] = []; for (let i = 0; i < secs * 60; i++) { const [x, z] = move(i); f.step(DT, x, z, press(i)); ev.push(...f.ev); } return ev; };
 const n = (ev: FightEvent[], k: string) => ev.filter(e => e.k === k).length, b = (ev: FightEvent[], e: string) => ev.filter(x => x.k === 'b' && x.e === e).length;
 /** A cast thrown at you that you have stepped out of. */
 const dodged = (f: Fight) => { run(f, 0.6); f.m.x = 9; run(f, 1.0); };
-const until = (f: Fight, t: number) => { for (let i = 0; i < 900 && f.king.mt < t; i++) f.step(DT, 0, 0, []); };
+const until = (f: Fight, t: number) => { for (let i = 0; i < 900 && f.boss.mt < t; i++) f.step(DT, 0, 0, []); };
 const go = (gap: number, mode: string, form: 1 | 2 = 1) => { const t = mk(gap, form); t.f.brain.seen.add(mode); t.k.set(mode); return t; };
 
 describe('the Ferryman: every move shows itself, lands, and can be escaped', () => {
@@ -75,11 +75,11 @@ describe('the lantern', () => {
   it('a false lantern is only a ripple', () => { const { f, k } = go(6, 'wrongShore'); run(f, 1.6); const fake = k.lanterns.find(l => !l.real)!, real = k.lanterns.find(l => l.real)!, dx = fake.x - real.x, dz = fake.z - real.z, L = Math.hypot(dx, dz); f.m.x = fake.x + dx / L * 1.2; f.m.z = fake.z + dz / L * 1.2; f.m.yaw = Math.atan2(-dx, -dz); f.invuln = 5; const ev = run(f, 1, i => i === 0 ? tap('attack') : []); expect(b(ev, 'fake')).toBe(1); expect(k.mode).toBe('wrongShore'); expect(k.lanterns.length).toBe(2); });
   it('ignored, the lanterns burn where they float', () => { const { f } = go(6, 'wrongShore'); f.m.x = 12; f.m.z = 4; f.invuln = 0; const ev = run(f, 6.6); expect(b(ev, 'lanternsBurst')).toBe(1); expect(f.hazards.length + n(ev, 'zone')).toBeGreaterThan(0); });
   it('Cold Hands: the drowned grab under you, then across your way, then close a ring of arms; standing still is caught, a spell burns a path', () => {
-    const a = go(4, 'coldHands'); a.f.invuln = 0; const ev = run(a.f, 4.5); expect(b(ev, 'hands')).toBe(3); expect(n(ev, 'zone')).toBe(5); expect((a.f.king as River).ring).not.toBeNull(); expect(n(ev, 'hurt')).toBeGreaterThanOrEqual(1);
+    const a = go(4, 'coldHands'); a.f.invuln = 0; const ev = run(a.f, 4.5); expect(b(ev, 'hands')).toBe(3); expect(n(ev, 'zone')).toBe(5); expect((a.f.boss as River).ring).not.toBeNull(); expect(n(ev, 'hurt')).toBeGreaterThanOrEqual(1);
     const t = go(4, 'coldHands'); t.f.fire = 100; run(t.f, 1.1); const zs = t.f.hazards.filter(h => h.mode === 'coldHands'); expect(zs.length).toBe(2); expect(Math.hypot(zs[0].x - t.f.m.x, zs[0].z - t.f.m.z)).toBeLessThan(0.1);
   });
   it('Cold Hands: a hero who keeps moving and jumps the ring gets out', () => {
-    const t = go(4, 'coldHands'); let jumped = false; const ev = run(t.f, 4.6, () => { const r = (t.f.king as River).ring; if (r && !jumped && Math.abs(Math.hypot(t.f.m.x - r.x, t.f.m.z - r.z) - r.R) < 1.0) { jumped = true; return tap('jump'); } return []; }, i => [Math.sin(i / 25), Math.cos(i / 25)]);
+    const t = go(4, 'coldHands'); let jumped = false; const ev = run(t.f, 4.6, () => { const r = (t.f.boss as River).ring; if (r && !jumped && Math.abs(Math.hypot(t.f.m.x - r.x, t.f.m.z - r.z) - r.R) < 1.0) { jumped = true; return tap('jump'); } return []; }, i => [Math.sin(i / 25), Math.cos(i / 25)]);
     expect(n(ev, 'hurt')).toBeLessThanOrEqual(1);
   });
 });
@@ -95,7 +95,7 @@ describe('the Unburdened', () => {
 
 describe('the whole fight', () => {
   it('a bot that attacks and dodges beats both rounds, and it does not take forever', () => {
-    const f = new Fight(new Motor(), new River(), new RiverBrain(3)), k = f.king as River, m = f.m; m.z = 5; let t = 0, act = -1, up = -1, last = 0; const out: string[] = [];
+    const f = new Fight(new Motor(), new River(), new RiverBrain(3)), k = f.boss as River, m = f.m; m.z = 5; let t = 0, act = -1, up = -1, last = 0; const out: string[] = [];
     for (let i = 0; i < 60 * 900; i++) {
       if (f.phase === 'scene') { f.beginRound2(); out.push('r2@' + Math.round(f.time)); }
       const d = m.targetDist, a = Math.atan2(k.hx - m.x, k.hz - m.z); let p: Press[] = [], go = d > 2 ? 1 : 0;

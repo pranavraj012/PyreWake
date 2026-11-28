@@ -19,7 +19,7 @@ export class RiverDirector {
   constructor(dir: Director, f: Fight, g: Awaited<ReturnType<typeof buildGhats>>, v1: RiverView, v2: RiverView, post: Post, hud: Hud) {
     this.dir = dir; this.f = f; this.g = g; this.v1 = v1; this.v2 = v2; this.post = post; this.hud = hud; dir.moods = { pole: 'row', chain: 'row2', lantern: 'row3', bare: 'weight', last: 'weight2' }; dir.extra = (e, t) => this.on(e, t); dir.ambient = fi => this.ambient(fi);
   }
-  get sim() { return this.f.king as River; }
+  get sim() { return this.f.boss as River; }
   private ambient(f: Fight) { sound.bed('waterBed', f.phase === 'won' ? 0.35 : 0.62); sound.bed('windLow', 0.3); sound.bed('lampsBed', 0.18 + 0.2 * this.g.water.line.value); }
   /** After a rest, or a new fight. */
   reset() { this.turnK = 0; if (this.f.round === 1) { this.fieldK = 0; this.g.unburden(0); } this.boilT = 0; this.darkK = 0; this.freedSeen = 0; this.g.water.boil.value.w = 0; this.g.lamps(1, true); this.told.clear(); this.post.heat.value = 0; this.dir.inkWant = 0; this.dir.mono = 0; }

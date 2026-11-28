@@ -13,7 +13,7 @@ function kit() {
   const m = { x: 0, z: 0, revive() { } };
   const k = { x: 0, z: -26, y: 0, yaw: 0, form: 1, set() { } };
   const kit = {
-    f: { m, king: k },
+    f: { m, boss: k },
     pv: { reset() { } },
     rd: { reset() { }, cine: null as unknown },
     k1: { settle() { }, eyes() { }, show() { }, eyeBurst() { }, eyeAt: () => new THREE.Vector3(), lampHidden: false },

@@ -25,11 +25,11 @@ export class Prologue {
   t = STORY_LEN; /** To black, and how the world is drained. */ dark = 1; mono = 0; ink = 0; /** Height of the pyres. */ flame = 1; omen = 0; private c = new Cues(); private lens = new Lens(); private kit: SceneKit; private fires: THREE.Vector3[];
   constructor(kit: SceneKit, fires: THREE.Vector3[]) { this.kit = kit; this.fires = fires; }
   get active() { return this.t < STORY_LEN; }
-  start() { const { f, pv, k1 } = this.kit, k = f.king; this.t = 0; this.c.clear(); this.lens.cut = 0; this.dark = 1; this.flame = 1; this.omen = 0; k.x = 0; k.z = -4; k.yaw = 0; k.set('hang'); k.ht = 4; k.dir = 0; k1.settle(); f.m.revive(0, 15.3, Math.PI); pv.reset(); sound.score?.set('vigil'); }
+  start() { const { f, pv, k1 } = this.kit, k = f.boss; this.t = 0; this.c.clear(); this.lens.cut = 0; this.dark = 1; this.flame = 1; this.omen = 0; k.x = 0; k.z = -4; k.yaw = 0; k.set('hang'); k.ht = 4; k.dir = 0; k1.settle(); f.m.revive(0, 15.3, Math.PI); pv.reset(); sound.score?.set('vigil'); }
   skip() { if (this.active && this.t > 0.6) this.end(); }
   private end() { this.t = STORY_LEN; this.dark = this.mono = this.ink = this.omen = 0; this.flame = 1; this.kit.hud.verse(''); }
   step(dt: number, time: number) {
-    const { f, pv, hud, fx } = this.kit, m = f.m, k = f.king, c = this.c; this.t += dt; const t = this.t, i = Math.min(STORY.length - 1, Math.floor(t / LINE)), u = t - i * LINE;
+    const { f, pv, hud, fx } = this.kit, m = f.m, k = f.boss, c = this.c; this.t += dt; const t = this.t, i = Math.min(STORY.length - 1, Math.floor(t / LINE)), u = t - i * LINE;
     STORY.forEach((line, n) => { c.at(t, n * LINE + 0.45, 'l' + n, () => hud.verse(line)); c.at(t, (n + 1) * LINE - 0.55, 'x' + n, () => hud.verse('')); });
     this.dark = Math.max(0, 1 - u / 0.7, (u - (LINE - 0.45)) / 0.4); this.mono = 0.96; this.ink = 0.75;
     if (i < NIGHT || k.mode === 'hang') { if (k.mode !== 'hang') k.set('hang'); k.th = Math.sin(t * 0.9) * 0.07; k.mt = 0; }
@@ -63,14 +63,14 @@ export class Intro {
   t = INTRO_LEN; private c = new Cues(); private lens = new Lens(); private kit: SceneKit; private set = { z: 0 };
   constructor(kit: SceneKit) { this.kit = kit; }
   get active() { return this.t < INTRO_LEN; }
-  start() { const { f } = this.kit, k = f.king, m = f.m; this.t = 0; this.c.clear(); this.lens.cut = 0; this.lens.trauma = 0; k.x = 0; k.z = -4; k.yaw = 0; k.y = 0; this.kneel(); this.kit.k1.settle(); m.revive(0, 15.3, Math.PI); this.kit.pv.reset(); this.set.z = 0; }
+  start() { const { f } = this.kit, k = f.boss, m = f.m; this.t = 0; this.c.clear(); this.lens.cut = 0; this.lens.trauma = 0; k.x = 0; k.z = -4; k.yaw = 0; k.y = 0; this.kneel(); this.kit.k1.settle(); m.revive(0, 15.3, Math.PI); this.kit.pv.reset(); this.set.z = 0; }
   /** Also the title screen: it is already there, waiting. */
-  kneel() { const k = this.kit.f.king; if (k.form !== 1) return; if (k.mode !== 'fall') k.set('fall'); k.mt = k.prev = KNEEL; }
+  kneel() { const k = this.kit.f.boss; if (k.form !== 1) return; if (k.mode !== 'fall') k.set('fall'); k.mt = k.prev = KNEEL; }
   skip() { if (this.active && this.t > 0.6) { this.end(); } }
-  private end() { this.t = INTRO_LEN; const { f, pv } = this.kit, k = f.king; k.x = 0; k.z = -4; k.yaw = 0; if (k.mode === 'fall') k.set('idle'); this.kit.k1.settle(); if (Math.hypot(f.m.x, f.m.z - 5.2) > 0.6) { f.m.revive(0, 5.2, Math.PI); pv.reset(); } }
+  private end() { this.t = INTRO_LEN; const { f, pv } = this.kit, k = f.boss; k.x = 0; k.z = -4; k.yaw = 0; if (k.mode === 'fall') k.set('idle'); this.kit.k1.settle(); if (Math.hypot(f.m.x, f.m.z - 5.2) > 0.6) { f.m.revive(0, 5.2, Math.PI); pv.reset(); } }
   /** Returns how far forward the hero wants to walk. */
   step(dt: number, time: number): number {
-    const { f, fx, hud, pv } = this.kit, m = f.m, k = f.king, c = this.c; this.t += dt; const real = this.t, t = at0(real); this.lens.trauma *= Math.exp(-dt * 2.6);
+    const { f, fx, hud, pv } = this.kit, m = f.m, k = f.boss, c = this.c; this.t += dt; const real = this.t, t = at0(real); this.lens.trauma *= Math.exp(-dt * 2.6);
     if (t < 11.0) this.kneel();
     c.at(real, 5.0, 'v0', () => hud.verse(KING_LINES.keepers)); c.at(real, 9.0, 'v0x', () => hud.verse(''));
     c.at(real, 9.6, 'v1', () => hud.verse(KING_LINES.kneel)); c.at(real, 14.4, 'v1x', () => hud.verse(''));
@@ -112,10 +112,10 @@ export class Ending {
   t = -1; /** How far the eclipse has lifted, and how much first light there is. */ clear = 0; dawn = 0; over = false; private c = new Cues(); private lens = new Lens(); private kit: SceneKit; private A = V(); private Y = 0;
   constructor(kit: SceneKit) { this.kit = kit; }
   get active() { return this.t >= 0; }
-  start() { const m = this.kit.f.m; this.t = 0; this.over = false; this.clear = this.dawn = 0; this.c.clear(); this.lens.cut = 0; this.A.set(m.x, 0, m.z); const k = this.kit.f.king; this.Y = Math.atan2(m.x - k.x, m.z - k.z); document.body.classList.add('cine'); }
+  start() { const m = this.kit.f.m; this.t = 0; this.over = false; this.clear = this.dawn = 0; this.c.clear(); this.lens.cut = 0; this.A.set(m.x, 0, m.z); const k = this.kit.f.boss; this.Y = Math.atan2(m.x - k.x, m.z - k.z); document.body.classList.add('cine'); }
   stop() { this.t = -1; this.clear = this.dawn = 0; this.over = false; this.kit.f.sceneMove = { x: 0, z: 0 }; document.body.classList.remove('cine'); }
   skip() { if (this.active && this.t > 2.2 && this.t < END_LEN) { this.place(); this.c.off = true; this.t = END_LEN; } }
-  private place() { this.c.at(99, 0, 'place', () => { const { f, pv, k2 } = this.kit, m = f.m, k = f.king; k.x = 0; k.z = -11; k.yaw = 0; k2.settle(); m.revive(0, -7, 0); pv.reset(); }); }
+  private place() { this.c.at(99, 0, 'place', () => { const { f, pv, k2 } = this.kit, m = f.m, k = f.boss; k.x = 0; k.z = -11; k.yaw = 0; k2.settle(); m.revive(0, -7, 0); pv.reset(); }); }
   step(dt: number, time: number) {
     if (!this.active) return; const { f, pv, fx, hud } = this.kit, m = f.m, c = this.c; this.t += dt; const real = this.t, t = at1(real); this.lens.trauma *= Math.exp(-dt * 2.4);
     c.at(real, 4.4, 'e0', () => hud.verse(KING_LINES.burns)); c.at(real, 6.5, 'e0x', () => hud.verse(''));
@@ -125,7 +125,7 @@ export class Ending {
     c.at(t, 0.05, 'hush', () => { sound.duck(0.05, 2.2); });
     c.at(t, 3.6, 'crack', () => sound.play('tear', { gain: 0.6, wet: 0.7 }));
     c.at(t, 4.2, 'burn', () => { sound.play('fire', { gain: 0.9, wet: 0.6 }); sound.play('whisper', { gain: 0.8, wet: 0.9 }); });
-    if (t > 3.6 && t < 6.6 && Math.random() < 0.7) { const k = f.king; fx.sparks.emit(V(k.x + (Math.random() - 0.5) * 1.6, 0.3 + Math.random() * 2.4, k.z + (Math.random() - 0.5) * 1.2), V(0, 0.9, 0), 5, 1.2, 1.6, -2.6, time); }
+    if (t > 3.6 && t < 6.6 && Math.random() < 0.7) { const k = f.boss; fx.sparks.emit(V(k.x + (Math.random() - 0.5) * 1.6, 0.3 + Math.random() * 2.4, k.z + (Math.random() - 0.5) * 1.2), V(0, 0.9, 0), 5, 1.2, 1.6, -2.6, time); }
     c.at(t, 6.6, 'cutaway', () => this.place());
     // he doesn't look back
     if (t > 6.7 && t < 14.2) { f.sceneMove = { x: 0, z: 0.4 / LATE }; } else f.sceneMove = { x: 0, z: 0 };
@@ -138,7 +138,7 @@ export class Ending {
     if (real >= END_LEN && !this.over) { this.over = true; this.clear = 1; this.dawn = 1; document.body.classList.remove('cine'); hud.won(f); }
   }
   camera(cam: THREE.PerspectiveCamera, time: number) {
-    const { f, k2 } = this.kit, m = f.m, k = f.king, t = at1(this.t), L = this.lens, s = Math.sin(this.Y), c = Math.cos(this.Y);
+    const { f, k2 } = this.kit, m = f.m, k = f.boss, t = at1(this.t), L = this.lens, s = Math.sin(this.Y), c = Math.cos(this.Y);
     if (t < 3.6) { const u = E(0, 3.6, t); // in front of him, low: the turn, and what he has turned his back on
       L.aim(cam, 1, V(m.x + s * (3.1 - u * 0.5) + c * 0.75, 0.55 + u * 0.15, m.z + c * (3.1 - u * 0.5) - s * 0.75), V(m.x - s * 0.8, 1.35, m.z - c * 0.8), 44 - u * 4, time); }
     else if (t < 6.6) { const u = E(3.6, 6.6, t), h = k2.hurt(V()); L.aim(cam, 2, V(k.x + s * 2.6 - c * (1.5 - u * 0.8), 0.6 + u * 0.5, k.z + c * 2.6 + s * (1.5 - u * 0.8)), h.setY(Math.min(1.7, h.y) + 0.15 + u * 0.15), 44, time, -0.03); }

@@ -8,10 +8,10 @@ import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60;
 /** Hero `gap` metres in front of the Ferryman, who faces him. Passive: the brain is not choosing moves. */
-const mk = (gap = 3, form: 1 | 2 = 1) => { const f = new Fight(new Motor(), new River(), new RiverBrain()); f.passive = true; if (form === 2) f.beginRound2(); const k = f.king as River; f.invuln = 0; k.x = 0; k.z = -4; k.yaw = 0; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; return { f, k }; };
+const mk = (gap = 3, form: 1 | 2 = 1) => { const f = new Fight(new Motor(), new River(), new RiverBrain()); f.passive = true; if (form === 2) f.beginRound2(); const k = f.boss as River; f.invuln = 0; k.x = 0; k.z = -4; k.yaw = 0; f.m.x = 0; f.m.z = -4 + gap; f.m.yaw = Math.PI; return { f, k }; };
 const steps = (f: Fight, secs: number, each?: (i: number) => void, press: (i: number) => Press[] = () => []) => { for (let i = 0; i < secs * 60; i++) { each?.(i); f.step(DT, 0, 0, press(i)); } };
 const until = (f: Fight, done: () => boolean, max = 30) => { for (let i = 0; i < max * 60 && !done(); i++) f.step(DT, 0, 0, []); return done(); };
-const R = (f: Fight) => f.king as River;
+const R = (f: Fight) => f.boss as River;
 
 describe('the drag (round 1)', () => {
   it('a hero who stands still in the drag is taken under, held, and always costs', () => {

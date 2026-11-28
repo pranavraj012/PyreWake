@@ -57,14 +57,14 @@ export class Prompts {
     }
     const cue = this.current && (this.current.id === 'dodge' || this.current.id === 'guard' || this.current.id === 'red' || this.current.id === 'ground');
     if (cue && this.cueT <= 0) { if (this.current!.id === 'ground' && m.targetDist > 2.6) this.finish('ground'); this.current = null; }
-    if (this.current?.id === 'reckon' && m.reckoning <= 0) this.current = null; if (this.current?.id === 'execute' && !m.can.execute) this.current = null; if (this.current?.id === 'hang' && !f.king.hanging) this.current = null;
+    if (this.current?.id === 'reckon' && m.reckoning <= 0) this.current = null; if (this.current?.id === 'execute' && !m.can.execute) this.current = null; if (this.current?.id === 'hang' && !f.boss.hanging) this.current = null;
     if (this.current && !cue && this.t > 7) { if (this.current.id !== 'attack' && this.current.id !== 'heal' && !/^(hang|finish|execute|reckon|wake)$/.test(this.current.id)) this.done.add(this.current.id); this.current = null; }
     if (f.phase === 'finish') { this.done.delete('finish'); this.show('finish'); return; }
     if (m.dead || f.phase === 'scene' || f.phase === 'won') { this.current = null; return; }
     if (f.time > 0.5) this.show('move');
     if (m.targetDist < 4.2 && f.hits === 0) this.show('attack');
     if (f.hp < D.hp * 0.4 && f.heals > 0) this.show('heal');
-    if (m.reckoning > 0 && m.targetDist < 5) this.show('reckon'); if (m.can.execute) this.show('execute'); if (f.king.hanging && f.king.ht > 1.2) this.show('hang'); if (m.can.ultimate) this.show('wake'); if (m.can.skill2 && this.done.has('skill') && (m.spells[1] === 'sunder' || m.spells[1] === 'ashfall' ? m.targetDist > 5 : m.targetDist < 6)) this.show('sunder');
+    if (m.reckoning > 0 && m.targetDist < 5) this.show('reckon'); if (m.can.execute) this.show('execute'); if (f.boss.hanging && f.boss.ht > 1.2) this.show('hang'); if (m.can.ultimate) this.show('wake'); if (m.can.skill2 && this.done.has('skill') && (m.spells[1] === 'sunder' || m.spells[1] === 'ashfall' ? m.targetDist > 5 : m.targetDist < 6)) this.show('sunder');
     if (m.can.skill1 && m.targetDist < (m.spells[0] === 'ashfall' || m.spells[0] === 'sunder' ? 30 : 9)) this.show('skill');
     if (f.hits > 5 && this.cueT <= 0 && m.targetDist < 6) this.show('jump');
     if (this.combos >= 1 && f.hits > 8 && this.cueT <= 0) this.show('finisher');

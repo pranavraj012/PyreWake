@@ -17,7 +17,7 @@ export interface Shot { id: number; x: number; z: number; dx: number; dz: number
 export type Phase = 'r1' | 'scene' | 'r2' | 'finish' | 'won';
 
 export class Fight {
-  m: Motor; king: Boss; brain: BossBrain; phase: Phase = 'r1'; round: 1 | 2 = 1;
+  m: Motor; boss: Boss; brain: BossBrain; phase: Phase = 'r1'; round: 1 | 2 = 1;
   hp = D.hp; fire = 0; wake = 0; heals = D.heals; bossHp: number; hits = 0; time = 0; ev: FightEvent[] = []; taken = 0; deaths = 0;
   /** Hits landed since you were last struck, and the aura it has earned (0-4). */ streak = 0; aura = 0; best = 0;
   /** The flame in the chest: relights you once per round. */ flame = true;
@@ -30,21 +30,21 @@ export class Fight {
   spawn = { x: 0, z: 5.2, yaw: Math.PI }; private aim = { x: 0, z: 0, r: 0.75 };
   /** Wake as round 2 began: a death in round 2 returns to it. */ private wakeAt2 = 0;
   /** Runs at the end of every reset, so a page clears what the fight does not own (moments, offers, prompts, music). Set by the page once. */ onReset: ((all: boolean) => void) | null = null;
-  constructor(m: Motor, king: Boss, brain: BossBrain) { this.m = m; this.king = king; this.brain = brain; this.bossHp = king.hp[0]; m.target = this.aim; this.sync(); }
-  get maxHp() { return this.king.hp[this.round - 1]; }
+  constructor(m: Motor, boss: Boss, brain: BossBrain) { this.m = m; this.boss = boss; this.brain = brain; this.bossHp = boss.hp[0]; m.target = this.aim; this.sync(); }
+  get maxHp() { return this.boss.hp[this.round - 1]; }
   /** Only what stands in front of you: what comes after has health of its own. */
   get bar() { return this.bossHp / this.maxHp; }
-  private sync() { const k = this.king; this.aim.x = k.hx; this.aim.z = k.hz; this.aim.r = k.hr; }
+  private sync() { const k = this.boss; this.aim.x = k.hx; this.aim.z = k.hz; this.aim.r = k.hr; }
 
   /** Blade windows live this step, for bosses with parts of their own to cut. */
   swings() { const m = this.m, c = m.clip; if (m.state !== 'clip' || !c?.hit) return []; return (c.hits ?? [c.hit]).flatMap((w, i) => m.t < w[0] || m.t > w[1] + 0.02 ? [] : [{ id: m.started + '/' + i, reach: c.reach ?? m.weapon.reach, arc: Math.min(180, c.arc ?? m.weapon.arc), power: c.power ?? 1 }]); }
   /** A ground danger of the boss's own making. */
-  addZone(h: Partial<Hazard>) { const z: Hazard = { id: ++this.ids, shape: 'circle', x: 0, z: 0, yaw: 0, r: 1.5, len: 0, half: 0.45, t: 0, delay: 1, dmg: 8, down: false, speed: 0, max: 0, done: false, visual: false, first: false, mode: this.king.mode, ...h }; this.hazards.push(z); this.ev.push({ k: 'zone', z }); return z; }
+  addZone(h: Partial<Hazard>) { const z: Hazard = { id: ++this.ids, shape: 'circle', x: 0, z: 0, yaw: 0, r: 1.5, len: 0, half: 0.45, t: 0, delay: 1, dmg: 8, down: false, speed: 0, max: 0, done: false, visual: false, first: false, mode: this.boss.mode, ...h }; this.hazards.push(z); this.ev.push({ k: 'zone', z }); return z; }
   private slow(k: number, t: number) { this.slowK = k; this.slowT = Math.max(this.slowT, t); }
   private gainFire(n: number) { this.fire = Math.min(D.fireMax, this.fire + n); }
   private setAura() { const t = D.aura.filter(n => this.streak >= n).length; if (t !== this.aura) { const up = t > this.aura; this.aura = t; this.ev.push({ k: 'aura', tier: t, up }); } }
   damage(dmg: number, power: number, reel: boolean, stop: number, kind: 'blade' | 'fire' = 'blade', by: 'sunder' | 'rites' | 'heavy' | null = null) {
-    const k = this.king, m = this.m; if (this.bossHp <= 0 || (this.phase !== 'r1' && this.phase !== 'r2') || !k.vulnerable) return;
+    const k = this.boss, m = this.m; if (this.bossHp <= 0 || (this.phase !== 'r1' && this.phase !== 'r2') || !k.vulnerable) return;
     const head = k.hanging; if (head) dmg *= D.boss.headMul; dmg *= k.dmgMul;
     this.bossHp = Math.max(0, this.bossHp - dmg); k.struck?.(this, kind); this.hits++; this.streak++; this.best = Math.max(this.best, this.streak); this.stop = Math.max(this.stop, stop); this.setAura(); this.wake = Math.min(100, this.wake + dmg * D.wakeGain * (1 + 0.2 * this.aura) * (kind === 'fire' ? D.spellWake : 1));
     // every blow moves it a little
@@ -73,7 +73,7 @@ export class Fight {
   /** Raised from outside (a button, a scene): kept for the next step so nobody misses it. */
   raise(e: FightEvent) { (this.inStep ? this.ev : this.carry).push(e); }
   private advance(dt: number, mx: number, mz: number, presses: Press[]): number {
-    const m = this.m, k = this.king;
+    const m = this.m, k = this.boss;
     if (this.phase === 'scene' || this.phase === 'won') { this.queue.length = 0; presses = []; mx = this.sceneMove.x; mz = this.sceneMove.z; }
     this.moments();
     // while a staged moment is on, the hero's presses are not his: a release still counts (it lets go of a charge or a guard)
@@ -119,7 +119,7 @@ export class Fight {
     return dt;
   }
   /** What the boss is staging right now (a grab, a reward being played, or one on offer), or null. Read by shape, so a boss that stages moments needs no hook. */
-  private staged(): string | null { const b = this.king as { staging?: string | null; reward?: string | null }; return b.staging ? b.staging : b.reward ? 'offer:' + b.reward : null; }
+  private staged(): string | null { const b = this.boss as { staging?: string | null; reward?: string | null }; return b.staging ? b.staging : b.reward ? 'offer:' + b.reward : null; }
   /** The moment that is on, or null. Changes when a moment starts, and again when an offer is taken (it becomes the reward's own scene). */
   private momentKey: string | null = null;
   /** A moment starts (and again when an offer is taken): the hero is taken out of whatever he is doing, and his pending blasts and shots are cancelled. */
@@ -129,7 +129,7 @@ export class Fight {
   }
   private granted = false; private gifted = false;
   private playerHits() {
-    const m = this.m, k = this.king, c = m.clip; if (!k.vulnerable) return; if (m.state !== 'clip' || !c?.hit || (k.airborne && !(m.y > 0.5 && k.y > 0 && k.y < m.y + 2))) return;
+    const m = this.m, k = this.boss, c = m.clip; if (!k.vulnerable) return; if (m.state !== 'clip' || !c?.hit || (k.airborne && !(m.y > 0.5 && k.y > 0 && k.y < m.y + 2))) return;
     const W = c.hits ?? [c.hit];
     W.forEach((w, i) => {
       const id = m.started + '/' + i; if (m.t < w[0] || m.t > w[1] + 0.02 || this.swung === id) return;
@@ -159,7 +159,7 @@ export class Fight {
   /** Scenes: bring this pillar down this way. */
   fell(p: Prop, yaw: number) { if (p.broken) return; p.broken = true; this.block(); this.raise({ k: 'prop', p, power: 4, dx: -Math.sin(yaw), dz: -Math.cos(yaw), broken: true, by: 'boss' }); this.falling.push({ p, yaw, t: 0, h: null }); this.raise({ k: 'topple', p, yaw }); }
   private stone(dt: number, live: boolean) {
-    const m = this.m, k = this.king, c = m.clip;
+    const m = this.m, k = this.boss, c = m.clip;
     // the hero's blade, dash and dive
     if (c) {
       const W = c.hits ?? (c.hit ? [c.hit] : []);
@@ -185,27 +185,27 @@ export class Fight {
   }
   private shoot(dmg: number, power: number, big: boolean) { const m = this.m, a = m.target && m.targetDist < 18 ? Math.atan2(m.target.x - m.x, m.target.z - m.z) : m.yaw, p: Shot = { id: ++this.ids, x: m.x + Math.sin(a) * 0.9, z: m.z + Math.cos(a) * 0.9, dx: Math.sin(a), dz: Math.cos(a), t: 0, life: big ? 1.1 : 0.75, speed: big ? 17 : 15, r: big ? 1.5 : 0.8, dmg, power, big, hit: false }; this.shots.push(p); this.ev.push({ k: 'shot', p }); }
   private fly(dt: number) {
-    const k = this.king; for (const p of this.shots) { p.t += dt; p.x += p.dx * p.speed * dt; p.z += p.dz * p.speed * dt; if (!p.hit && k.vulnerable && Math.hypot(k.hx - p.x, k.hz - p.z) < p.r + k.hr && k.y < (p.big ? 4 : 2.2)) { p.hit = true; this.gainFire(p.big ? 0 : D.gain.hit); this.ev.push({ k: 'shotHit', p }); this.damage(p.dmg, p.power, p.big, p.big ? 0.14 : 0.05, 'fire', p.big ? 'sunder' : null); if (p.big && k.hanging) { this.brain.drop(k); this.ev.push({ k: 'snap' }); } } }
+    const k = this.boss; for (const p of this.shots) { p.t += dt; p.x += p.dx * p.speed * dt; p.z += p.dz * p.speed * dt; if (!p.hit && k.vulnerable && Math.hypot(k.hx - p.x, k.hz - p.z) < p.r + k.hr && k.y < (p.big ? 4 : 2.2)) { p.hit = true; this.gainFire(p.big ? 0 : D.gain.hit); this.ev.push({ k: 'shotHit', p }); this.damage(p.dmg, p.power, p.big, p.big ? 0.14 : 0.05, 'fire', p.big ? 'sunder' : null); if (p.big && k.hanging) { this.brain.drop(k); this.ev.push({ k: 'snap' }); } } }
     this.shots = this.shots.filter(p => p.t < p.life);
   }
   /** Fire running along the floor from the second chain's ender. */
-  private wave() { const m = this.m, k = this.king, dx = k.hx - m.x, dz = k.hz - m.z, fw = dx * Math.sin(m.yaw) + dz * Math.cos(m.yaw), sd = Math.abs(dx * Math.cos(m.yaw) - dz * Math.sin(m.yaw)); if (fw > 1.5 && fw < 8 && sd < 1.4 && !k.airborne) this.damage(m.weapon.damage * 1.6, 1.8, false, 0.06, 'fire'); }
+  private wave() { const m = this.m, k = this.boss, dx = k.hx - m.x, dz = k.hz - m.z, fw = dx * Math.sin(m.yaw) + dz * Math.cos(m.yaw), sd = Math.abs(dx * Math.cos(m.yaw) - dz * Math.sin(m.yaw)); if (fw > 1.5 && fw < 8 && sd < 1.4 && !k.airborne) this.damage(m.weapon.damage * 1.6, 1.8, false, 0.06, 'fire'); }
 
   strikePlayer(dmg0: number, down: boolean, from: number, mode: string) {
     const m = this.m, dmg = dmg0 * (this.brain.seen.has(mode) ? 1 : D.teach.dmg);
     this.hp = Math.max(0, this.hp - dmg); this.taken++; this.invuln = D.hurtSafe + (down ? 0.9 : 0); this.stop = down ? 0.12 : 0.085; this.brain.hurt(this.time);
     if (this.streak) { this.streak = 0; this.setAura(); }
-    if (this.hp <= 0 && this.flame) { this.flame = false; this.hp = D.flame; this.invuln = 2.6; m.begin('rekindle'); m.yaw = from; this.slow(0.3, 1.0); this.hazards.length = 0; this.ev.push({ k: 'hurt', dmg, down: true }, { k: 'flame' }); if (!this.king.hanging && this.king.y === 0) this.king.set(this.king.reelMode); return; }
+    if (this.hp <= 0 && this.flame) { this.flame = false; this.hp = D.flame; this.invuln = 2.6; m.begin('rekindle'); m.yaw = from; this.slow(0.3, 1.0); this.hazards.length = 0; this.ev.push({ k: 'hurt', dmg, down: true }, { k: 'flame' }); if (!this.boss.hanging && this.boss.y === 0) this.boss.set(this.boss.reelMode); return; }
     if (this.hp <= 0) { m.yaw = from; m.die(); this.deaths++; this.deadT = 0; this.hazards.length = 0; this.slow(0.4, 0.8); this.ev.push({ k: 'hurt', dmg, down: true }, { k: 'dead' }); }
     else { m.hurt(from, down); this.ev.push({ k: 'hurt', dmg, down }); }
   }
-  evade() { const m = this.m, vanished = m.clip?.name === 'rush', perfect = !vanished && m.dodgeAge < D.perfect; if (perfect) { this.slow(0.32, 0.5); this.gainFire(D.gain.perfect); m.reckoning = 1.6; this.king.dodged?.(this); } this.ev.push({ k: 'evade', perfect }); }
+  evade() { const m = this.m, vanished = m.clip?.name === 'rush', perfect = !vanished && m.dodgeAge < D.perfect; if (perfect) { this.slow(0.32, 0.5); this.gainFire(D.gain.perfect); m.reckoning = 1.6; this.boss.dodged?.(this); } this.ev.push({ k: 'evade', perfect }); }
   /** Something passed under your feet. */
   /** When something last passed under your feet. */ leapT = -9;
   leapt() { this.leapT = this.time; this.gainFire(D.gain.perfect); this.m.sky = 1.6; this.slow(0.5, 0.22); this.ev.push({ k: 'leap' }); }
   private get vanished() { return this.m.clip?.name === 'rush' && this.m.t < 0.75; }
   private bossHits() {
-    const m = this.m, k = this.king;
+    const m = this.m, k = this.boss;
     for (const s of k.cues) {
       const first = !this.brain.seen.has(k.mode); this.ev.push({ k: 'cue', strike: s, lead: (s.t[0] - k.mt) / (s === k.strikes[0] ? k.rate : 1) / k.pace, first }); if (first && s === k.strikes[0]) this.teachSlow = true;
       for (const z of s.zones ?? []) {
@@ -251,8 +251,8 @@ export class Fight {
       if (!h.done && h.shape !== 'ring') { if (h.t - dt < h.delay) this.ev.push({ k: 'zoneHit', z: h }); }
       else if (h.shape === 'ring' && h.t - dt < h.delay) this.ev.push({ k: 'zoneHit', z: h });
       // one grab per boss: its first throw connects whatever the hero does
-      if (h.seize && !h.done && !m.dead && h.t >= h.delay && this.king.forcesGrab?.()) { h.done = true; this.king.seize?.(h.seize, this); }
-      if (inside && !h.done && !m.dead) { if (m.over) { h.done = true; this.leapt(); } else if (m.safe > 0 || this.vanished) { h.done = true; this.evade(); } else if (this.invuln <= 0) { h.done = true; if (h.seize && this.king.seize) this.king.seize(h.seize, this); else this.strikePlayer(h.dmg, h.down, Math.atan2(h.x - m.x, h.z - m.z) || m.yaw, h.mode); } }
+      if (h.seize && !h.done && !m.dead && h.t >= h.delay && this.boss.forcesGrab?.()) { h.done = true; this.boss.seize?.(h.seize, this); }
+      if (inside && !h.done && !m.dead) { if (m.over) { h.done = true; this.leapt(); } else if (m.safe > 0 || this.vanished) { h.done = true; this.evade(); } else if (this.invuln <= 0) { h.done = true; if (h.seize && this.boss.seize) this.boss.seize(h.seize, this); else this.strikePlayer(h.dmg, h.down, Math.atan2(h.x - m.x, h.z - m.z) || m.yaw, h.mode); } }
       if (over) h.max = -1;
     }
     this.hazards = this.hazards.filter(h => h.max !== -1 && h.t < h.delay + 2.5 && !(h.visual && h.t > h.delay));
@@ -261,7 +261,7 @@ export class Fight {
   private blasts: { t: number; x: number; z: number; r: number; dmg: number; power: number; reel: boolean; kind: string; follow: boolean }[] = [];
   private blast(x: number, z: number, r: number, dmg: number, power: number, reel: boolean, delay: number, kind: string, follow = false) { this.blasts.push({ t: delay, x, z, r, dmg, power, reel, kind, follow }); this.ev.push({ k: 'blastSet', x, z, r, kind, delay }); }
   private burn(dt: number) {
-    const k = this.king; for (const b of this.blasts) { if ((b.t -= dt) > 0) continue; if (b.follow) { b.x = k.hx + (Math.random() - 0.5) * 1.2; b.z = k.hz + (Math.random() - 0.5) * 1.2; }
+    const k = this.boss; for (const b of this.blasts) { if ((b.t -= dt) > 0) continue; if (b.follow) { b.x = k.hx + (Math.random() - 0.5) * 1.2; b.z = k.hz + (Math.random() - 0.5) * 1.2; }
       const hit = k.vulnerable && this.bossHp > 0 && Math.hypot(k.hx - b.x, k.hz - b.z) < b.r + k.hr && k.y < 3; this.ev.push({ k: 'blast', x: b.x, z: b.z, r: b.r, kind: b.kind, hit });
       if (hit) { this.gainFire(D.gain.hit * 0.5); this.damage(b.dmg, b.power, b.reel, b.reel ? 0.12 : 0.05, 'fire', b.reel ? 'sunder' : null); } }
     this.blasts = this.blasts.filter(b => b.t > 0);
@@ -271,18 +271,18 @@ export class Fight {
   /** Ashfall: embers come down on it wherever it is. */
   private ashfall() { const m = this.m; if (!m.target || m.targetDist > 24) return; for (let i = 0; i < 7; i++) this.blast(0, 0, 1.7, D.spell.fall, 1.3, i === 6, 0.55 + i * 0.22, 'fall', true); }
   private detonate() {
-    const m = this.m, k = this.king, a = m.rushFrom, b = { x: m.x, z: m.z }, vx = b.x - a.x, vz = b.z - a.z, L = vx * vx + vz * vz || 1, u = Math.max(0, Math.min(1, ((k.hx - a.x) * vx + (k.hz - a.z) * vz) / L)), d = Math.hypot(a.x + vx * u - k.hx, a.z + vz * u - k.hz), hit = d < D.rush.width && this.bossHp > 0 && k.y < 1.5;
+    const m = this.m, k = this.boss, a = m.rushFrom, b = { x: m.x, z: m.z }, vx = b.x - a.x, vz = b.z - a.z, L = vx * vx + vz * vz || 1, u = Math.max(0, Math.min(1, ((k.hx - a.x) * vx + (k.hz - a.z) * vz) / L)), d = Math.hypot(a.x + vx * u - k.hx, a.z + vz * u - k.hz), hit = d < D.rush.width && this.bossHp > 0 && k.y < 1.5;
     this.boomAt = { ax: a.x, az: a.z, bx: b.x, bz: b.z }; this.ev.push({ k: 'detonate', hit });
     if (hit) { const free = this.reelCd; this.reelCd = 0; this.damage(D.rush.dmg, 3, true, 0.13, 'fire'); if (k.mode !== 'reel' && k.mode !== 'reel2') this.reelCd = free; }
   }
   get trail() { return this.boomAt; }
   /** The scene is over: round 2 begins whole, and is a checkpoint. */
   beginRound2() {
-    const m = this.m, k = this.king; this.round = 2; this.phase = 'r2'; this.fire = 50; this.hp = D.hp; this.heals = D.heals; this.flame = true; this.bossHp = k.hp[1]; this.hazards.length = 0; this.shots.length = 0; this.invuln = 1.2; this.slowT = this.stop = 0; this.reelCd = 2; this.sceneMove = { x: 0, z: 0 };
+    const m = this.m, k = this.boss; this.round = 2; this.phase = 'r2'; this.fire = 50; this.hp = D.hp; this.heals = D.heals; this.flame = true; this.bossHp = k.hp[1]; this.hazards.length = 0; this.shots.length = 0; this.invuln = 1.2; this.slowT = this.stop = 0; this.reelCd = 2; this.sceneMove = { x: 0, z: 0 };
     k.form = 2; k.armed = false; k.crawling = false; if (k.mode !== 'rise2' && k.mode !== 'riseW') k.set('idle'); k.reset?.(); this.brain.reset(2); if (m.clip?.name !== 'flick') m.revive(m.x, m.z, Math.atan2(k.x - m.x, k.z - m.z)); this.raise({ k: 'round2' }); this.wakeAt2 = this.wake;
   }
   reset(all = false) {
-    const m = this.m, k = this.king; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; } else if (this.round === 2) this.wake = this.wakeAt2; else { this.wake = 0; this.granted = this.gifted = false; }
+    const m = this.m, k = this.boss; if (all) { this.round = 1; this.wake = 0; this.deaths = this.taken = this.best = 0; this.time = 0; this.granted = this.gifted = false; } else if (this.round === 2) this.wake = this.wakeAt2; else { this.wake = 0; this.granted = this.gifted = false; }
     // the court keeps what was broken through a death in the same fight (tests/fight.test.ts); a new fight makes it whole
     if (all && this.props.length) { for (const p of this.props) { p.broken = false; p.hp = p.max; } this.block(); this.raise({ k: 'restore' }); } this.blasts.length = 0; this.falling.length = 0;
     this.phase = this.round === 2 ? 'r2' : 'r1'; this.hp = D.hp; this.fire = this.round === 2 ? 50 : 0; this.heals = D.heals; this.flame = true; this.bossHp = this.maxHp; this.deadT = -1; this.invuln = 1; this.boom = -1; this.slowT = this.stop = 0; this.spent.clear(); this.queue = []; this.hazards.length = 0; this.shots.length = 0; this.streak = 0; this.setAura(); if (this.round === 1) this.hits = 0; this.slowK = 1; this.reelCd = 0; this.wasReady = { skill1: false, skill2: false, ultimate: false }; this.chipped = ''; this.hero = false; this.momentKey = null; this.sceneMove = { x: 0, z: 0 };

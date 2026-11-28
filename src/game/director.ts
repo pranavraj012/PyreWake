@@ -25,17 +25,17 @@ export class Director {
   f: Fight; pv: PlayerView; views: [BossView, BossView]; fx: Fx; cam: FollowCam; post: Post; hud: Hud; input: Input; camera: THREE.Camera; court: Court; onHalf: () => void = () => { }; onWon: () => void = () => { }; /** Extra colour drain asked for by a scene. */ mono = 0; /** The same drain taken to ink, and to black. */ inkWant = 0; dark = 0; private auraSeen = 0;
   constructor(o: { f: Fight; pv: PlayerView; views: [BossView, BossView]; fx: Fx; cam: FollowCam; post: Post; hud: Hud; input: Input; camera: THREE.Camera; court: Court; words: BossWords }) { this.court = o.court; this.words = o.words; this.court.ruin.heard = (x, z, size) => { if (this.stoneT < 0) { this.stoneT = 0.05; sound.play('stone', { x, z, gain: 0.25 + size * 0.5, rate: 1.25 - size * 0.5 }); } }; this.f = o.f; this.pv = o.pv; this.views = o.views; this.fx = o.fx; this.cam = o.cam; this.post = o.post; this.hud = o.hud; this.input = o.input; this.camera = o.camera; }
   /** The second boss plugs in here: its own events, moods, voices and ambience. */ extra: ((e: Extract<import('../combat/fight.ts').FightEvent, { k: 'b' }>, t: number) => void) | null = null; moods: Record<string, Mood> = {}; words: BossWords; ambient: ((f: Fight) => void) | null = null; /** A boss whose ground blows look otherwise: true when it has drawn the blow itself. */ zoneFx: ((z: import('../combat/fight.ts').Hazard, t: number) => boolean) | null = null; /** A place whose stone sounds otherwise: true when it has answered the blow itself. */ propFx: ((e: Extract<import('../combat/fight.ts').FightEvent, { k: 'prop' }>, t: number) => boolean) | null = null;
-  get kv() { return this.views[this.f.king.form - 1]; }
+  get kv() { return this.views[this.f.boss.form - 1]; }
   private buzz(ms: number) { this.input.rumble(ms / 90, ms / 55, 60 + ms * 1.6); if (this.input.lastDevice === 'touch' && settings.rumble > 0) try { navigator.vibrate?.(ms); } catch { /* not supported */ } }
   /** Slash angle on screen, from the blade's motion. */
   private screenAngle(v: THREE.Vector3) { const r = V().setFromMatrixColumn(this.camera.matrixWorld, 0), u = V().setFromMatrixColumn(this.camera.matrixWorld, 1); return Math.atan2(v.dot(u), v.dot(r)); }
   /** The court gives way: standing pillars well clear of the hero come down, harmlessly. */
   private bring(n: number) { const { f } = this, m = f.m; f.props.filter(p => p.kind === 'pillar' && !p.broken && Math.hypot(p.x - m.x, p.z - m.z) > 9.5).sort((a, b) => b.h - a.h || a.z - b.z).slice(0, n).forEach((p, i) => f.fell(p, Math.atan2(-p.x, -p.z) + (i % 2 ? 0.7 : -0.7))); }
   /** From the boss, in its own voice. */
-  private say(a: string, b: string, gain = 1) { const k = this.f.king, n = k.form === 2 ? b : a; sound.play(this.words.voice[n] ?? n, { x: k.hx, z: k.hz, bus: 'voice', gain }); }
+  private say(a: string, b: string, gain = 1) { const k = this.f.boss, n = k.form === 2 ? b : a; sound.play(this.words.voice[n] ?? n, { x: k.hx, z: k.hz, bus: 'voice', gain }); }
 
   private hit(e: { power: number; reel: boolean; kind: 'blade' | 'fire'; head: boolean }, t: number) {
-    const { f, pv, fx, cam, kv } = this, m = f.m, k = f.king, pos = { x: k.hx, z: k.hz };
+    const { f, pv, fx, cam, kv } = this, m = f.m, k = f.boss, pos = { x: k.hx, z: k.hz };
     const p = kv.nearest(pv.base, pv.tip, this.p), pw = e.power, v = pv.tipVel.clone().normalize(), away = V(k.hx - m.x, 0, k.hz - m.z).normalize(); if (e.kind === 'fire') p.set(k.hx, k.hanging ? 1.6 : 1.5, k.hz);
     kv.flinch(Math.atan2(away.x, away.z), pw, p); kv.wound(p, v, away, Math.min(1, 0.55 + pw * 0.2));
     const n = p.clone().addScaledVector(away, -0.16), an = this.screenAngle(v), light = pw < 0.95;
@@ -52,7 +52,7 @@ export class Director {
   }
   /** After the simulation and views have stepped. `dt` is simulated time, 0 while frozen on a hit. */
   step(dt: number, real: number, t: number) {
-    const { f, pv, fx, cam } = this, kv = this.kv, m = f.m, k = f.king, pos = { x: k.hx, z: k.hz }, me = { x: m.x, z: m.z };
+    const { f, pv, fx, cam } = this, kv = this.kv, m = f.m, k = f.boss, pos = { x: k.hx, z: k.hz }, me = { x: m.x, z: m.z };
     for (const e of f.ev) switch (e.k) {
       case 'hit': this.hit(e, t); break;
       case 'cue': if (e.strike.kind !== 'ground') this.cue.start(e.strike.kind, e.strike.mark, e.lead); sound.play(e.strike.kind === 'white' ? 'cueWhite' : e.strike.kind === 'red' ? 'cueRed' : 'cueGround', { gain: e.strike.kind === 'white' ? 1.2 : 1.2, wet: 0.25 }); if (e.strike.kind === 'red') this.buzz(40); if (e.strike === k.strikes[0] && Math.random() < 0.8) this.say('kGrunt', 'bBark', 0.75); break;
