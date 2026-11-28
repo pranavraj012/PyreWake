@@ -31,6 +31,7 @@ export class PallView implements BossView {
   pose: Pose = new Float32Array(N); private src = new Float32Array(N); private inert = new Inertial(); private last = ''; private chains: Chains; private chainRoot = new THREE.Matrix4(); private head = { w: 0 };
   /** The embers in the linen: how bright, how much they climb (the count), and Last Rites' burn. */ coals = { uT: FOG.uFogP, uK: { value: 1 }, uUp: { value: 0 }, uBurn: { value: 0 } };
   /** Seven embers at her face for the Long Count. */ embers: THREE.Sprite[] = []; private overlay: THREE.SkinnedMesh; private arms: Arm[];
+  /** A held view keeps the linen out of its near field: no arm link comes within `clearR` of `clearAt` (0 is off). */ clearAt = new THREE.Vector3(); clearR = 0;
   /** 0-1: Last Rites has burned her. */ burnt = 0; /** The camera looks this high at her. */ camH = 3.2; /** Kept for the page: her face never comes down to sword height now. */ headDown = 0; private headAt = V(); private spin = 0;
   constructor(scene: THREE.Scene, g: PallGeo, skin: THREE.Material, held: THREE.Material, depth: { skin: THREE.Material; still: THREE.Material }, fx: Fx, sim: Sister) {
     this.sim = sim; this.fx = fx; this.body = new Body(this.rig, PALL_SPEC); this.man.scale.setScalar(PALL_SCALE);
@@ -170,6 +171,7 @@ void main(){ if (abs(vM - 40.) > .5) discard; float t = uT.w; vec3 q = vP * vec3
       if (this.fresh) for (let j = 0; j <= ARM_ROWS; j++) arm.p[j].copy(arm.want[j]);
       for (let j = 1; j <= ARM_ROWS; j++) arm.p[j].lerp(arm.want[j], 1 - Math.exp(-dt * rate * (1.6 - 0.9 * j / ARM_ROWS)));
       arm.p[0].copy(R); for (let j = 1; j <= ARM_ROWS; j++) { tmp.copy(arm.p[j]).sub(arm.p[j - 1]); const l = tmp.length() || 1; arm.p[j].copy(arm.p[j - 1]).addScaledVector(tmp, SEG / l); if (arm.p[j].y < 0.04) arm.p[j].y = 0.04; }
+      if (this.clearR > 0) for (let j = 1; j <= ARM_ROWS; j++) { tmp.copy(arm.p[j]).sub(this.clearAt); const l = tmp.length(); if (l < this.clearR) arm.p[j].copy(this.clearAt).addScaledVector(l > 1e-3 ? tmp.divideScalar(l) : V(0, -1, 0), this.clearR); }
       // onto the rig: each link turned to point at the next
       for (let j = 0; j < ARM_ROWS; j++) {
         const i = r.i(`arm${k}_${j}`), rest = j < ARM_ROWS - 1 ? V(...armRest(k, j + 1)).sub(V(...armRest(k, j))).normalize() : V(...ARMS[k].dir).normalize();

@@ -100,10 +100,15 @@ function wireHours(k: WireKit<HoursParts>): Wired {
         eye.set(lx + ux * 0.1 * pull + w, hy - 0.1 * pull, lz + uz * 0.1 * pull);
         at.set(head.x, head.y - 0.3 - 0.2 * pull, head.z); return 56 - 14 * pull;
       }
-      if (t < LAND) { // the hurl: up, with her dropping away below; at the top he looks straight down at the stones, which rush up to meet him
-        const u = sm(GRIP.throw, GRIP.top, t), v = sm(GRIP.top - 0.25, LAND, t);
+      if (t < LAND) { // the hurl: up and away, she shrinks below him with the linen flung out; at the top the view turns to the far wall (the world tumbling round it), and only in the last moments does the floor come up to meet him
+        const u = sm(GRIP.throw, GRIP.top, t), w1 = sm(GRIP.top, GRIP.top + 0.2, t), w2 = sm(LAND - 0.17, LAND - 0.02, t), v = sm(GRIP.top - 0.25, LAND, t);
         eye.set(lx, hy, lz);
-        at.set(head.x + (lx + ux * 0.35 - head.x) * u, head.y * (1 - u), head.z + (lz + uz * 0.35 - head.z) * u); return 58 + 8 * v;
+        const bx = head.x + (sim.x - head.x) * u, by = head.y + (1.0 - head.y) * u, bz = head.z + (sim.z - head.z) * u; // her, from her face down to her feet
+        const fx = lx + ux * 10, fy = hy - 2.2, fz = lz + uz * 10; // the far wall, a little below the horizon
+        const gx = lx + ux * 0.35, gz = lz + uz * 0.35; // the stones, straight below
+        let ax = bx + (fx - bx) * w1, ay = by + (fy - by) * w1, az = bz + (fz - bz) * w1;
+        ax += (gx - ax) * w2; ay += (0 - ay) * w2; az += (gz - az) * w2;
+        at.set(ax, ay, az); return 58 + 8 * v;
       }
       // the landing: a low shot from in front of him, looking back along the stones: he lies there in the foreground and she towers behind; the view rises as he stirs
       const g = sm(LAND + 0.5, GRIP.len, t), d = 2.5 + 0.6 * sm(LAND, GRIP.len, t);
@@ -232,7 +237,8 @@ function wireHours(k: WireKit<HoursParts>): Wired {
       return (busy && fight.phase !== 'won') || menuOpen();
     },
     camera(cam, ms, t) {
-      if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.mt, t)) return true;
+      if (moment.active && moment.camera(cam, Math.min(ms / 1000, 0.05), sim.mt, t)) { v2.clearAt.copy(cam.position); v2.clearR = staged === 'hurl' && sim.mt >= CUT && sim.mt < LAND ? 1.8 : 0; return true; }
+      v2.clearR = 0;
       if (turn.active) { turn.camera(cam, t); return true; }
       if (ending.active) { ending.camera(cam, t); return true; }
       if (intro.active) { intro.camera(cam, t, c.baseFov()); return true; }

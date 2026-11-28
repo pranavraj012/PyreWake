@@ -79,7 +79,7 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
   // staged moments (src/game/moment.ts): the grab always plays out and holds the hero; the reward is the hero's, offered as a press while the chance lasts
   const cur = () => (sim.form === 2 ? v2 : v1);
   const rSpecs = { ...riverMoments(sim, m, { hand: o => cur().mark('handL', o), head: o => cur().mark('head', o) }) } as Record<'drag' | 'chain' | 'lantern', MomentSpec>;
-  const uset = new UnderSet(scene);
+  const uset = new UnderSet(scene, { ferry: v1.mesh.geometry, arm: v1.fxv.arms.geometry, drowned: v1.fxv.souls.geometry });
   let heroHid = false, dimOn = false;
   let staged: 'drag' | 'chain' | 'lantern' | null = null;
   // the reward on offer: the slow low shot by the hero's feet, then the press; the drag's own beats: the pull under, the bite, the heave
@@ -181,7 +181,7 @@ function wireRiver(k: WireKit<RiverParts>): Wired {
     },
     followTarget: () => ({ x: sim.hx, z: sim.hz, solid: sim.form === 1 && sim.y < 0.5, h: sim.form === 2 ? 2.1 : 1.7 + sim.y * 0.6 }),
     frame(cam, ms) { moment.settle(cam, Math.min(ms / 1000, 0.05)); },
-    debug: () => ({ __rd: rd, __kOffer: kOffer }),
+    debug: () => ({ __rd: rd, __kOffer: kOffer, __uset: uset }),
   };
 }
 

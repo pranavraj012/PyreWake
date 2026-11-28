@@ -38,7 +38,7 @@ C.dragDeep = clip('dragDeep', { dur: 3.2, blend: 0.3, move: [[0, 0], [3.2, 0]], 
   { t: 1.62, hy: -0.14, hp: -6, sp: -10, np: -20, ra: -20, re: 80, rl: 1, la: 20, le: 80, flz: -0.2, frz: 0.3 }, { t: 2.2, hy: -0.1, ra: -18, re: 84 }, at(3.2)] });
 /** The drag, held (the staged moment's own clock): his hand closes on the throat, he walks back hauling, bears down and holds the hero under, then heaves him out and lets him fall. */
 C.dragHeld = clip('dragHeld', { dur: 5.6, blend: 0.2, keys: [at(0),
-  { t: 0.3, hy: -0.22, hp: 14, hw: -10, sp: 20, sw: -12, np: -34, ra: -26, re: -30, rl: 1, ba: -20, be: -40, la: 30, le: -50, ll: 0.9, flz: 0.4, frz: -0.4 }, { t: 0.5, hy: -0.28, hp: 18, sp: 24, np: -40, ra: -22, re: -46, rl: 1, la: 24, le: -54, flz: 0.5, frz: -0.5 }, { t: 1.7, hy: -0.34, hp: 20, sp: 26, ra: -24, re: -48, flz: 0.3, frz: -0.3 },
+  { t: 0.3, hy: -0.22, hp: 14, hw: -10, sp: 20, sw: -12, np: -34, ra: -26, re: -30, rl: 1, ba: -20, be: -40, la: 30, le: -50, ll: 0.9, flz: 0.4, frz: -0.4 }, { t: 0.5, hy: -0.28, hp: 18, sp: 24, np: -40, ra: -22, re: -46, rl: 1, la: 24, le: -54, flz: 0.5, frz: -0.5 }, { t: 0.95, hy: -0.36, hp: -6, sp: -8, np: -24, ra: -24, re: -52, flz: 0.55, frz: -0.5 }, { t: 1.5, hy: -0.4, hp: -8, sp: -10, np: -26, ra: -24, re: -52, flz: -0.1, frz: 0.3 }, { t: 1.75, hy: -0.34, hp: 20, sp: 26, ra: -24, re: -48, flz: 0.3, frz: -0.3 },
   { t: 2.1, hy: -0.9, hp: 42, sp: 46, np: -64, ra: -10, re: -64, rl: 1, la: 12, le: -66, flz: 0.5, frz: -0.5, flp: 10 }, { t: 3.7, hy: -0.92, hp: 44, sp: 48, ra: -12, re: -66, la: 14, le: -66 },
   { t: 3.95, hy: -0.14, hp: -6, sp: -10, np: -20, ra: -20, re: 80, rl: 1, la: 20, le: 80, flz: -0.2, frz: 0.3 }, { t: 4.6, hy: -0.1, ra: -18, re: 84 }, at(5.6)] });
 // --- the Lantern

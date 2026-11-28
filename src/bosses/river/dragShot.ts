@@ -25,10 +25,13 @@ export function dragSpec(sim: River, m: Motor, marks?: Marks): MomentSpec {
       if (t < DRAG.under) {
         // the real stones: the lens is just behind his hand, which has the throat; his veiled face and the reed hat level with it, the lamps and the moon behind him
         if (marks) { marks.hand(hd); marks.head(hh); } else { hd.set(bx + ux * 1.8, 1.45, bz + uz * 1.8); hh.set(bx - ux * 0.3, 1.5, bz - uz * 0.3); }
-        const dive = sm(DRAG.haul, DRAG.under, t), jit = sm(DRAG.grip, DRAG.grip + 0.3, t) * (t < DRAG.haul ? 0.016 : 0.03), reach = sm(0, DRAG.grip, t);
-        const ey = 1.5 - 0.62 * sm(DRAG.grip + 0.1, DRAG.haul, t) - 0.7 * dive, back = 0.62 - 0.2 * reach * 0 - 0.15 * dive;
-        eye.set(hd.x + ux * back + sx * Math.sin(t * 29) * jit, Math.max(0.17, ey) + Math.sin(t * 37) * jit, hd.z + uz * back + sz * Math.sin(t * 29) * jit);
-        at.set(hh.x, hh.y - 0.3 + 0.6 * dive, hh.z); return 60 + 6 * dive;
+        const dive = sm(DRAG.haul, DRAG.under, t), jit = sm(DRAG.grip, DRAG.grip + 0.3, t) * (t < DRAG.haul ? 0.016 : 0.03), reach = sm(DRAG.grip, DRAG.grip + 0.25, t) * (1 - sm(DRAG.haul - 0.1, DRAG.haul + 0.2, t));
+        // dragged by the throat: the lens trails and bobs with his steps, sways, and turns partly down so the stones and the lamps slide past, then back to his face
+        const bob = Math.sin(t * 13) * 0.075 * reach, sway = Math.sin(t * 6.5) * 0.16 * reach, down = 0.5 * sm(0.75, 1.15, t) * (1 - sm(1.5, 1.75, t));
+        const ey = 1.5 - 0.62 * sm(DRAG.grip + 0.1, DRAG.haul, t) - 0.7 * dive + bob, back = 0.62 + 0.5 * down - 0.15 * dive;
+        eye.set(hd.x + ux * back + sx * (sway + Math.sin(t * 29) * jit), Math.max(0.17, ey) + Math.sin(t * 37) * jit, hd.z + uz * back + sz * (sway + Math.sin(t * 29) * jit));
+        const fy = hh.y - 0.3 + 0.6 * dive;
+        at.set(hh.x + (eye.x - ux * 2.2 - hh.x) * down, fy + (0.1 - fy) * down, hh.z + (eye.z - uz * 2.2 - hh.z) * down); return 60 + 6 * dive;
       }
       if (t < DRAG.heave) {
         // under: the lens sinks away from the surface it was just above, looking up the length of his arm at him, with the lamps blurred on the water
@@ -47,18 +50,18 @@ export function dragSpec(sim: River, m: Motor, marks?: Marks): MomentSpec {
       eye.set(m.x + ux * 0.25, 0.34 + 1.1 * g, m.z + uz * 0.25); at.set(bx + ux * 0.1, 2.3 - 0.6 * g, bz + uz * 0.1); return 54 - 2 * g;
     },
     // the throw turns the lens over a little, the stones knock it crooked, the lie settles it
-    roll: t => t < DRAG.grip ? 0 : t < DRAG.haul ? 0.04 * Math.sin(t * 7) : t < DRAG.under ? 0.18 * sm(DRAG.haul, DRAG.under, t) : t < DRAG.heave ? 0.1 * Math.sin((t - DRAG.under) * 0.8) : t < DRAG.land ? 0.5 * Math.sin(Math.PI * (t - DRAG.heave) / (DRAG.land - DRAG.heave)) : 0.3 * (1 - sm(DRAG.land, DRAG.end, t)),
+    roll: t => t < DRAG.grip ? 0 : t < DRAG.haul ? 0.14 * sm(DRAG.grip, 0.9, t) + 0.07 * Math.sin(t * 6.5) * sm(DRAG.grip, DRAG.grip + 0.25, t) : t < DRAG.under ? 0.18 * sm(DRAG.haul, DRAG.under, t) : t < DRAG.heave ? 0.1 * Math.sin((t - DRAG.under) * 0.8) : t < DRAG.land ? 0.5 * Math.sin(Math.PI * (t - DRAG.heave) / (DRAG.land - DRAG.heave)) : 0.3 * (1 - sm(DRAG.land, DRAG.end, t)),
     // dark at each cut (in and out of the water) and a fall of light as the air runs out; a flash and a dim at the stones
     dim: t => {
       if (t < DRAG.under - 0.15) return 0; if (t < DRAG.under) return sm(DRAG.under - 0.15, DRAG.under, t);
       if (t < DRAG.under + 0.35) return 1 - 0.85 * sm(DRAG.under, DRAG.under + 0.35, t);
-      if (t < DRAG.heave - 0.15) return 0.15 + 0.4 * sm(DRAG.under + 0.9, DRAG.heave - 0.2, t);
-      if (t < DRAG.heave) return 0.55 + 0.45 * sm(DRAG.heave - 0.15, DRAG.heave, t);
-      if (t < DRAG.heave + 0.3) return 1 - 1 * sm(DRAG.heave, DRAG.heave + 0.3, t);
+      if (t < DRAG.heave - 0.1) return 0.15 + 0.4 * sm(DRAG.under + 0.9, DRAG.heave - 0.2, t);
+      if (t < DRAG.heave) return 0.55 + 0.45 * sm(DRAG.heave - 0.1, DRAG.heave, t);
+      if (t < DRAG.heave + 0.14) return 1 - 1 * sm(DRAG.heave, DRAG.heave + 0.14, t);
       if (t < DRAG.land) return 0; return 0.5 * (1 - sm(DRAG.land, DRAG.land + 0.4, t)) + 0.08 * (1 - sm(DRAG.land + 0.4, DRAG.end, t));
     },
     hero: (t, o) => o.set(0, 0, 0),
-    rate: t => t > DRAG.land - 0.2 && t < DRAG.land + 0.18 ? 0.3 : t > DRAG.heave - 0.1 && t < DRAG.heave + 0.1 ? 0.5 : 1,
+    rate: t => t > DRAG.land - 0.2 && t < DRAG.land + 0.18 ? 0.3 : 1,
     cues: [{ t: 0.12, name: 'grip' }, { t: DRAG.grip + 0.05, name: 'haul' }, { t: DRAG.haul + 0.2, name: 'dip' }, { t: DRAG.under, name: 'under' }, { t: DRAG.under + 0.6, name: 'hands' }, { t: DRAG.heave - 0.05, name: 'heave' }, { t: DRAG.land, name: 'land' }, { t: DRAG.lie, name: 'rise' }],
   };
 }
