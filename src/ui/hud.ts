@@ -5,12 +5,14 @@ import type { Action, Input } from '../input/input.ts';
 import { ICON, spellButtons } from '../input/touch.ts';
 import type { Spell } from '../combat/spells.ts';
 import { label } from '../input/bindings.ts';
-import type { Card } from '../bosses/king/lessons.ts';
+import type { BossWords } from '../boss/words.ts';
 import type { Prompts } from './prompts.ts';
 import { sound } from '../audio/sound.ts';
-import { KING_TITLES } from '../bosses/king/kingScript.ts';
 import { saveSettings, settings, settingsPanel } from '../core/settings.ts';
 import { canFullscreen, isFullscreen, onFullscreen, setFullscreen } from '../core/fullscreen.ts';
+
+/** A training card: the step the hero is taught. */
+export interface Card { id: string; n: number; of: number; title: string; text: string; action: Action | 'move'; /** The world is waiting for this press. */ held: boolean; /** Just done. */ ok: boolean; /** Hold, rather than tap. */ hold: boolean }
 
 const LINES: [Action | 'move', string][] = [['move', 'Move'], ['attack', 'Attack (hold: heavy)'], ['dodge', 'Dodge'], ['jump', 'Jump (Attack in the air)'], ['guard', 'Guard (hold)'], ['skill1', 'Cinder Rush'], ['skill2', 'Sunder Arc'], ['ultimate', 'Last Rites'], ['heal', 'Heal']];
 
@@ -18,16 +20,17 @@ export class Hud {
   private root: HTMLElement; private q = <T extends HTMLElement>(s: string) => this.root.querySelector<T>(s)!;
   private hpLag = 1; private bossLag = 1; private lagWait = 0; private bossWait = 0; private last = { aura: -1, round: 0, flame: false, hp: 1, boss: 1, prompt: '', dev: '', heals: -1 };
   paused = false; private fill = 1; private input: Input; private banner = 0;
-  /** Names of the two forms, and the panel after the last blow. */ names: [string, string] = ['The Hanged King', 'The One Beneath']; winTitle = 'Morning, at Last'; /** A button after the win that goes on to the next fight. */ next = ''; onNext: () => void = () => { };
+  /** Names of the two forms, and the panel after the last blow. */ names: [string, string]; winTitle: string; /** The callouts the warm-up paints (the page's own words). */ private words: BossWords; /** A button after the win that goes on to the next fight. */ next = ''; onNext: () => void = () => { };
   onRestart: () => void = () => { }; onMenu: () => void = () => { }; onResume: () => void = () => { };
-  constructor(app: HTMLElement, input: Input) {
+  constructor(app: HTMLElement, input: Input, page: { names: { r1: string; r2: string; won: string }; words: BossWords }) {
     this.input = input;
+    this.names = [page.names.r1, page.names.r2]; this.winTitle = page.names.won; this.words = page.words;
     this.root = document.createElement('div'); this.root.id = 'hud';
     this.root.innerHTML = `<div class="me"><div class="bar hp"><b></b><u></u></div><div class="bar fire"><u></u><s></s><s></s></div><div class="aura"><i></i><i></i><i></i><i></i><em></em></div></div>
-<div class="boss"><div class="name">The Hanged King</div><div class="bar"><b></b><u></u></div></div>
+<div class="boss"><div class="name">${page.names.r1}</div><div class="bar"><b></b><u></u></div></div>
 <div class="ab"><div class="sk ult" data-a="ultimate"><i></i><svg viewBox="0 0 24 24">${ICON.ultimate}</svg><kbd></kbd></div><div class="sk" data-a="skill2"><i></i><svg viewBox="0 0 24 24">${ICON.skill2}</svg><kbd></kbd></div><div class="sk" data-a="skill1"><i></i><svg viewBox="0 0 24 24">${ICON.skill1}</svg><kbd></kbd></div><div class="sk" data-a="heal"><svg viewBox="0 0 24 24">${ICON.heal}</svg><em></em><kbd></kbd></div></div>
 <div class="prompt"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div><div class="banner"></div><div class="verse"></div><div class="call"></div><div class="lesson"><div class="pips"></div><h3></h3><p></p></div><div class="press"><kbd></kbd><svg viewBox="0 0 24 24"></svg><span></span></div>
-<div class="win"><h2>Morning, at Last</h2><table></table><div><button data-b="again">Fight again</button> <button data-b="next" hidden></button> <button data-b="menu">Main menu</button></div></div>
+<div class="win"><h2>${page.names.won}</h2><table></table><div><button data-b="again">Fight again</button> <button data-b="next" hidden></button> <button data-b="menu">Main menu</button></div></div>
 <div class="pause"><h2>Paused</h2><div class="btns"><button data-b="go">Resume</button><button data-b="re">Restart fight</button><button data-b="sk">Skip training</button>${canFullscreen ? '<button data-b="fs">Full screen</button>' : ''}<button data-b="mu">Sound: on</button><button data-b="menu">Main menu</button></div><div class="cols"><table></table></div></div>`;
     app.append(this.root); this.q('.pause .cols').append(settingsPanel());
     this.q<HTMLButtonElement>('.win [data-b=next]').onclick = () => { document.body.classList.remove('won'); this.onNext(); };
@@ -40,7 +43,7 @@ export class Hud {
   warm(on: boolean) {
     this.root.classList.toggle('lit', on); this.root.classList.toggle('low', on); document.body.classList.toggle('warming', on);
     for (const e of document.querySelectorAll<HTMLElement>('.sk, .tb')) { e.classList.toggle('ready', on); e.classList.toggle('hint', on); e.style.setProperty('--k', on ? '0.6' : '0'); }
-    const p = this.q('.prompt'); p.className = 'prompt' + (on ? ' on red' : ''); const b = this.q('.banner'); b.className = 'banner' + (on ? ' on' : ''); b.textContent = on ? KING_TITLES.dawn : ''; const c = this.q<HTMLElement>('.call'); c.textContent = on ? 'Broken Kindled Ablaze Pyre Wake Last Rites ready' : ''; c.classList.toggle('on', on);
+    const p = this.q('.prompt'); p.className = 'prompt' + (on ? ' on red' : ''); const b = this.q('.banner'); b.className = 'banner' + (on ? ' on' : ''); b.textContent = on ? this.winTitle : ''; const c = this.q<HTMLElement>('.call'); c.textContent = on ? `${this.words.broken} Kindled Ablaze Pyre Wake ${this.words.lastRites}` : ''; c.classList.toggle('on', on);
   }
   setPaused(p: boolean) {
     this.paused = p; document.body.classList.toggle('paused', p); if (p) document.exitPointerLock?.();

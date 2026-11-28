@@ -275,7 +275,7 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
   const [v1, v2] = parts.views;
   const fight = new Fight(m, sim, brain);
   const prompts = new Prompts();
-  const hud = new Hud(app, input);
+  const hud = new Hud(app, input, spec);
   fight.furnish(arena.ruin.props);
   fight.passive = !!(quiet || Q.has('still'));
   const still = fight.passive;
@@ -294,8 +294,6 @@ export async function fightPage<P extends Parts>(c: Ctx, spec: FightPageSpec<P>)
     f: fight, pv, views: parts.views, fx, cam: follow, post, hud, input, camera: cam, court: arena, words: spec.words,
   });
   scene.add(dir.cue.mesh, dir.marks.mesh, dir.crescents.group);
-  hud.names = [spec.names.r1, spec.names.r2];
-  hud.winTitle = spec.names.won;
   /** The spell pair the hero is armed with: the page's own while it has one (the King's training), else the player's. */
   const arm = () => {
     const sp = wired.spells?.() ?? settings.spells;
