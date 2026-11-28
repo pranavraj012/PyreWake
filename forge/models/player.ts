@@ -51,14 +51,14 @@ export async function player(): Promise<Mesh> {
   face.put(tube(edge, () => 0.0068), { k: 0.008 });
   face.displace((x, y, z) => { const u = (y + 0.35 * Math.abs(x) + 0.1 * z) * 46 + noise(x * 18, y * 18, z * 18) * 0.7, f = u - Math.floor(u); return -0.0062 * Math.sin(f * Math.PI) - 0.003 * ridged(x * 30, y * 55, z * 30, 2) + 0.0012 + 0.0025 * sstep(0.82, 0.98, f); }, 0.008);
 
-  const hood = F(0.03, 0.0042, 5, 3800); hood.bone = b.head;
+  const hood = F(0.03, 0.0031, 5, 9500); hood.bone = b.head;
   hood.put(ell([0, 1.69, 0.0], [0.118, 0.137, 0.14])).put(ell([0, 1.66, -0.08], [0.08, 0.1, 0.085]), { k: 0.05 }).put(ell([0, 1.765, 0.06], [0.078, 0.052, 0.085]), { k: 0.05 });
   hood.put(cone([0, 1.62, -0.03], [0, 1.52, -0.025], 0.098, 0.105), { k: 0.05, bone: b.neck });
   // cowl rolls around the neck
   for (let i = 0; i < 4; i++) {
-    const y = 1.545 - i * 0.027, r = 0.092 + i * 0.02, pts: V3[] = [];
+    const y = 1.545 - i * 0.027, r = 0.088 + i * 0.016, pts: V3[] = [];
     for (let j = 0; j <= 20; j++) { const a = j / 20 * Math.PI * 2; pts.push([Math.sin(a) * r * 1.08, y + Math.cos(a) * -0.022 - 0.012 * Math.sin(a * 2 + i * 2) + 0.008 * Math.sin(a * 3 + i), -0.02 + Math.cos(a) * r * 0.98]); }
-    hood.put(tube(pts, t => 0.021 + 0.006 * Math.sin(t * 12 + i * 2)), { k: 0.022, bone: i < 2 ? b.neck : b.chest });
+    hood.put(tube(pts, t => 0.017 + 0.005 * Math.sin(t * 12 + i * 2)), { k: 0.022, bone: i < 2 ? b.neck : b.chest });
   }
   hood.put(ell([0, 1.665, 0.012], [0.086, 0.108, 0.116]), { op: 'sub', k: 0.016 });
   hood.put(ell([0, 1.64, 0.165], [0.07, 0.098, 0.1]), { op: 'sub', k: 0.03 });
@@ -67,7 +67,13 @@ export async function player(): Promise<Mesh> {
   hood.put(cone([0, 1.76, 0.0], [0, 1.845, -0.14], 0.08, 0.005), { k: 0.045 });
   hood.put(cone([0, 1.74, -0.06], [0, 1.69, -0.215], 0.07, 0.012), { k: 0.05 });
   for (const [, s] of SIDES) hood.put(cone([0.108 * s, 1.68, 0.04], [0.098 * s, 1.55, 0.07], 0.03, 0.04), { k: 0.04 });
-  hood.displace((x, y, z) => { const a = Math.atan2(x, z + 0.01); return -0.0135 * ridged(a * 1.8, y * 6.5 + Math.abs(a) * 1.5, 3, 2) - 0.0045 * ridged(a * 4, y * 14, 5, 2) + 0.008 + 0.002 * noise(x * 50, y * 50, z * 50); }, 0.014);
+  hood.displace((x, y, z) => { const a = Math.atan2(x, z + 0.01); const q = (x / 0.086) ** 2 + ((y - 1.665) / 0.108) ** 2 + ((z - 0.012) / 0.116) ** 2, front = sstep(0.0, 0.05, z);
+    const hem = front * sstep(1.22, 1.04, q), seam = front * sstep(0.9, 1, 1 - Math.abs(q - 1.24) / 0.022) * (0.55 + 0.45 * Math.cos(Math.atan2(y - 1.665, x) * 70));
+    const burn = front * sstep(1.1, 1.0, q) * sstep(0.5, 0.68, noise(x * 90, y * 90, z * 90)) * 0.006;
+    const crown = sstep(1.7, 1.73, y) * sstep(0.006, 0.002, Math.abs(x)), stitch = crown * (0.4 + 0.6 * sstep(0.55, 0.9, Math.cos(z * 240 + y * 240)));
+    const inP = Math.max(Math.abs(x - 0.104) / 0.022, Math.abs(y - 1.69) / 0.03, Math.abs(z - 0.0) / 0.034), patch = x > 0.08 ? sstep(1.02, 0.96, inP) * 0.004 + sstep(0.98, 0.9, Math.abs(inP - 0.84) * 6 - 0.0) * 0.0 + 0.0022 * sstep(0.8, 0.95, 1 - Math.abs(inP - 0.86) / 0.05) * sstep(0.6, 0.9, Math.cos((y + z) * 300)) : 0;
+    const fine = -0.0016 * ridged(x * 30 + y * 12, y * 44, z * 30, 2);
+    return -0.0165 * ridged(a * 1.8, y * 6.5 + Math.abs(a) * 1.5, 3, 2) - 0.0045 * ridged(a * 4, y * 14, 5, 2) + 0.008 + 0.0008 * noise(x * 50, y * 50, z * 50) + fine + hem * 0.007 + seam * 0.005 - burn + 0.005 * stitch + patch * 1.4; }, 0.014);
 
   // shoulder mantle
   const mantle = F(0.03, 0.0045, 5, 3600); mantle.bone = b.chest;
