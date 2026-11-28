@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 const g = globalThis as unknown as { document?: unknown };
 g.document ??= { createElement: () => ({ width: 0, height: 0, getContext: () => ({ createRadialGradient: () => ({ addColorStop() { } }), fillRect() { }, fillStyle: '' }) }), body: { classList: { add() { }, remove() { } } } };
-const { RiverIntro } = await import('../src/game/riverScenes.ts');
+const { RiverIntro } = await import('../src/bosses/river/riverScenes.ts');
 const { MOONK } = await import('../src/render/sky.ts');
 
 const DT = 1 / 60;

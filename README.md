@@ -96,7 +96,7 @@ src/boss/     simulation, moves, brain, drawing
 src/anim/     rig, IK, clips, cloth, gaits
 src/render/   shaders, post, effects
 src/game/     camera, effects director, cutscenes, each fight's script
-src/river.ts, src/hours.ts   the second and third fights' pages (`?boss=2`, `?boss=3`)
+src/bosses/river/page.ts, src/hours.ts   the second and third fights' pages (`?boss=2`, `?boss=3`)
 src/audio/    synthesis, score
 src/ui/ src/input/ src/arena/ src/core/
 ```

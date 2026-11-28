@@ -6,7 +6,7 @@ import { Rig } from '../../anim/rig.ts';
 import { KING } from '../../anim/skeletons.ts';
 import type { Fx } from '../../render/fx.ts';
 import { LEVEL } from '../../render/water.ts';
-import type { BossView } from '../view.ts';
+import type { BossView } from '../../boss/view.ts';
 import { DUEL, FSTAND, RIVER_CLIPS as K } from './clips.ts';
 import { RiverFx, type FxGeo } from './riverFx.ts';
 import type { River } from './river.ts';

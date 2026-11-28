@@ -2,7 +2,7 @@
 // Headless: the geometry is pure. The damage-once and the heavy-attack cases are in momentStates.test.ts.
 import { describe, expect, it } from 'vitest';
 import { Motor } from '../src/player/motor.ts';
-import { River, LANTERN, CHAIN } from '../src/boss/river/river.ts';
+import { River, LANTERN, CHAIN } from '../src/bosses/river/river.ts';
 import { ChainGeo, LanternGeo, RewardRun, type RewardKit } from '../src/game/rewardShots.ts';
 import * as THREE from 'three';
 

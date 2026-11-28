@@ -1,14 +1,14 @@
 // Round 1 and 2 of the second fight: the river ghats at night. A drowned landing, steps going up behind it, half-drowned pavilions, moored boats, and a river of floating lamps out to one thin line of day.
 import * as THREE from 'three';
-import { loadGeo, loadJson, type TexSet } from '../render/assets.ts';
-import { DEPTH, FOG, surface } from '../render/surface.ts';
-import { LINE } from '../render/sky.ts';
-import { Ruin } from './ruin.ts';
-import { makeGhatProps } from './props.ts';
-import { slabs } from '../bosses/king/court.ts';
-import { makeAsh, makeFires } from '../render/ambient.ts';
-import { LEVEL, Water } from '../render/water.ts';
-import type { Tier } from '../core/quality.ts';
+import { loadGeo, loadJson, type TexSet } from '../../render/assets.ts';
+import { DEPTH, FOG, surface } from '../../render/surface.ts';
+import { LINE } from '../../render/sky.ts';
+import { Ruin } from '../../arena/ruin.ts';
+import { makeGhatProps } from '../../arena/props.ts';
+import { slabs } from '../king/court.ts';
+import { makeAsh, makeFires } from '../../render/ambient.ts';
+import { LEVEL, Water } from '../../render/water.ts';
+import type { Tier } from '../../core/quality.ts';
 
 const seeded = (s: number) => () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 export const LANDING_R = 22;

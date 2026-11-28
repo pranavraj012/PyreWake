@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { River, CHAIN, DRAG, GRAB_DRAG, LANTERN, RIVER_OFFER, RIVER_REWARD_SHARE } from '../src/boss/river/river.ts';
-import { RiverBrain } from '../src/boss/river/brain.ts';
+import { River, CHAIN, DRAG, GRAB_DRAG, LANTERN, RIVER_OFFER, RIVER_REWARD_SHARE } from '../src/bosses/river/river.ts';
+import { RiverBrain } from '../src/bosses/river/brain.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60;

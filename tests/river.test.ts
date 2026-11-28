@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { Fight, type FightEvent } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
-import { River } from '../src/boss/river/river.ts';
-import { RiverBrain } from '../src/boss/river/brain.ts';
-import { RIVER_ATTACKS as A } from '../src/boss/river/moves.ts';
-import { RIVER_CLIPS as C } from '../src/boss/river/clips.ts';
+import { River } from '../src/bosses/river/river.ts';
+import { RiverBrain } from '../src/bosses/river/brain.ts';
+import { RIVER_ATTACKS as A } from '../src/bosses/river/moves.ts';
+import { RIVER_CLIPS as C } from '../src/bosses/river/clips.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60, tap = (a: string): Press[] => [{ a, up: false }, { a, up: true }];

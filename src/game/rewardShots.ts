@@ -12,8 +12,8 @@ import type { Fx } from '../render/impact.ts';
 import { RewardChain } from './rewardChain.ts';
 import { RideGeo, RopeGeo } from '../bosses/king/kingRewards.ts';
 import { KHANDA } from '../weapons/khanda.ts';
-import { CHAIN, LANTERN, type River } from '../boss/river/river.ts';
-import type { RiverView } from '../boss/river/riverView.ts';
+import { CHAIN, LANTERN, type River } from '../bosses/river/river.ts';
+import type { RiverView } from '../bosses/river/riverView.ts';
 import { RIDE, RIP } from '../bosses/king/king.ts';
 import type { KingView } from '../bosses/king/kingView.ts';
 

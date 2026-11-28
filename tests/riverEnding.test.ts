@@ -5,7 +5,7 @@ import * as THREE from 'three';
 // the scene touches the page only through `document` (a canvas for the flame, the cine class)
 const g = globalThis as unknown as { document?: unknown };
 g.document ??= { createElement: () => ({ width: 0, height: 0, getContext: () => ({ createRadialGradient: () => ({ addColorStop() { } }), fillRect() { }, fillStyle: '' }) }), body: { classList: { add() { }, remove() { } } } };
-const { RiverEnding, END_LEN } = await import('../src/game/riverScenes.ts');
+const { RiverEnding, END_LEN } = await import('../src/bosses/river/riverScenes.ts');
 
 const DT = 1 / 60;
 function kit() {

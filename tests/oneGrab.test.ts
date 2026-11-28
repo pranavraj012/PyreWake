@@ -3,8 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { GRAB_DMG, type King } from '../src/bosses/king/king.ts';
-import { GRAB_DRAG, River } from '../src/boss/river/river.ts';
-import { RiverBrain } from '../src/boss/river/brain.ts';
+import { GRAB_DRAG, River } from '../src/bosses/river/river.ts';
+import { RiverBrain } from '../src/bosses/river/brain.ts';
 import { Motor, type Press } from '../src/player/motor.ts';
 
 const DT = 1 / 60;

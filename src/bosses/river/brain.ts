@@ -1,8 +1,8 @@
 // Decides what the Ferryman does, net on and net off: health-gated styles over an attack picker that plays in strings and always leaves an opening.
 import { D } from '../../combat/difficulty.ts';
-import type { Boss, BossBrain } from '../boss.ts';
+import type { Boss, BossBrain } from '../../boss/boss.ts';
 import { isMove, type River } from './river.ts';
-import { FIRST_GRAB_BY } from '../../bosses/king/brain.ts';
+import { FIRST_GRAB_BY } from '../king/brain.ts';
 
 export type RiverStyle = 'pole' | 'chain' | 'lantern' | 'bare' | 'last';
 interface Option { seq: string[]; w: number; near: number; far: number; below?: number; need?: (k: River) => boolean }

@@ -1,22 +1,22 @@
 // The Ferryman's scenes: the way in (the crossing and what he guards), the turn (the net thrown off), and the way out (a lamp touched to a boat). All skippable.
 import * as THREE from 'three';
-import { sound } from '../audio/sound.ts';
-import { MOONK } from '../render/sky.ts';
-import type { RiverView } from '../boss/river/riverView.ts';
-import type { River } from '../boss/river/river.ts';
-import type { RiverDirector } from '../boss/river/riverDirector.ts';
-import type { buildGhats } from '../arena/ghats.ts';
-import type { Fight } from '../combat/fight.ts';
-import type { PlayerView } from '../player/view.ts';
-import type { Fx } from '../render/impact.ts';
-import { DAWN } from '../render/sky.ts';
-import { LEVEL } from '../render/water.ts';
-import type { Hud } from '../ui/hud.ts';
-import { Cues, Lens } from './sceneKit.ts';
+import { sound } from '../../audio/sound.ts';
+import { MOONK } from '../../render/sky.ts';
+import type { RiverView } from './riverView.ts';
+import type { River } from './river.ts';
+import type { RiverDirector } from './riverDirector.ts';
+import type { buildGhats } from './ghats.ts';
+import type { Fight } from '../../combat/fight.ts';
+import type { PlayerView } from '../../player/view.ts';
+import type { Fx } from '../../render/impact.ts';
+import { DAWN } from '../../render/sky.ts';
+import { LEVEL } from '../../render/water.ts';
+import type { Hud } from '../../ui/hud.ts';
+import { Cues, Lens } from '../../game/sceneKit.ts';
 import { RIVER_ENDING, RIVER_INTRO, RIVER_TURN, speak } from './riverScript.ts';
-import { CHAIN, DRAG, LANTERN, type River as RiverSim } from '../boss/river/river.ts';
-import type { Motor, Press } from '../player/motor.ts';
-import type { MomentSpec, Prompt } from './moment.ts';
+import { CHAIN, DRAG, LANTERN, type River as RiverSim } from './river.ts';
+import type { Motor, Press } from '../../player/motor.ts';
+import type { MomentSpec, Prompt } from '../../game/moment.ts';
 
 /** The flame in a hand: a soft orange point, drawn once. */
 function flameCanvas(): HTMLCanvasElement { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,220,150,1)'); g.addColorStop(0.16, 'rgba(255,150,60,.6)'); g.addColorStop(1, 'rgba(255,90,20,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return c; }

@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { Fight } from '../src/combat/fight.ts';
 import { D } from '../src/combat/difficulty.ts';
 import { FIRST_GRAB_BY } from '../src/bosses/king/brain.ts';
-import { River } from '../src/boss/river/river.ts';
-import { RiverBrain } from '../src/boss/river/brain.ts';
+import { River } from '../src/bosses/river/river.ts';
+import { RiverBrain } from '../src/bosses/river/brain.ts';
 import { Motor } from '../src/player/motor.ts';
 import type { King } from '../src/bosses/king/king.ts';
 

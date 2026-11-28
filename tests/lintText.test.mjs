@@ -66,7 +66,7 @@ describe('the story scripts', () => {
   const r = lintRepo();
 
   it('finds the script files it should', () => {
-    expect(r.files).toEqual(expect.arrayContaining(['src/game/riverScript.ts', 'src/game/script.ts']));
+    expect(r.files).toEqual(expect.arrayContaining(['src/bosses/river/riverScript.ts', 'src/game/script.ts']));
   });
 
   it('has no errors in any script file', () => {

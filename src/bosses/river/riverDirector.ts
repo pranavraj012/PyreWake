@@ -6,9 +6,9 @@ import { settings } from '../../core/settings.ts';
 import type { Director } from '../../game/director.ts';
 import type { Post } from '../../render/post.ts';
 import type { Hud } from '../../ui/hud.ts';
-import type { buildGhats } from '../../arena/ghats.ts';
+import type { buildGhats } from './ghats.ts';
 import type { RiverView } from './riverView.ts';
-import { RIVER_CALLS } from '../../game/riverScript.ts';
+import { RIVER_CALLS } from './riverScript.ts';
 import type { River } from './river.ts';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);

@@ -1,5 +1,5 @@
 // node tools/analyse2.mjs [fights] : headless bots against the Ferryman and the Weight. Win rate, length, what hurt, what each move was worth.
-import { Fight } from '../src/combat/fight.ts'; import { Motor } from '../src/player/motor.ts'; import { River } from '../src/boss/river/river.ts'; import { RiverBrain } from '../src/boss/river/brain.ts';
+import { Fight } from '../src/combat/fight.ts'; import { Motor } from '../src/player/motor.ts'; import { River } from '../src/bosses/river/river.ts'; import { RiverBrain } from '../src/bosses/river/brain.ts';
 const N = +(process.argv[2] ?? 40), DT = 1 / 60, tap = a => [{ a, up: false }, { a, up: true }];
 /** mash: only attacks. dodger: answers about two cues in three. smart: also cuts chains and lanterns, turns coins, jumps low sweeps. */
 const KIND = { mash: { dodge: 0 }, dodger: { dodge: .65 }, smart: { dodge: .7, spell: true, jump: true } };

@@ -9,8 +9,8 @@
 //   The end. The coins go back into the river. He is an old man with a bundle in his arms. He gave her his name, once, because he liked to hear
 //   it called across the water. He holds out his lamp, and you light the boat; this is the one blow in the game you do not swing.
 
-import type { Line } from './script.ts';
-export { speak, type Line } from './script.ts';
+import type { Line } from '../../game/script.ts';
+export { speak, type Line } from '../../game/script.ts';
 
 export const RIVER_NAMES = { r1: 'The Ferryman', r2: 'The Unburdened', won: 'The Far Bank' } as const;
 

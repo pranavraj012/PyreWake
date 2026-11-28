@@ -231,6 +231,6 @@ async function boot() {
   startLoop(dt => { if (!bench) step(dt); else bench.tick(dt); }, draw);
 }
 /** Each fight past the first has its own page, loaded only when asked for. */
-const PAGES: Record<string, () => Promise<(c: import('./core/boot.ts').Ctx) => Promise<void>>> = { '2': () => import('./river.ts').then(r => r.bootRiver), '3': () => import('./hours.ts').then(r => r.bootHours) };
+const PAGES: Record<string, () => Promise<(c: import('./core/boot.ts').Ctx) => Promise<void>>> = { '2': () => import('./bosses/river/page.ts').then(r => r.bootRiver), '3': () => import('./hours.ts').then(r => r.bootHours) };
 const page = PAGES[Q.get('boss') ?? ''];
 (page ? page().then(b => b({ Q, tier, renderer, scene, cam, moon, moonDir, hemi, kick, sky, post, dyn, resize, input, app, baseFov: () => baseFov, focus, status, SHOT, BENCH })) : boot()).catch(e => { console.error(e); status('Could not start: ' + e.message); });
