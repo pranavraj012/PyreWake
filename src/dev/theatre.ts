@@ -24,10 +24,11 @@ import type { Motor } from '../player/motor.ts';
 import { OFFER, type King } from '../bosses/king/king.ts';
 import type { River } from '../bosses/river/river.ts';
 import type { Sister } from '../bosses/hours/sister.ts';
+import { BOSSES, type BossId } from '../bosses/index.ts';
 
-export type Boss = 'king' | 'river' | 'hours';
-/** The moment names each fight page takes (the ?moment= value). */
-export const MOMENTS: Record<Boss, string[]> = { king: ['noose', 'rope', 'ride'], river: ['drag', 'chain', 'lantern'], hours: ['gather', 'turn'] };
+export type Boss = BossId;
+/** The moment names each fight page takes (the ?moment= value), from the boss registry. */
+export const MOMENTS = Object.fromEntries(BOSSES.map(b => [b.id, b.moments])) as Record<Boss, string[]>;
 /** What each moment is, for the panel. */
 const WHAT: Record<string, string> = { noose: 'first grab', rope: 'rope reward', ride: 'ride reward', drag: 'first grab', chain: 'chain reward', lantern: 'lantern reward', gather: 'the Pall grapple', turn: 'half-way turn' };
 
